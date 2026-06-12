@@ -483,6 +483,9 @@ export function DashboardApp(): React.ReactElement {
   function openSection(section: DashboardSection): void {
     setActiveSection(section);
     setMobileFormOpen(false);
+    if (section === 'notifications' && unreadNotifications.length > 0) {
+      void markNotificationsRead();
+    }
   }
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -937,6 +940,55 @@ export function DashboardApp(): React.ReactElement {
       return next;
     });
     setMessage(existingPayment ? 'Оплата обновлена.' : 'Оплата назначена.');
+  }
+
+  async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {
+    if (!workspace || payment.status === 'paid') return;
+    const confirmed = window.confirm(
+      `Удалить счёт на ${Number(payment.amount).toFixed(2)} ₺? Ученик увидит, что счёт отменён.`
+    );
+    if (!confirmed) return;
+
+    if (!isLocalMode) {
+      const success = await runRemoteAction({
+        action: 'delete_payment',
+        paymentId: payment.id
+      });
+      if (success) {
+        setPaymentEdits((current) => {
+          const next = { ...current };
+          delete next[payment.member_id];
+          return next;
+        });
+        setMessage('Счёт удалён. Ученику отправлено уведомление.');
+      }
+      return;
+    }
+
+    const now = new Date().toISOString();
+    saveWorkspace({
+      ...workspace,
+      payments: workspace.payments.filter((item) => item.id !== payment.id),
+      billingPlans: workspace.billingPlans.map((plan) =>
+        plan.id === payment.plan_id ? { ...plan, active: false, updatedAt: now } : plan
+      ),
+      notifications: [
+        ...workspace.notifications.filter((notification) => notification.paymentId !== payment.id),
+        {
+          id: createId(),
+          userId: payment.member_id,
+          message: `Счёт на ${Number(payment.amount).toFixed(2)} ₺ отменён ответственным лицом.`,
+          createdAt: now,
+          read: false
+        }
+      ]
+    });
+    setPaymentEdits((current) => {
+      const next = { ...current };
+      delete next[payment.member_id];
+      return next;
+    });
+    setMessage('Счёт удалён. Ученику отправлено уведомление.');
   }
 
   async function updatePaymentStatus(paymentId: string, status: PaymentRequestStatus): Promise<void> {
@@ -1481,7 +1533,6 @@ export function DashboardApp(): React.ReactElement {
           {!hasRole(activeUser, 'member') ? (
             <NavButton
               active={activeSection === 'people'}
-              count={peopleForView.length}
               icon={<Users size={18} />}
               label={
                 hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
@@ -1493,7 +1544,6 @@ export function DashboardApp(): React.ReactElement {
           ) : null}
           <NavButton
             active={activeSection === 'payments'}
-            count={currentPayments.filter((payment) => payment.status !== 'paid').length}
             icon={<CreditCard size={18} />}
             label="Оплаты"
             onClick={() => openSection('payments')}
@@ -1508,7 +1558,6 @@ export function DashboardApp(): React.ReactElement {
           ) : (
             <NavButton
               active={activeSection === 'groups'}
-              count={visibleGroups.length}
               icon={<Layers3 size={18} />}
               label="Группы"
               onClick={() => openSection('groups')}
@@ -2100,7 +2149,20 @@ export function DashboardApp(): React.ReactElement {
                       <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
                     </div>
                     <div className="row-actions">
-                      {canManage ? <button className="small-button" type="button" onClick={() => saveMemberPayment(member.id)}>{payment ? 'Сохранить' : 'Назначить'}</button> : null}
+                      {canManage ? (
+                        <button className="small-button" type="button" onClick={() => saveMemberPayment(member.id)}>
+                          {payment ? 'Сохранить изменения' : 'Назначить счёт'}
+                        </button>
+                      ) : null}
+                      {canManage && payment && payment.status !== 'paid' ? (
+                        <button
+                          className="small-button danger"
+                          type="button"
+                          onClick={() => void deleteMemberPayment(payment)}
+                        >
+                          Удалить счёт
+                        </button>
+                      ) : null}
                       {hasRole(activeUser, 'member') &&
                       payment &&
                       ['active', 'overdue', 'delayed'].includes(payment.status) ? (

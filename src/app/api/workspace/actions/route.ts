@@ -46,6 +46,7 @@ type ActionBody =
       dueDate: string;
       updateFuture: boolean;
     }
+  | { action: 'delete_payment'; paymentId: string }
   | { action: 'submit_payment'; paymentId: string }
   | {
       action: 'request_delay';
@@ -427,6 +428,48 @@ export async function POST(request: Request): Promise<NextResponse> {
     return paymentResult.error
       ? NextResponse.json({ error: paymentResult.error.message }, { status: 400 })
       : NextResponse.json({ ok: true });
+  }
+
+  if (body.action === 'delete_payment') {
+    const paymentResult = await admin
+      .from('payment_requests')
+      .select('*')
+      .eq('id', body.paymentId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+    const payment = paymentResult.data;
+
+    if (!payment) {
+      return NextResponse.json({ error: 'Счёт не найден.' }, { status: 404 });
+    }
+    if (!canManageTrainer(identity, payment.trainer_id)) {
+      return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
+    }
+    if (payment.status === 'paid') {
+      return NextResponse.json(
+        { error: 'Подтверждённую оплату нельзя удалить из истории.' },
+        { status: 400 }
+      );
+    }
+
+    const deleteResult = await admin.from('payment_requests').delete().eq('id', payment.id);
+    if (deleteResult.error) {
+      return NextResponse.json({ error: deleteResult.error.message }, { status: 400 });
+    }
+
+    if (payment.plan_id) {
+      await admin
+        .from('billing_plans')
+        .update({ active: false, updated_at: new Date().toISOString() })
+        .eq('id', payment.plan_id);
+    }
+
+    await createNotification(
+      organizationId,
+      payment.member_id,
+      `Счёт на ${Number(payment.amount).toFixed(2)} ₺ отменён ответственным лицом.`
+    );
+    return NextResponse.json({ ok: true });
   }
 
   const paymentActions = ['submit_payment', 'request_delay', 'decide_delay', 'decide_payment'];

@@ -179,6 +179,37 @@ try {
   if (paidPayment?.status !== 'paid') throw new Error('Payment was not marked paid');
   if (!nextPayment || nextPayment.id === payment.id) throw new Error('Next monthly payment was not created');
 
+  await action(trainerToken, {
+    action: 'save_payment',
+    memberId: member.id,
+    type: 'monthly',
+    trainingFormat: 'group',
+    amount: 5500,
+    dueDate: nextPayment.due_date,
+    updateFuture: false
+  });
+  memberWorkspace = await workspace(memberToken);
+  const editedPayment = memberWorkspace.workspace.payments.find(
+    (item) => item.id === nextPayment.id
+  );
+  if (Number(editedPayment?.amount) !== 5500) throw new Error('Payment was not edited');
+
+  await action(trainerToken, {
+    action: 'delete_payment',
+    paymentId: nextPayment.id
+  });
+  memberWorkspace = await workspace(memberToken);
+  if (memberWorkspace.workspace.payments.some((item) => item.id === nextPayment.id)) {
+    throw new Error('Payment was not deleted');
+  }
+  if (
+    !memberWorkspace.workspace.notifications.some((notification) =>
+      notification.message.includes('отменён')
+    )
+  ) {
+    throw new Error('Member did not receive deleted payment notification');
+  }
+
   console.log(
     JSON.stringify({
       owner: true,
@@ -187,7 +218,9 @@ try {
       member: true,
       delay: true,
       payment: paidPayment.status,
-      nextPeriod: nextPayment.due_date
+      nextPeriod: nextPayment.due_date,
+      paymentEdited: true,
+      paymentDeleted: true
     })
   );
 } finally {

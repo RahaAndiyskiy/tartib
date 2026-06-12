@@ -221,6 +221,12 @@ button:disabled {
   color: #415049;
 }
 
+.small-button.danger {
+  background: #fff4f1;
+  color: #a33f2f;
+  border: 1px solid #eccdc6;
+}
+
 .form-message,
 .notice {
   margin: 14px 0 0;
