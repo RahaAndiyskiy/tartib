@@ -12,7 +12,8 @@ import {
   RotateCcw,
   CalendarDays,
   Layers3,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import {
   createId,
@@ -212,6 +213,7 @@ export function DashboardApp(): React.ReactElement {
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -458,6 +460,12 @@ export function DashboardApp(): React.ReactElement {
       setActiveSection('groups');
     }
     setMessage('');
+    setMobileFormOpen(false);
+  }
+
+  function openSection(section: DashboardSection): void {
+    setActiveSection(section);
+    setMobileFormOpen(false);
   }
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -491,6 +499,7 @@ export function DashboardApp(): React.ReactElement {
       });
       if (success) {
         setPersonDraft(emptyPersonDraft);
+        setMobileFormOpen(false);
         setMessage(effectiveRole === 'member' ? 'Ученик создан.' : 'Тренер создан.');
       }
       return;
@@ -612,6 +621,7 @@ export function DashboardApp(): React.ReactElement {
       if (success) {
         setGroupDraft(emptyGroupDraft);
         setEditingGroupId('');
+        setMobileFormOpen(false);
         setMessage(editingGroupId ? 'Группа обновлена.' : 'Группа создана.');
       }
       return;
@@ -1385,7 +1395,7 @@ export function DashboardApp(): React.ReactElement {
   };
 
   if (!workspace || !activeUser) {
-    return <main className="app-shell">Загружаем тестовый клуб...</main>;
+    return <main className="app-shell">Загружаем клуб...</main>;
   }
 
   return (
@@ -1409,7 +1419,7 @@ export function DashboardApp(): React.ReactElement {
             active={activeSection === 'overview'}
             icon={<LayoutDashboard size={18} />}
             label="Обзор"
-            onClick={() => setActiveSection('overview')}
+            onClick={() => openSection('overview')}
           />
           {!hasRole(activeUser, 'member') ? (
             <NavButton
@@ -1421,7 +1431,7 @@ export function DashboardApp(): React.ReactElement {
                   ? 'Мои ученики'
                   : 'Команда'
               }
-              onClick={() => setActiveSection('people')}
+              onClick={() => openSection('people')}
             />
           ) : null}
           <NavButton
@@ -1429,14 +1439,14 @@ export function DashboardApp(): React.ReactElement {
             count={currentPayments.filter((payment) => payment.status !== 'paid').length}
             icon={<CreditCard size={18} />}
             label="Оплаты"
-            onClick={() => setActiveSection('payments')}
+            onClick={() => openSection('payments')}
           />
           {hasRole(activeUser, 'member') ? (
             <NavButton
               active={activeSection === 'schedule'}
               icon={<CalendarDays size={18} />}
               label="Расписание"
-              onClick={() => setActiveSection('schedule')}
+              onClick={() => openSection('schedule')}
             />
           ) : (
             <NavButton
@@ -1444,7 +1454,7 @@ export function DashboardApp(): React.ReactElement {
               count={visibleGroups.length}
               icon={<Layers3 size={18} />}
               label="Группы"
-              onClick={() => setActiveSection('groups')}
+              onClick={() => openSection('groups')}
             />
           )}
           <NavButton
@@ -1452,7 +1462,7 @@ export function DashboardApp(): React.ReactElement {
             count={unreadNotifications.length}
             icon={<Bell size={18} />}
             label="Уведомления"
-            onClick={() => setActiveSection('notifications')}
+            onClick={() => openSection('notifications')}
           />
         </nav>
 
@@ -1488,11 +1498,42 @@ export function DashboardApp(): React.ReactElement {
       </aside>
 
       <main className="crm-main">
+        <div className="mobile-topbar">
+          <div className="mobile-brand">
+            <span className="crm-brand-mark">T</span>
+            <div>
+              <strong>{workspace.organization.name}</strong>
+              <span>{roleLabel(activeUser)}</span>
+            </div>
+          </div>
+          {!isLocalMode ? (
+            <button aria-label="Выйти" className="mobile-icon-button" type="button" onClick={() => void signOut()}>
+              <LogOut size={20} />
+            </button>
+          ) : null}
+        </div>
         <header className="crm-header">
           <div>
             <h1>{sectionMeta[activeSection].title}</h1>
             <p>{sectionMeta[activeSection].description}</p>
           </div>
+          {!hasRole(activeUser, 'member') &&
+          (activeSection === 'people' || activeSection === 'groups') ? (
+            <button
+              className="mobile-create-button"
+              type="button"
+              onClick={() => setMobileFormOpen((current) => !current)}
+            >
+              {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
+              {mobileFormOpen
+                ? 'Закрыть'
+                : activeSection === 'groups'
+                  ? 'Новая группа'
+                  : hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
+                    ? 'Новый ученик'
+                    : 'Добавить'}
+            </button>
+          ) : null}
           <div className="crm-user-badge">
             <span>{roleLabel(activeUser)}</span>
             <strong>{activeUser.first_name} {activeUser.last_name}</strong>
@@ -1505,7 +1546,7 @@ export function DashboardApp(): React.ReactElement {
           <button
             className="crm-alert"
             type="button"
-            onClick={() => setActiveSection('notifications')}
+            onClick={() => openSection('notifications')}
           >
             <Bell size={18} />
             <span>Новых уведомлений: {unreadNotifications.length}</span>
@@ -1634,7 +1675,7 @@ export function DashboardApp(): React.ReactElement {
                         : 'Подтверждения, отсрочки и просрочки'}
                     </p>
                   </div>
-                  <button className="text-button" type="button" onClick={() => setActiveSection('payments')}>
+                  <button className="text-button" type="button" onClick={() => openSection('payments')}>
                     Все оплаты
                   </button>
                 </div>
@@ -1680,7 +1721,7 @@ export function DashboardApp(): React.ReactElement {
                     <h2>{hasRole(activeUser, 'owner') ? 'По тренерам' : 'Ближайшие оплаты'}</h2>
                     <p>{hasRole(activeUser, 'owner') ? 'Ученики и контроль по ответственным' : 'Срок в течение трёх дней'}</p>
                   </div>
-                  <button className="text-button" type="button" onClick={() => setActiveSection('people')}>
+                  <button className="text-button" type="button" onClick={() => openSection('people')}>
                     Открыть
                   </button>
                 </div>
@@ -1760,7 +1801,7 @@ export function DashboardApp(): React.ReactElement {
             </div>
 
             {!hasRole(activeUser, 'member') ? (
-              <form className="crm-panel crm-side-form form-stack" onSubmit={addPerson}>
+              <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={addPerson}>
                 <div className="crm-panel-header">
                   <div>
                     <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Новый ученик' : 'Новый человек'}</h2>
@@ -1925,6 +1966,7 @@ export function DashboardApp(): React.ReactElement {
                     </div>
                     {canManage ? (
                       <div className="payment-scheme-fields">
+                        <span className="mobile-field-label">Схема</span>
                         <select
                           value={edit.type}
                           onChange={(event) =>
@@ -1951,7 +1993,7 @@ export function DashboardApp(): React.ReactElement {
                         ) : null}
                       </div>
                     ) : (
-                      <span>
+                      <span className="mobile-labeled-value" data-label="Схема">
                         {plan
                           ? `${planLabels[plan.type]}${plan.type === 'monthly' ? ` · ${formatLabels[plan.trainingFormat]}` : ''}`
                           : 'Не настроена'}
@@ -1959,6 +2001,7 @@ export function DashboardApp(): React.ReactElement {
                     )}
                     {canManage ? (
                       <div className="payment-calculation">
+                        <span className="mobile-field-label">Сумма</span>
                         <input
                           min="1"
                           placeholder="Сумма периода"
@@ -1985,10 +2028,16 @@ export function DashboardApp(): React.ReactElement {
                         ) : null}
                       </div>
                     ) : (
-                      <span>{payment ? `${Number(payment.amount).toFixed(2)} ₽` : 'Не назначена'}</span>
+                      <span className="mobile-labeled-value" data-label="Сумма">{payment ? `${Number(payment.amount).toFixed(2)} ₽` : 'Не назначена'}</span>
                     )}
-                    {canManage ? <input type="date" value={edit.dueDate} onChange={(event) => updatePaymentEdit(member.id, { dueDate: event.target.value })} /> : <span>{payment?.due_date ?? '—'}</span>}
-                    <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
+                    <div className="mobile-payment-field">
+                      <span className="mobile-field-label">Срок</span>
+                      {canManage ? <input type="date" value={edit.dueDate} onChange={(event) => updatePaymentEdit(member.id, { dueDate: event.target.value })} /> : <span>{payment?.due_date ?? '—'}</span>}
+                    </div>
+                    <div className="mobile-payment-field">
+                      <span className="mobile-field-label">Статус</span>
+                      <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
+                    </div>
                     <div className="row-actions">
                       {canManage ? <button className="small-button" type="button" onClick={() => saveMemberPayment(member.id)}>{payment ? 'Сохранить' : 'Назначить'}</button> : null}
                       {hasRole(activeUser, 'member') &&
@@ -2112,7 +2161,7 @@ export function DashboardApp(): React.ReactElement {
             </div>
 
             {hasRole(activeUser, 'trainer') ? (
-              <form className="crm-panel crm-side-form form-stack" onSubmit={createGroup}>
+              <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={createGroup}>
                 <div className="crm-panel-header">
                   <div>
                     <h2>Новая группа</h2>

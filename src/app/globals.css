@@ -1262,6 +1262,12 @@ button:disabled {
   font-size: 1rem;
 }
 
+.mobile-topbar,
+.mobile-create-button,
+.mobile-field-label {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .crm-shell {
     grid-template-columns: 220px minmax(0, 1fr);
@@ -1288,11 +1294,533 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .delay-request-form .small-button {
+    min-height: 42px;
+  }
+
   .member-schedule-detail {
     grid-template-columns: 1fr 1fr;
   }
 
   .group-row {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    background: #f3f6f4;
+  }
+
+  button,
+  input,
+  select {
+    font-size: 16px;
+  }
+
+  .crm-shell {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .crm-sidebar {
+    position: fixed;
+    z-index: 50;
+    inset: auto 0 0;
+    width: 100%;
+    height: calc(68px + env(safe-area-inset-bottom));
+    display: block;
+    border-top: 1px solid #d9e1dd;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 0 4px env(safe-area-inset-bottom);
+    box-shadow: 0 -6px 24px rgba(25, 43, 34, 0.1);
+  }
+
+  .crm-brand,
+  .crm-organization,
+  .crm-sidebar-footer {
+    display: none;
+  }
+
+  .crm-nav {
+    height: 68px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0;
+  }
+
+  .crm-nav-button {
+    position: relative;
+    min-width: 0;
+    min-height: 68px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 0;
+    color: #65716b;
+    padding: 6px 2px;
+    text-align: center;
+  }
+
+  .crm-nav-button:hover {
+    background: transparent;
+    color: #247257;
+  }
+
+  .crm-nav-button.active {
+    background: transparent;
+    color: #196248;
+  }
+
+  .crm-nav-button.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 28px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: #2b8968;
+  }
+
+  .crm-nav-button span {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .crm-nav-button strong {
+    position: absolute;
+    top: 7px;
+    left: calc(50% + 7px);
+    min-width: 18px;
+    border: 2px solid #ffffff;
+    background: #d84c37;
+    color: #ffffff;
+    padding: 1px 5px;
+    font-size: 0.62rem;
+  }
+
+  .crm-nav-button.active strong {
+    background: #d84c37;
+    color: #ffffff;
+  }
+
+  .crm-main {
+    padding: 0 12px calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-topbar {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 -12px 16px;
+    border-bottom: 1px solid #dde4e0;
+    background: #ffffff;
+    padding: 8px 14px;
+  }
+
+  .mobile-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile-brand .crm-brand-mark {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .mobile-brand div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .mobile-brand strong,
+  .mobile-brand span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-brand strong {
+    font-size: 0.92rem;
+  }
+
+  .mobile-brand span {
+    color: #75817b;
+    font-size: 0.72rem;
+  }
+
+  .mobile-icon-button {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e0dc;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #4e5b55;
+  }
+
+  .crm-header {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .crm-header h1 {
+    font-size: 1.42rem;
+  }
+
+  .crm-header p {
+    display: none;
+  }
+
+  .crm-user-badge {
+    display: none;
+  }
+
+  .mobile-create-button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid #2b8061;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #1f6d51;
+    padding: 0 12px;
+    font-weight: 800;
+  }
+
+  .notice,
+  .crm-alert {
+    margin-bottom: 12px;
+    border-radius: 7px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .metric-card {
+    min-height: 94px;
+    padding: 15px;
+  }
+
+  .metric-card strong {
+    font-size: 1.45rem;
+  }
+
+  .crm-overview-grid,
+  .crm-content-grid,
+  .member-overview {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .crm-panel {
+    border-radius: 7px;
+    box-shadow: none;
+  }
+
+  .crm-panel-header {
+    min-height: 58px;
+    padding: 13px 14px;
+  }
+
+  .crm-panel-header p {
+    display: none;
+  }
+
+  .crm-list-row,
+  .crm-summary div {
+    padding: 13px 14px;
+  }
+
+  .member-primary-card,
+  .member-info-card {
+    gap: 10px;
+    padding: 17px;
+  }
+
+  .member-payment-amount {
+    font-size: 2rem;
+  }
+
+  .member-payment-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .member-primary-card .primary-button,
+  .member-payment-actions,
+  .delay-request-form {
+    width: 100%;
+  }
+
+  .delay-request-form {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-table,
+  .crm-payment-table,
+  .schedule-table {
+    overflow: visible;
+  }
+
+  .crm-table-head,
+  .crm-payment-head,
+  .schedule-head {
+    display: none;
+  }
+
+  .crm-table-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    margin: 10px;
+    border: 1px solid #dfe6e2;
+    border-radius: 7px;
+    background: #ffffff;
+    padding: 14px;
+  }
+
+  .crm-table-row > strong {
+    font-size: 1.03rem;
+  }
+
+  .crm-table-row > span:nth-child(2)::before,
+  .crm-table-row > span:nth-child(4)::before,
+  .crm-table-row > select::before {
+    display: block;
+    color: #7a8680;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .crm-table-row > span:nth-child(2)::before {
+    content: 'Роль';
+  }
+
+  .crm-table-row > span:nth-child(4)::before {
+    content: 'Контакт';
+  }
+
+  .crm-table-row select {
+    width: 100%;
+  }
+
+  .crm-payment-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 13px;
+    margin: 10px;
+    border: 1px solid #dfe6e2;
+    border-radius: 7px;
+    background: #ffffff;
+    padding: 15px;
+  }
+
+  .crm-payment-row > div:first-child {
+    border-bottom: 1px solid #e6ebe8;
+    padding-bottom: 11px;
+  }
+
+  .crm-payment-row > div:first-child strong {
+    font-size: 1.05rem;
+  }
+
+  .mobile-field-label {
+    display: block;
+    color: #77837d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .mobile-labeled-value {
+    display: grid;
+    gap: 5px;
+  }
+
+  .mobile-labeled-value::before {
+    content: attr(data-label);
+    color: #77837d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .mobile-payment-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobile-payment-field .status-pill {
+    justify-self: start;
+  }
+
+  .payment-scheme-fields,
+  .payment-calculation {
+    gap: 7px;
+  }
+
+  .row-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .row-actions .small-button {
+    min-height: 42px;
+    white-space: normal;
+  }
+
+  .row-actions .action-context,
+  .row-actions .delay-request-compact {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .payment-history {
+    margin-top: 12px;
+  }
+
+  .payment-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 13px 14px;
+  }
+
+  .payment-history-row > span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .group-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 10px;
+    border: 1px solid #dfe6e2;
+    border-radius: 7px;
+    padding: 14px;
+  }
+
+  .group-row .group-activity,
+  .group-row .row-actions,
+  .group-row > div:last-child:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .group-row .group-activity {
+    border-bottom: 1px solid #e6ebe8;
+    padding-bottom: 10px;
+  }
+
+  .member-schedule-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .member-schedule-detail > div {
+    border-right: 0;
+    border-bottom: 1px solid #e7ece9;
+    padding: 16px;
+  }
+
+  .member-schedule-detail > div:last-child {
+    border-bottom: 0;
+  }
+
+  .notification-row {
+    padding: 14px;
+  }
+
+  .crm-side-form {
+    display: none;
+    position: static;
+    order: -1;
+  }
+
+  .crm-side-form.mobile-form-open {
+    display: grid;
+  }
+
+  .crm-side-form > label,
+  .crm-side-form > .split-fields,
+  .crm-side-form > .segmented-control,
+  .crm-side-form > button {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+
+  .crm-side-form .split-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-side-form .form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+
+  .crm-side-form .form-actions > button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .weekday-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .crm-main {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .mobile-topbar {
+    margin-right: -9px;
+    margin-left: -9px;
+  }
+
+  .crm-nav-button span {
+    font-size: 0.61rem;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .metric-card {
+    min-height: 88px;
+    padding: 12px;
+  }
+
+  .row-actions {
+    grid-template-columns: 1fr;
   }
 }
