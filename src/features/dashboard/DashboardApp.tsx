@@ -4,13 +4,16 @@ import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
+  ChevronRight,
   Copy,
   CreditCard,
   ExternalLink,
   LayoutDashboard,
   LogOut,
+  MoreHorizontal,
   Plus,
   RotateCcw,
+  Search,
   Share2,
   CalendarDays,
   Layers3,
@@ -106,6 +109,8 @@ type DashboardSection =
   | 'schedule'
   | 'expenses'
   | 'notifications';
+
+type PaymentView = 'all' | 'attention' | 'overdue' | 'paid';
 
 const emptyPersonDraft: PersonDraft = {
   role: 'trainer',
@@ -210,6 +215,14 @@ function periodLabel(date: string): string {
   );
 }
 
+function formatShortDate(date?: string | null): string {
+  if (!date) return '—';
+  return new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short'
+  });
+}
+
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const [workspace, setWorkspace] = useState<LocalWorkspace | null>(null);
@@ -226,6 +239,10 @@ export function DashboardApp(): React.ReactElement {
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [paymentView, setPaymentView] = useState<PaymentView>('all');
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
+  const [paymentEditOpen, setPaymentEditOpen] = useState(false);
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -407,6 +424,37 @@ export function DashboardApp(): React.ReactElement {
   );
   const overduePayments = currentPayments.filter((payment) => payment.status === 'overdue');
   const delayedPayments = currentPayments.filter((payment) => payment.status === 'delayed');
+  const paymentAttentionCount = confirmationPayments.length + delayRequestedPayments.length;
+  const filteredPaymentMembers = visibleMembers.filter((member) => {
+    const payment = currentPaymentByMemberId.get(member.id);
+    const normalizedSearch = paymentSearch.trim().toLocaleLowerCase('ru-RU');
+    const matchesSearch =
+      !normalizedSearch ||
+      userName(member.id).toLocaleLowerCase('ru-RU').includes(normalizedSearch);
+
+    if (!matchesSearch) return false;
+    if (paymentView === 'attention') {
+      return payment?.status === 'payment_confirmation' || payment?.status === 'delay_requested';
+    }
+    if (paymentView === 'overdue') return payment?.status === 'overdue';
+    return true;
+  });
+  const selectedPaymentMember =
+    visibleMembers.find((member) => member.id === selectedPaymentMemberId) ?? null;
+  const selectedPayment = selectedPaymentMember
+    ? currentPaymentByMemberId.get(selectedPaymentMember.id)
+    : undefined;
+  const selectedPaymentPlan = selectedPaymentMember
+    ? activePlanByMemberId.get(selectedPaymentMember.id)
+    : undefined;
+  const selectedPaymentHistory = selectedPaymentMember
+    ? visiblePayments
+        .filter(
+          (payment) =>
+            payment.member_id === selectedPaymentMember.id && payment.status === 'paid'
+        )
+        .reverse()
+    : [];
   const upcomingPayments = currentPayments.filter((payment) => {
     if (!['active', 'delayed'].includes(payment.status)) return false;
     const difference = Math.round(
@@ -2291,242 +2339,329 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
 
         {activeSection === 'payments' ? (
-          <section className="crm-panel">
-            <div className="crm-panel-header">
-              <div>
-                <h2>Реестр оплат</h2>
-                <p>Одна текущая оплата на каждого ученика</p>
+          <section className="payments-workspace">
+            <div className="crm-panel payments-registry">
+              <div className="payments-toolbar">
+                <div className="payment-view-tabs" role="tablist" aria-label="Фильтр оплат">
+                  <button className={paymentView === 'all' ? 'active' : ''} type="button" onClick={() => setPaymentView('all')}>
+                    Все <span>{visibleMembers.length}</span>
+                  </button>
+                  <button className={paymentView === 'attention' ? 'active' : ''} type="button" onClick={() => setPaymentView('attention')}>
+                    Требуют решения <span>{paymentAttentionCount}</span>
+                  </button>
+                  <button className={paymentView === 'overdue' ? 'active' : ''} type="button" onClick={() => setPaymentView('overdue')}>
+                    Просрочено <span>{overduePayments.length}</span>
+                  </button>
+                  <button className={paymentView === 'paid' ? 'active' : ''} type="button" onClick={() => setPaymentView('paid')}>
+                    История
+                  </button>
+                </div>
+                <label className="payments-search">
+                  <Search size={17} />
+                  <input
+                    aria-label="Поиск ученика"
+                    placeholder="Найти ученика"
+                    value={paymentSearch}
+                    onChange={(event) => setPaymentSearch(event.target.value)}
+                  />
+                </label>
               </div>
+
+              {paymentView === 'paid' ? (
+                <div className="payments-history-list">
+                  {[...visiblePayments]
+                    .filter(
+                      (payment) =>
+                        payment.status === 'paid' &&
+                        userName(payment.member_id)
+                          .toLocaleLowerCase('ru-RU')
+                          .includes(paymentSearch.trim().toLocaleLowerCase('ru-RU'))
+                    )
+                    .reverse()
+                    .map((payment) => (
+                      <button
+                        className="payment-registry-row history"
+                        key={payment.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPaymentMemberId(payment.member_id);
+                          setPaymentEditOpen(false);
+                        }}
+                      >
+                        <div className="payment-person">
+                          <strong>{userName(payment.member_id)}</strong>
+                          <span>{payment.period_label ?? payment.due_date}</span>
+                        </div>
+                        <strong className="payment-amount">{Number(payment.amount).toFixed(2)} ₽</strong>
+                        <span className="payment-due">{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('ru-RU') : 'Подтверждено'}</span>
+                        <span className="status-pill paid">Оплачено</span>
+                        <ChevronRight className="payment-row-arrow" size={18} />
+                      </button>
+                    ))}
+                  {visiblePayments.filter((payment) => payment.status === 'paid').length === 0 ? (
+                    <p className="empty-state">Подтверждённых оплат пока нет.</p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="payment-registry-list">
+                  <div className="payment-registry-head">
+                    <span>Ученик</span>
+                    <span>Сумма</span>
+                    <span>Срок</span>
+                    <span>Статус</span>
+                    <span />
+                  </div>
+                  {filteredPaymentMembers.map((member) => {
+                    const payment = currentPaymentByMemberId.get(member.id);
+                    const group = groupFor(member.id);
+                    return (
+                      <button
+                        className={`payment-registry-row ${selectedPaymentMemberId === member.id ? 'selected' : ''}`}
+                        key={member.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPaymentMemberId(member.id);
+                          setPaymentEditOpen(false);
+                        }}
+                      >
+                        <div className="payment-person">
+                          <strong>{userName(member.id)}</strong>
+                          <span>{group ? group.activity : payment?.period_label ?? 'Без группы'}</span>
+                        </div>
+                        <strong className="payment-amount">{payment ? `${Number(payment.amount).toFixed(2)} ₽` : '—'}</strong>
+                        <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
+                        <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
+                        <ChevronRight className="payment-row-arrow" size={18} />
+                      </button>
+                    );
+                  })}
+                  {filteredPaymentMembers.length === 0 ? (
+                    <p className="empty-state">
+                      {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </div>
-            <div className="crm-payment-table">
-              <div className="crm-payment-head">
-                <span>Ученик</span><span>Схема</span><span>Расчёт периода</span><span>Срок</span><span>Статус</span><span>Действие</span>
-              </div>
-              {visibleMembers.map((member) => {
-                const payment = workspace.payments.find(
-                  (item) => item.member_id === member.id && item.is_current !== false
-                );
-                const plan = workspace.billingPlans.find(
-                  (item) => item.memberId === member.id && item.active
-                );
-                const edit = paymentEditFor(member.id);
-                const canManage = hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer');
-                return (
-                  <div className="crm-payment-row" key={member.id}>
+
+            {selectedPaymentMember ? (
+              <>
+                <button
+                  className="payment-drawer-backdrop"
+                  aria-label="Закрыть детали оплаты"
+                  type="button"
+                  onClick={() => setSelectedPaymentMemberId('')}
+                />
+                <aside className="payment-drawer" aria-label={`Оплата: ${userName(selectedPaymentMember.id)}`}>
+                  <div className="payment-drawer-header">
                     <div>
-                      <strong>{userName(member.id)}</strong>
-                      <span>{payment?.period_label ?? 'Текущий период'}</span>
+                      <span>Оплата ученика</span>
+                      <h2>{userName(selectedPaymentMember.id)}</h2>
+                      <p>
+                        {groupFor(selectedPaymentMember.id)?.activity ?? 'Без группы'}
+                        {selectedPayment?.period_label ? ` · ${selectedPayment.period_label}` : ''}
+                      </p>
                     </div>
-                    {canManage ? (
-                      <div className="payment-scheme-fields">
-                        <span className="mobile-field-label">Схема</span>
-                        <select
-                          value={edit.type}
-                          onChange={(event) =>
-                            updatePaymentEdit(member.id, {
-                              type: event.target.value as BillingPlanType
-                            })
-                          }
-                        >
-                          <option value="monthly">Абонемент</option>
-                          <option value="one_time">Разовая</option>
-                        </select>
-                        {edit.type === 'monthly' ? (
-                          <select
-                            value={edit.trainingFormat}
-                            onChange={(event) =>
-                              updatePaymentEdit(member.id, {
-                                trainingFormat: event.target.value as TrainingFormat
-                              })
-                            }
-                          >
-                            <option value="group">Группа</option>
-                            <option value="individual">Индивидуально</option>
-                          </select>
-                        ) : null}
+                    <button className="icon-button" aria-label="Закрыть" type="button" onClick={() => setSelectedPaymentMemberId('')}>
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="payment-drawer-body">
+                    <div className="payment-detail-summary">
+                      <div>
+                        <span>Сумма</span>
+                        <strong>{selectedPayment ? `${Number(selectedPayment.amount).toFixed(2)} ₽` : 'Не назначена'}</strong>
                       </div>
-                    ) : (
-                      <span className="mobile-labeled-value" data-label="Схема">
-                        {plan
-                          ? `${planLabels[plan.type]}${plan.type === 'monthly' ? ` · ${formatLabels[plan.trainingFormat]}` : ''}`
-                          : 'Не настроена'}
-                      </span>
-                    )}
-                    {canManage ? (
-                      <div className="payment-calculation">
-                        <span className="mobile-field-label">Сумма</span>
-                        <input
-                          min="1"
-                          placeholder="Сумма периода"
-                          step="0.01"
-                          type="number"
-                          value={edit.currentAmount}
-                          onChange={(event) =>
-                            updatePaymentEdit(member.id, { currentAmount: event.target.value })
-                          }
-                        />
-                        {edit.type !== 'one_time' ? (
-                          <label className="payment-future-toggle">
-                            <input
-                              checked={edit.updateFuture}
-                              type="checkbox"
-                              onChange={(event) =>
-                                 updatePaymentEdit(member.id, {
-                                   updateFuture: event.target.checked
-                                 })
-                              }
-                            />
-                            Применить к следующим периодам
+                      <div>
+                        <span>Срок</span>
+                        <strong>{formatShortDate(selectedPayment?.due_date)}</strong>
+                      </div>
+                      <div>
+                        <span>Статус</span>
+                        <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
+                      </div>
+                    </div>
+
+                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && !paymentEditOpen ? (
+                      <button className="ghost-button payment-edit-trigger" type="button" onClick={() => setPaymentEditOpen(true)}>
+                        {selectedPayment ? 'Редактировать оплату' : 'Назначить оплату'}
+                      </button>
+                    ) : null}
+
+                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && paymentEditOpen ? (
+                      <div className="payment-edit-form">
+                        <div className="payment-detail-section-heading">
+                          <h3>{selectedPayment ? 'Редактирование' : 'Новая оплата'}</h3>
+                          <button className="text-button" type="button" onClick={() => setPaymentEditOpen(false)}>Отмена</button>
+                        </div>
+                        <label>
+                          Схема
+                          <select
+                            value={paymentEditFor(selectedPaymentMember.id).type}
+                            onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { type: event.target.value as BillingPlanType })}
+                          >
+                            <option value="monthly">Абонемент</option>
+                            <option value="one_time">Разовая</option>
+                          </select>
+                        </label>
+                        {paymentEditFor(selectedPaymentMember.id).type === 'monthly' ? (
+                          <label>
+                            Формат
+                            <select
+                              value={paymentEditFor(selectedPaymentMember.id).trainingFormat}
+                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { trainingFormat: event.target.value as TrainingFormat })}
+                            >
+                              <option value="group">Группа</option>
+                              <option value="individual">Индивидуально</option>
+                            </select>
                           </label>
                         ) : null}
-                      </div>
-                    ) : (
-                      <span className="mobile-labeled-value" data-label="Сумма">{payment ? `${Number(payment.amount).toFixed(2)} ₽` : 'Не назначена'}</span>
-                    )}
-                    <div className="mobile-payment-field">
-                      <span className="mobile-field-label">Срок</span>
-                      {canManage ? <input type="date" value={edit.dueDate} onChange={(event) => updatePaymentEdit(member.id, { dueDate: event.target.value })} /> : <span>{payment?.due_date ?? '—'}</span>}
-                    </div>
-                    <div className="mobile-payment-field">
-                      <span className="mobile-field-label">Статус</span>
-                      <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
-                    </div>
-                    <div className="row-actions">
-                      {canManage ? (
-                        <button
-                          className="small-button"
-                          type="button"
-                          disabled={isPendingAction(`save-payment:${member.id}`)}
-                          onClick={() => saveMemberPayment(member.id)}
-                        >
-                          {buttonLabel(`save-payment:${member.id}`, payment ? 'Сохранить изменения' : 'Назначить счёт')}
-                        </button>
-                      ) : null}
-                      {canManage && payment && payment.status !== 'paid' ? (
-                        <button
-                          className="small-button danger"
-                          type="button"
-                          disabled={isPendingAction(`delete-payment:${payment.id}`)}
-                          onClick={() => void deleteMemberPayment(payment)}
-                        >
-                          {buttonLabel(`delete-payment:${payment.id}`, 'Удалить счёт')}
-                        </button>
-                      ) : null}
-                      {hasRole(activeUser, 'member') &&
-                      payment &&
-                      ['active', 'overdue', 'delayed'].includes(payment.status) ? (
-                        <>
-                          <button
-                            className="small-button"
-                            type="button"
-                            disabled={isPendingAction(`submit-payment:${payment.id}`)}
-                            onClick={() => submitPaymentConfirmation(payment.id)}
-                          >
-                            {buttonLabel(`submit-payment:${payment.id}`, 'Я оплатил')}
-                          </button>
-                          <div className="delay-request-compact">
+                        <div className="split-fields">
+                          <label>
+                            Сумма
                             <input
-                              aria-label="Новая дата оплаты"
+                              min="1"
+                              step="0.01"
+                              type="number"
+                              value={paymentEditFor(selectedPaymentMember.id).currentAmount}
+                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { currentAmount: event.target.value })}
+                            />
+                          </label>
+                          <label>
+                            Срок
+                            <input
+                              type="date"
+                              value={paymentEditFor(selectedPaymentMember.id).dueDate}
+                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { dueDate: event.target.value })}
+                            />
+                          </label>
+                        </div>
+                        {paymentEditFor(selectedPaymentMember.id).type !== 'one_time' ? (
+                          <label className="payment-future-toggle">
+                            <input
+                              checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
+                              type="checkbox"
+                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
+                            />
+                            Применить сумму к следующим периодам
+                          </label>
+                        ) : null}
+                        <button
+                          className="primary-button"
+                          type="button"
+                          disabled={isPendingAction(`save-payment:${selectedPaymentMember.id}`)}
+                          onClick={() => void saveMemberPayment(selectedPaymentMember.id)}
+                        >
+                          {buttonLabel(`save-payment:${selectedPaymentMember.id}`, selectedPayment ? 'Сохранить изменения' : 'Назначить оплату')}
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {selectedPayment?.status === 'payment_confirmation' && (hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) ? (
+                      <div className="payment-decision-card">
+                        <div>
+                          <strong>Ученик сообщил об оплате</strong>
+                          <span>Проверьте поступление и примите решение.</span>
+                        </div>
+                        <div className="payment-primary-actions">
+                          <button className="primary-button" type="button" disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)} onClick={() => updatePaymentStatus(selectedPayment.id, 'paid')}>
+                            Подтвердить
+                          </button>
+                          <button className="ghost-button" type="button" disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)} onClick={() => updatePaymentStatus(selectedPayment.id, 'active')}>
+                            Отклонить
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedPayment?.status === 'delay_requested' && (hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) ? (
+                      <div className="payment-decision-card">
+                        <div>
+                          <strong>Запрошена отсрочка до {formatShortDate(selectedPayment.delay_requested_date)}</strong>
+                          <span>{selectedPayment.delay_comment || 'Без комментария'}</span>
+                        </div>
+                        <div className="payment-primary-actions">
+                          <button className="primary-button" type="button" disabled={isPendingAction(`decide-delay:${selectedPayment.id}`)} onClick={() => decidePaymentDelay(selectedPayment.id, true)}>
+                            Одобрить
+                          </button>
+                          <button className="ghost-button" type="button" disabled={isPendingAction(`decide-delay:${selectedPayment.id}`)} onClick={() => decidePaymentDelay(selectedPayment.id, false)}>
+                            Отклонить
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {hasRole(activeUser, 'member') && selectedPayment && ['active', 'overdue', 'delayed'].includes(selectedPayment.status) ? (
+                      <div className="member-payment-controls">
+                        <button className="primary-button" type="button" disabled={isPendingAction(`submit-payment:${selectedPayment.id}`)} onClick={() => submitPaymentConfirmation(selectedPayment.id)}>
+                          Я оплатил
+                        </button>
+                        <div className="payment-delay-form">
+                          <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
+                          <label>
+                            Новая дата
+                            <input
                               min={todayString()}
                               type="date"
-                              value={delayDraftFor(payment).requestedDate}
-                              onChange={(event) =>
-                                updateDelayDraft(payment.id, { requestedDate: event.target.value })
-                              }
+                              value={delayDraftFor(selectedPayment).requestedDate}
+                              onChange={(event) => updateDelayDraft(selectedPayment.id, { requestedDate: event.target.value })}
                             />
+                          </label>
+                          <label>
+                            Комментарий
                             <input
-                              aria-label="Комментарий к отсрочке"
-                              placeholder="Комментарий"
-                              value={delayDraftFor(payment).comment}
-                              onChange={(event) =>
-                                updateDelayDraft(payment.id, { comment: event.target.value })
-                              }
+                              placeholder="Необязательно"
+                              value={delayDraftFor(selectedPayment).comment}
+                              onChange={(event) => updateDelayDraft(selectedPayment.id, { comment: event.target.value })}
                             />
-                            <button
-                              className="small-button secondary"
-                              type="button"
-                              disabled={isPendingAction(`request-delay:${payment.id}`)}
-                              onClick={() => requestPaymentDelay(payment.id)}
-                            >
-                              {buttonLabel(`request-delay:${payment.id}`, 'Отсрочка')}
-                            </button>
+                          </label>
+                          <button className="ghost-button" type="button" disabled={isPendingAction(`request-delay:${selectedPayment.id}`)} onClick={() => requestPaymentDelay(selectedPayment.id)}>
+                            Запросить отсрочку
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="payment-detail-section">
+                      <div className="payment-detail-section-heading">
+                        <h3>Параметры</h3>
+                      </div>
+                      <dl className="payment-detail-list">
+                        <div><dt>Схема</dt><dd>{selectedPaymentPlan ? planLabels[selectedPaymentPlan.type] : 'Не настроена'}</dd></div>
+                        <div><dt>Формат</dt><dd>{selectedPaymentPlan?.type === 'monthly' ? formatLabels[selectedPaymentPlan.trainingFormat] : '—'}</dd></div>
+                        <div><dt>Тренер</dt><dd>{selectedPayment ? userName(selectedPayment.trainer_id) : '—'}</dd></div>
+                      </dl>
+                    </div>
+
+                    <div className="payment-detail-section">
+                      <div className="payment-detail-section-heading">
+                        <h3>История оплат</h3>
+                        <span>{selectedPaymentHistory.length}</span>
+                      </div>
+                      <div className="payment-detail-history">
+                        {selectedPaymentHistory.map((payment) => (
+                          <div key={payment.id}>
+                            <span>{payment.period_label ?? payment.due_date}</span>
+                            <strong>{Number(payment.amount).toFixed(2)} ₽</strong>
                           </div>
-                        </>
-                      ) : null}
-                      {canManage && payment?.status === 'payment_confirmation' ? (
-                        <>
-                          <button
-                            className="small-button"
-                            type="button"
-                            disabled={isPendingAction(`decide-payment:${payment.id}`)}
-                            onClick={() => updatePaymentStatus(payment.id, 'paid')}
-                          >
-                            {buttonLabel(`decide-payment:${payment.id}`, 'Подтвердить')}
-                          </button>
-                          <button
-                            className="small-button secondary"
-                            type="button"
-                            disabled={isPendingAction(`decide-payment:${payment.id}`)}
-                            onClick={() => updatePaymentStatus(payment.id, 'active')}
-                          >
-                            {buttonLabel(`decide-payment:${payment.id}`, 'Отклонить')}
-                          </button>
-                        </>
-                      ) : null}
-                      {canManage && payment?.status === 'delay_requested' ? (
-                        <>
-                          <span className="action-context">
-                            До {payment.delay_requested_date}
-                            {payment.delay_comment ? ` · ${payment.delay_comment}` : ''}
-                          </span>
-                          <button
-                            className="small-button"
-                            type="button"
-                            disabled={isPendingAction(`decide-delay:${payment.id}`)}
-                            onClick={() => decidePaymentDelay(payment.id, true)}
-                          >
-                            {buttonLabel(`decide-delay:${payment.id}`, 'Одобрить')}
-                          </button>
-                          <button
-                            className="small-button secondary"
-                            type="button"
-                            disabled={isPendingAction(`decide-delay:${payment.id}`)}
-                            onClick={() => decidePaymentDelay(payment.id, false)}
-                          >
-                            {buttonLabel(`decide-delay:${payment.id}`, 'Отклонить')}
-                          </button>
-                        </>
-                      ) : null}
+                        ))}
+                        {selectedPaymentHistory.length === 0 ? <p>Оплат пока нет.</p> : null}
+                      </div>
                     </div>
+
+                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && selectedPayment && selectedPayment.status !== 'paid' ? (
+                      <details className="payment-more-actions">
+                        <summary><MoreHorizontal size={18} /> Другие действия</summary>
+                        <button className="ghost-button danger" type="button" disabled={isPendingAction(`delete-payment:${selectedPayment.id}`)} onClick={() => void deleteMemberPayment(selectedPayment)}>
+                          Удалить счёт
+                        </button>
+                      </details>
+                    ) : null}
                   </div>
-                );
-              })}
-              {visibleMembers.length === 0 ? <p className="empty-state">Ученики ещё не добавлены.</p> : null}
-            </div>
-            <div className="payment-history">
-              <div className="crm-panel-header">
-                <div>
-                  <h2>История подтверждённых оплат</h2>
-                  <p>Доступна владельцу, ответственному тренеру и ученику</p>
-                </div>
-              </div>
-              {[...visiblePayments]
-                .filter((payment) => payment.status === 'paid')
-                .reverse()
-                .map((payment) => (
-                  <div className="payment-history-row" key={payment.id}>
-                    <div>
-                      <strong>{userName(payment.member_id)}</strong>
-                      <span>{payment.period_label ?? payment.due_date}</span>
-                    </div>
-                    <strong>{Number(payment.amount).toFixed(2)} ₽</strong>
-                    <span>{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('ru-RU') : 'Подтверждено'}</span>
-                  </div>
-                ))}
-              {visiblePayments.filter((payment) => payment.status === 'paid').length === 0 ? (
-                <p className="empty-state">Подтверждённых оплат пока нет.</p>
-              ) : null}
-            </div>
+                </aside>
+              </>
+            ) : null}
           </section>
         ) : null}
 
