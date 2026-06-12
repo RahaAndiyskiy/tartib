@@ -3,7 +3,18 @@ import { createHash, randomBytes } from 'node:crypto';
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
 import { hasServerRole, requireIdentity, type ServerIdentity } from '@shared/lib/serverAuth';
-import type { BillingPlanType, PaymentRequestStatus, TrainingFormat } from '@shared/types/domain';
+import type {
+  BillingPlanType,
+  PaymentRequest,
+  PaymentRequestStatus,
+  TrainingFormat
+} from '@shared/types/domain';
+import type {
+  LocalBillingPlan,
+  LocalGroupMember,
+  LocalNotification,
+  LocalTrainingGroup
+} from '@shared/lib/localWorkspace';
 
 type ActionBody =
   | {
@@ -85,6 +96,48 @@ function canManageTrainer(identity: ServerIdentity, trainerId: string): boolean 
   return hasServerRole(identity, 'owner') || identity.profile.id === trainerId;
 }
 
+type NotificationRow = {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  payment_id: string | null;
+  message: string;
+  event_key: string | null;
+  read: boolean;
+  created_at: string;
+};
+
+type GroupRow = {
+  id: string;
+  trainer_id: string;
+  activity: string;
+  days: string;
+  time: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type GroupMemberRow = {
+  id: string;
+  group_id: string;
+  member_id: string;
+  created_at: string;
+};
+
+type BillingPlanRow = {
+  id: string;
+  member_id: string;
+  trainer_id: string;
+  type: BillingPlanType;
+  training_format: TrainingFormat;
+  base_amount: number;
+  billing_day: number | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 async function profileName(userId: string): Promise<string> {
   const admin = getSupabaseAdmin();
   const result = await admin.from('users').select('first_name,last_name').eq('id', userId).single();
@@ -96,16 +149,94 @@ async function createNotification(
   userId: string,
   message: string,
   paymentId?: string
-): Promise<void> {
+): Promise<LocalNotification | null> {
   const admin = getSupabaseAdmin();
-  await admin.from('notifications').insert({
-    organization_id: organizationId,
-    user_id: userId,
-    payment_id: paymentId ?? null,
-    event_key: null,
-    message,
-    read: false
-  });
+  const result = await admin
+    .from('notifications')
+    .insert({
+      organization_id: organizationId,
+      user_id: userId,
+      payment_id: paymentId ?? null,
+      event_key: null,
+      message,
+      read: false
+    })
+    .select('*')
+    .single();
+
+  return result.error || !result.data ? null : toLocalNotification(result.data as NotificationRow);
+}
+
+function toLocalGroup(row: GroupRow): LocalTrainingGroup {
+  return {
+    id: row.id,
+    trainerId: row.trainer_id,
+    activity: row.activity,
+    days: row.days,
+    time: row.time.slice(0, 5),
+    note: row.note,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function toLocalGroupMember(row: GroupMemberRow): LocalGroupMember {
+  return {
+    id: row.id,
+    groupId: row.group_id,
+    memberId: row.member_id,
+    createdAt: row.created_at
+  };
+}
+
+function toLocalBillingPlan(row: BillingPlanRow): LocalBillingPlan {
+  return {
+    id: row.id,
+    memberId: row.member_id,
+    trainerId: row.trainer_id,
+    type: row.type,
+    trainingFormat: row.training_format,
+    baseAmount: Number(row.base_amount),
+    billingDay: row.billing_day,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function toLocalPayment(row: PaymentRequest): PaymentRequest {
+  return {
+    id: row.id,
+    organization_id: row.organization_id,
+    member_id: row.member_id,
+    trainer_id: row.trainer_id,
+    amount: Number(row.amount),
+    due_date: row.due_date,
+    status: row.status,
+    created_at: row.created_at,
+    plan_id: row.plan_id,
+    period_label: row.period_label,
+    is_current: row.is_current,
+    paid_at: row.paid_at,
+    delay_requested_date: row.delay_requested_date,
+    delay_comment: row.delay_comment,
+    delay_status: row.delay_status,
+    delay_requested_at: row.delay_requested_at,
+    delay_decided_at: row.delay_decided_at,
+    delay_decided_by: row.delay_decided_by
+  };
+}
+
+function toLocalNotification(row: NotificationRow): LocalNotification {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    message: row.message,
+    createdAt: row.created_at,
+    read: row.read,
+    eventKey: row.event_key ?? undefined,
+    paymentId: row.payment_id ?? undefined
+  };
 }
 
 async function createUserAction(
@@ -272,6 +403,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Укажите направление, дни и время.' }, { status: 400 });
     }
 
+    const groupValues = {
+      organization_id: organizationId,
+      trainer_id: trainerId,
+      activity: body.activity.trim(),
+      days: body.days.trim(),
+      time: body.time,
+      note: body.note?.trim() ?? '',
+      updated_at: new Date().toISOString()
+    };
+
     if (body.id) {
       const existing = await admin
         .from('groups')
@@ -284,28 +425,21 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
       const result = await admin
         .from('groups')
-        .update({
-          trainer_id: trainerId,
-          activity: body.activity.trim(),
-          days: body.days.trim(),
-          time: body.time,
-          note: body.note?.trim() ?? '',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', body.id);
-      if (result.error) return NextResponse.json({ error: result.error.message }, { status: 400 });
-    } else {
-      const result = await admin.from('groups').insert({
-        organization_id: organizationId,
-        trainer_id: trainerId,
-        activity: body.activity.trim(),
-        days: body.days.trim(),
-        time: body.time,
-        note: body.note?.trim() ?? ''
-      });
-      if (result.error) return NextResponse.json({ error: result.error.message }, { status: 400 });
+        .update(groupValues)
+        .eq('id', body.id)
+        .select('*')
+        .single();
+      if (result.error || !result.data) {
+        return NextResponse.json({ error: result.error?.message ?? 'Не удалось сохранить группу.' }, { status: 400 });
+      }
+      return NextResponse.json({ group: toLocalGroup(result.data as GroupRow) });
     }
-    return NextResponse.json({ ok: true });
+
+    const result = await admin.from('groups').insert(groupValues).select('*').single();
+    if (result.error || !result.data) {
+      return NextResponse.json({ error: result.error?.message ?? 'Не удалось создать группу.' }, { status: 400 });
+    }
+    return NextResponse.json({ group: toLocalGroup(result.data as GroupRow) });
   }
 
   if (body.action === 'delete_group') {
@@ -319,9 +453,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Группа недоступна.' }, { status: 403 });
     }
     const result = await admin.from('groups').delete().eq('id', body.groupId);
-    return result.error
-      ? NextResponse.json({ error: result.error.message }, { status: 400 })
-      : NextResponse.json({ ok: true });
+    if (result.error) {
+      return NextResponse.json({ error: result.error.message }, { status: 400 });
+    }
+    return NextResponse.json({ deletedGroupId: body.groupId });
   }
 
   if (body.action === 'assign_member_group') {
@@ -337,21 +472,33 @@ export async function POST(request: Request): Promise<NextResponse> {
     await admin.from('group_members').delete().eq('member_id', body.memberId);
     await admin.from('trainer_members').delete().eq('member_id', body.memberId);
     const [groupResult, trainerResult] = await Promise.all([
-      admin.from('group_members').insert({
-        organization_id: organizationId,
-        group_id: body.groupId,
-        member_id: body.memberId
-      }),
-      admin.from('trainer_members').insert({
-        organization_id: organizationId,
-        trainer_id: group.data.trainer_id,
-        member_id: body.memberId
-      })
+      admin
+        .from('group_members')
+        .insert({
+          organization_id: organizationId,
+          group_id: body.groupId,
+          member_id: body.memberId
+        })
+        .select('*')
+        .single(),
+      admin
+        .from('trainer_members')
+        .insert({
+          organization_id: organizationId,
+          trainer_id: group.data.trainer_id,
+          member_id: body.memberId
+        })
+        .select('*')
+        .single()
     ]);
     const error = groupResult.error ?? trainerResult.error;
-    return error
-      ? NextResponse.json({ error: error.message }, { status: 400 })
-      : NextResponse.json({ ok: true });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({
+      assignment: trainerResult.data,
+      groupMember: toLocalGroupMember(groupResult.data as GroupMemberRow)
+    });
   }
 
   if (body.action === 'save_payment') {
@@ -423,11 +570,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       is_current: true
     };
     const paymentResult = existingPayment.data
-      ? await admin.from('payment_requests').update(paymentValues).eq('id', existingPayment.data.id)
-      : await admin.from('payment_requests').insert(paymentValues);
-    return paymentResult.error
-      ? NextResponse.json({ error: paymentResult.error.message }, { status: 400 })
-      : NextResponse.json({ ok: true });
+      ? await admin
+          .from('payment_requests')
+          .update(paymentValues)
+          .eq('id', existingPayment.data.id)
+          .select('*')
+          .single()
+      : await admin.from('payment_requests').insert(paymentValues).select('*').single();
+    if (paymentResult.error || !paymentResult.data || !planResult.data) {
+      const paymentError = paymentResult.error as { message?: string } | null | undefined;
+      const billingPlanError = planResult.error as { message?: string } | null | undefined;
+      const errorMessage = paymentError?.message ?? billingPlanError?.message ?? 'Не удалось сохранить оплату.';
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+    return NextResponse.json({
+      payment: toLocalPayment(paymentResult.data as PaymentRequest),
+      billingPlan: toLocalBillingPlan(planResult.data as BillingPlanRow)
+    });
   }
 
   if (body.action === 'delete_payment') {
@@ -457,19 +616,31 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: deleteResult.error.message }, { status: 400 });
     }
 
+    let disabledPlanId = null;
     if (payment.plan_id) {
-      await admin
+      const planResult = await admin
         .from('billing_plans')
         .update({ active: false, updated_at: new Date().toISOString() })
-        .eq('id', payment.plan_id);
+        .eq('id', payment.plan_id)
+        .select('*')
+        .single();
+      disabledPlanId = planResult.data?.id ?? null;
     }
 
-    await createNotification(
+    const notification = await createNotification(
       organizationId,
       payment.member_id,
       `Счёт на ${Number(payment.amount).toFixed(2)} ₺ отменён ответственным лицом.`
     );
-    return NextResponse.json({ ok: true });
+    if (!notification) {
+      return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      deletedPaymentId: payment.id,
+      disabledPlanId,
+      notification
+    });
   }
 
   const paymentActions = ['submit_payment', 'request_delay', 'decide_delay', 'decide_payment'];
@@ -488,14 +659,28 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (payment.member_id !== identity.profile.id || !['active', 'overdue', 'delayed'].includes(payment.status)) {
         return NextResponse.json({ error: 'Действие недоступно.' }, { status: 403 });
       }
-      await admin.from('payment_requests').update({ status: 'payment_confirmation' }).eq('id', payment.id);
-      await createNotification(
+      const paymentResult = await admin
+        .from('payment_requests')
+        .update({ status: 'payment_confirmation' })
+        .eq('id', payment.id)
+        .select('*')
+        .single();
+      const notification = await createNotification(
         organizationId,
         payment.trainer_id,
         `${await profileName(payment.member_id)} сообщил об оплате ${Number(payment.amount).toFixed(2)} ₽.`,
         payment.id
       );
-      return NextResponse.json({ ok: true });
+      if (paymentResult.error || !paymentResult.data) {
+        return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось отправить подтверждение.' }, { status: 400 });
+      }
+      if (!notification) {
+        return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+      }
+      return NextResponse.json({
+        payment: toLocalPayment(paymentResult.data as PaymentRequest),
+        notification
+      });
     }
 
     if (body.action === 'request_delay') {
@@ -506,7 +691,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       ) {
         return NextResponse.json({ error: 'Выберите корректную новую дату.' }, { status: 400 });
       }
-      await admin
+      const paymentResult = await admin
         .from('payment_requests')
         .update({
           status: 'delay_requested',
@@ -517,14 +702,25 @@ export async function POST(request: Request): Promise<NextResponse> {
           delay_decided_at: null,
           delay_decided_by: null
         })
-        .eq('id', payment.id);
-      await createNotification(
+        .eq('id', payment.id)
+        .select('*')
+        .single();
+      const notification = await createNotification(
         organizationId,
         payment.trainer_id,
         `${await profileName(payment.member_id)} запрашивает отсрочку до ${body.requestedDate}${body.comment?.trim() ? `: ${body.comment.trim()}` : '.'}`,
         payment.id
       );
-      return NextResponse.json({ ok: true });
+      if (paymentResult.error || !paymentResult.data) {
+        return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось запросить отсрочку.' }, { status: 400 });
+      }
+      if (!notification) {
+        return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+      }
+      return NextResponse.json({
+        payment: toLocalPayment(paymentResult.data as PaymentRequest),
+        notification
+      });
     }
 
     if (!canManageTrainer(identity, payment.trainer_id)) {
@@ -546,7 +742,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         : dateValue(payment.due_date) < dateValue(todayString())
           ? 'overdue'
           : 'active';
-      await admin
+      const paymentResult = await admin
         .from('payment_requests')
         .update({
           due_date: nextDueDate,
@@ -556,8 +752,10 @@ export async function POST(request: Request): Promise<NextResponse> {
           delay_decided_at: new Date().toISOString(),
           delay_decided_by: identity.profile.id
         })
-        .eq('id', payment.id);
-      await createNotification(
+        .eq('id', payment.id)
+        .select('*')
+        .single();
+      const notification = await createNotification(
         organizationId,
         payment.member_id,
         body.approved
@@ -565,7 +763,16 @@ export async function POST(request: Request): Promise<NextResponse> {
           : 'Запрос отсрочки отклонён.',
         payment.id
       );
-      return NextResponse.json({ ok: true });
+      if (paymentResult.error || !paymentResult.data) {
+        return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось обработать отсрочку.' }, { status: 400 });
+      }
+      if (!notification) {
+        return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+      }
+      return NextResponse.json({
+        payment: toLocalPayment(paymentResult.data as PaymentRequest),
+        notification
+      });
     }
 
     if (payment.status !== 'payment_confirmation') {
@@ -578,51 +785,91 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!body.approved) {
       const rejectedStatus: PaymentRequestStatus =
         dateValue(payment.due_date) < dateValue(todayString()) ? 'overdue' : 'active';
-      await admin.from('payment_requests').update({ status: rejectedStatus }).eq('id', payment.id);
-      await createNotification(
+      const rejectedResult = await admin
+        .from('payment_requests')
+        .update({ status: rejectedStatus })
+        .eq('id', payment.id)
+        .select('*')
+        .single();
+      if (rejectedResult.error || !rejectedResult.data) {
+        return NextResponse.json({ error: rejectedResult.error?.message ?? 'Не удалось отклонить оплату.' }, { status: 400 });
+      }
+
+      const notification = await createNotification(
         organizationId,
         payment.member_id,
         'Подтверждение оплаты отклонено. Проверьте оплату и отправьте подтверждение повторно.',
         payment.id
       );
-      return NextResponse.json({ ok: true });
+      if (!notification) {
+        return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        payment: toLocalPayment(rejectedResult.data as PaymentRequest),
+        nextPayment: null,
+        notification
+      });
     }
 
     const plan = payment.plan_id
       ? await admin.from('billing_plans').select('*').eq('id', payment.plan_id).maybeSingle()
       : null;
     const shouldAdvance = plan?.data?.active && plan.data.type === 'monthly' && payment.is_current;
-    await admin
+    const updatedPaymentResult = await admin
       .from('payment_requests')
       .update({
         status: 'paid',
         paid_at: new Date().toISOString(),
         is_current: shouldAdvance ? false : payment.is_current
       })
-      .eq('id', payment.id);
+      .eq('id', payment.id)
+      .select('*')
+      .single();
+    if (updatedPaymentResult.error || !updatedPaymentResult.data) {
+      return NextResponse.json({ error: updatedPaymentResult.error?.message ?? 'Не удалось подтвердить оплату.' }, { status: 400 });
+    }
 
+    let nextPayment: PaymentRequest | null = null;
     if (shouldAdvance && plan?.data) {
       const nextDueDate = nextMonthDate(payment.due_date, plan.data.billing_day);
-      await admin.from('payment_requests').insert({
-        organization_id: organizationId,
-        member_id: payment.member_id,
-        trainer_id: payment.trainer_id,
-        amount: Number(plan.data.base_amount),
-        due_date: nextDueDate,
-        status: 'active',
-        plan_id: plan.data.id,
-        period_label: periodLabel(nextDueDate),
-        is_current: true,
-        paid_at: null
-      });
+      const nextPaymentResult = await admin
+        .from('payment_requests')
+        .insert({
+          organization_id: organizationId,
+          member_id: payment.member_id,
+          trainer_id: payment.trainer_id,
+          amount: Number(plan.data.base_amount),
+          due_date: nextDueDate,
+          status: 'active',
+          plan_id: plan.data.id,
+          period_label: periodLabel(nextDueDate),
+          is_current: true,
+          paid_at: null
+        })
+        .select('*')
+        .single();
+      if (nextPaymentResult.error || !nextPaymentResult.data) {
+        return NextResponse.json({ error: nextPaymentResult.error?.message ?? 'Не удалось создать следующий счёт.' }, { status: 400 });
+      }
+      nextPayment = nextPaymentResult.data as PaymentRequest;
     }
-    await createNotification(
+
+    const notification = await createNotification(
       organizationId,
       payment.member_id,
       'Ваша оплата подтверждена ответственным лицом.',
       payment.id
     );
-    return NextResponse.json({ ok: true });
+    if (!notification) {
+      return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      payment: toLocalPayment(updatedPaymentResult.data as PaymentRequest),
+      nextPayment: nextPayment ? toLocalPayment(nextPayment) : null,
+      notification
+    });
   }
 
   if (body.action === 'mark_notifications_read') {
@@ -633,7 +880,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       .eq('organization_id', organizationId);
     return result.error
       ? NextResponse.json({ error: result.error.message }, { status: 400 })
-      : NextResponse.json({ ok: true });
+      : NextResponse.json({ success: true });
   }
 
   return NextResponse.json({ error: 'Неизвестное действие.' }, { status: 400 });

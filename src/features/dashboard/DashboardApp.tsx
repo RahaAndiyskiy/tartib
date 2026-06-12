@@ -28,6 +28,7 @@ import {
   type LocalBillingPlan,
   type LocalExpense,
   type LocalGroupMember,
+  type LocalNotification,
   type LocalTrainingGroup,
   type LocalTrainingSchedule,
   type LocalWorkspace
@@ -38,7 +39,8 @@ import type {
   BillingPlanType,
   PaymentRequest,
   PaymentRequestStatus,
-  TrainingFormat
+  TrainingFormat,
+  TrainerMember
 } from '@shared/types/domain';
 
 type PersonDraft = {
@@ -223,6 +225,7 @@ export function DashboardApp(): React.ReactElement {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -335,6 +338,56 @@ export function DashboardApp(): React.ReactElement {
     return workspace.payments.filter((payment) => payment.member_id === activeUser.id);
   }, [activeUser, workspace]);
 
+  const usersById = useMemo(() => {
+    if (!workspace) return new Map<string, AppUser>();
+    return new Map(workspace.users.map((user) => [user.id, user]));
+  }, [workspace]);
+
+  const assignmentsByMemberId = useMemo(() => {
+    if (!workspace) return new Map<string, TrainerMember>();
+    return new Map(workspace.assignments.map((assignment) => [assignment.member_id, assignment]));
+  }, [workspace]);
+
+  const groupsById = useMemo(() => {
+    if (!workspace) return new Map<string, LocalTrainingGroup>();
+    return new Map(workspace.groups.map((group) => [group.id, group]));
+  }, [workspace]);
+
+  const groupMembershipByMemberId = useMemo(() => {
+    if (!workspace) return new Map<string, LocalGroupMember>();
+    return new Map(workspace.groupMembers.map((assignment) => [assignment.memberId, assignment]));
+  }, [workspace]);
+
+  const currentPaymentByMemberId = useMemo(() => {
+    if (!workspace) return new Map<string, PaymentRequest>();
+    return new Map(
+      workspace.payments
+        .filter((payment) => payment.is_current !== false)
+        .map((payment) => [payment.member_id, payment])
+    );
+  }, [workspace]);
+
+  const activePlanByMemberId = useMemo(() => {
+    if (!workspace) return new Map<string, LocalBillingPlan>();
+    return new Map(workspace.billingPlans.filter((plan) => plan.active).map((plan) => [plan.memberId, plan]));
+  }, [workspace]);
+
+  const isPendingAction = (key: string): boolean => pendingAction === key;
+  const buttonLabel = (key: string, defaultLabel: string): string =>
+    isPendingAction(key) ? (defaultLabel.toLowerCase().includes('удал') ? 'Удаляем...' : 'Сохраняем...') : defaultLabel;
+
+  const runRemoteActionWithPending = async <T,>(
+    payload: Record<string, unknown>,
+    pendingKey: string
+  ): Promise<T | null> => {
+    setPendingAction(pendingKey);
+    try {
+      return await runRemoteActionData<T>(payload);
+    } finally {
+      setPendingAction((current) => (current === pendingKey ? null : current));
+    }
+  };
+
   const currentPayments = visiblePayments.filter((payment) => payment.is_current !== false);
   const paidAmount = visiblePayments
     .filter((payment) => payment.status === 'paid')
@@ -406,6 +459,7 @@ export function DashboardApp(): React.ReactElement {
       return;
     }
 
+    const start = performance.now();
     const response = await fetch('/api/workspace', {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store'
@@ -415,6 +469,7 @@ export function DashboardApp(): React.ReactElement {
       activeUserId?: string;
       error?: string;
     };
+    console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
 
     if (!response.ok || !data.workspace || !data.activeUserId) {
       setMessage(data.error ?? 'Не удалось загрузить данные клуба.');
@@ -430,10 +485,7 @@ export function DashboardApp(): React.ReactElement {
     return Boolean(data);
   }
 
-  async function runRemoteActionData<T>(
-    payload: Record<string, unknown>,
-    reloadWorkspace = true
-  ): Promise<T | null> {
+  async function runRemoteActionData<T>(payload: Record<string, unknown>): Promise<T | null> {
     const supabase = getSupabaseClient();
     const sessionResult = await supabase.auth.getSession();
     const token = sessionResult.data.session?.access_token;
@@ -442,6 +494,7 @@ export function DashboardApp(): React.ReactElement {
       return null;
     }
 
+    const start = performance.now();
     const response = await fetch('/api/workspace/actions', {
       method: 'POST',
       headers: {
@@ -451,12 +504,13 @@ export function DashboardApp(): React.ReactElement {
       body: JSON.stringify(payload)
     });
     const data = (await response.json()) as T & { error?: string };
+    console.info('[performance] action', `runRemoteAction ${Math.round(performance.now() - start)}ms`, payload.action ?? 'unknown');
+
     if (!response.ok) {
       setMessage(data.error ?? 'Не удалось выполнить действие.');
       return null;
     }
 
-    if (reloadWorkspace) await loadRemoteWorkspace();
     return data;
   }
 
@@ -510,8 +564,7 @@ export function DashboardApp(): React.ReactElement {
             firstName: personDraft.firstName,
             lastName: personDraft.lastName,
             groupId: personDraft.groupId
-          },
-          false
+          }
         );
         if (result) {
           setMemberInvite({
@@ -669,16 +722,32 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'save_group',
-        id: editingGroupId || undefined,
-        trainerId,
-        activity: groupDraft.activity,
-        days: groupDraft.days,
-        time: groupDraft.time,
-        note: groupDraft.note
-      });
-      if (success) {
+      const data = await runRemoteActionWithPending<
+        | { group: LocalTrainingGroup }
+        | null
+      >(
+        {
+          action: 'save_group',
+          id: editingGroupId || undefined,
+          trainerId,
+          activity: groupDraft.activity,
+          days: groupDraft.days,
+          time: groupDraft.time,
+          note: groupDraft.note
+        },
+        `save-group:${editingGroupId || 'new'}`
+      );
+      if (data?.group) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                groups: current.groups.some((item) => item.id === data.group.id)
+                  ? current.groups.map((item) => (item.id === data.group.id ? data.group : item))
+                  : [...current.groups, data.group]
+              }
+            : current
+        );
         setGroupDraft(emptyGroupDraft);
         setEditingGroupId('');
         setMobileFormOpen(false);
@@ -742,9 +811,21 @@ export function DashboardApp(): React.ReactElement {
     if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({ action: 'delete_group', groupId });
-      if (success) {
+      const data = await runRemoteActionWithPending<{ deletedGroupId: string }>(
+        { action: 'delete_group', groupId },
+        `delete-group:${groupId}`
+      );
+      if (data?.deletedGroupId) {
         if (editingGroupId === groupId) cancelGroupEdit();
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                groups: current.groups.filter((item) => item.id !== data.deletedGroupId),
+                groupMembers: current.groupMembers.filter((assignment) => assignment.groupId !== data.deletedGroupId)
+              }
+            : current
+        );
         setMessage('Группа удалена.');
       }
       return;
@@ -766,16 +847,35 @@ export function DashboardApp(): React.ReactElement {
   async function assignMemberToGroup(memberId: string, groupId: string): Promise<void> {
     if (!workspace) return;
 
-    const group = workspace.groups.find((item) => item.id === groupId);
+    const group = groupsById.get(groupId);
     if (!group) return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'assign_member_group',
-        memberId,
-        groupId
-      });
-      if (success) setMessage('Ученик назначен в группу.');
+      const data = await runRemoteActionWithPending<{
+        assignment: TrainerMember;
+        groupMember: LocalGroupMember;
+      }>(
+        { action: 'assign_member_group', memberId, groupId },
+        `assign-member-group:${memberId}`
+      );
+      if (data?.assignment && data?.groupMember) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                assignments: [
+                  ...current.assignments.filter((item) => item.member_id !== data.assignment.member_id),
+                  data.assignment
+                ],
+                groupMembers: [
+                  ...current.groupMembers.filter((item) => item.memberId !== data.groupMember.memberId),
+                  data.groupMember
+                ]
+              }
+            : current
+        );
+        setMessage('Ученик назначен в группу.');
+      }
       return;
     }
 
@@ -824,7 +924,7 @@ export function DashboardApp(): React.ReactElement {
     if (!workspace || !activeUser) return;
 
     const edit = paymentEdits[memberId];
-    const assignment = workspace.assignments.find((item) => item.member_id === memberId);
+    const assignment = assignmentsByMemberId.get(memberId);
     const trainerId =
       hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
         ? activeUser.id
@@ -848,16 +948,39 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'save_payment',
-        memberId,
-        type: edit.type,
-        trainingFormat: edit.trainingFormat,
-        amount: calculatedAmount,
-        dueDate: edit.dueDate,
-        updateFuture: edit.updateFuture
-      });
-      if (success) {
+      const data = await runRemoteActionWithPending<{
+        payment: PaymentRequest;
+        billingPlan: LocalBillingPlan;
+      }>(
+        {
+          action: 'save_payment',
+          memberId,
+          type: edit.type,
+          trainingFormat: edit.trainingFormat,
+          amount: calculatedAmount,
+          dueDate: edit.dueDate,
+          updateFuture: edit.updateFuture
+        },
+        `save-payment:${memberId}`
+      );
+      if (data?.payment && data.billingPlan) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                billingPlans: current.billingPlans.some((plan) => plan.id === data.billingPlan.id)
+                  ? current.billingPlans.map((plan) =>
+                      plan.id === data.billingPlan.id ? data.billingPlan : plan
+                    )
+                  : [...current.billingPlans, data.billingPlan],
+                payments: current.payments.some((payment) => payment.id === data.payment.id)
+                  ? current.payments.map((payment) =>
+                      payment.id === data.payment.id ? data.payment : payment
+                    )
+                  : [...current.payments, data.payment]
+              }
+            : current
+        );
         setPaymentEdits((current) => {
           const next = { ...current };
           delete next[memberId];
@@ -868,10 +991,8 @@ export function DashboardApp(): React.ReactElement {
       return;
     }
 
-    const existingPayment = workspace.payments.find(
-      (payment) => payment.member_id === memberId && payment.is_current !== false
-    );
-    const existingPlan = workspace.billingPlans.find((plan) => plan.memberId === memberId && plan.active);
+    const existingPayment = currentPaymentByMemberId.get(memberId);
+    const existingPlan = activePlanByMemberId.get(memberId);
     const now = new Date().toISOString();
     const planId = existingPlan?.id ?? createId();
     const baseAmount = Number(
@@ -950,11 +1071,32 @@ export function DashboardApp(): React.ReactElement {
     if (!confirmed) return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'delete_payment',
-        paymentId: payment.id
-      });
-      if (success) {
+      const data = await runRemoteActionWithPending<{
+        deletedPaymentId: string;
+        disabledPlanId: string | null;
+        notification?: LocalNotification;
+      }>(
+        { action: 'delete_payment', paymentId: payment.id },
+        `delete-payment:${payment.id}`
+      );
+      if (data?.deletedPaymentId) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: current.payments.filter((item) => item.id !== data.deletedPaymentId),
+                billingPlans: data.disabledPlanId
+                  ? current.billingPlans.map((plan) =>
+                      plan.id === data.disabledPlanId ? { ...plan, active: false } : plan
+                    )
+                  : current.billingPlans,
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
         setPaymentEdits((current) => {
           const next = { ...current };
           delete next[payment.member_id];
@@ -998,12 +1140,36 @@ export function DashboardApp(): React.ReactElement {
     if (!payment) return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'decide_payment',
-        paymentId,
-        approved: status === 'paid'
-      });
-      if (success) {
+      const data = await runRemoteActionWithPending<{
+        payment?: PaymentRequest;
+        nextPayment?: PaymentRequest;
+        notification?: LocalNotification;
+      }>(
+        {
+          action: 'decide_payment',
+          paymentId,
+          approved: status === 'paid'
+        },
+        `decide-payment:${paymentId}`
+      );
+      if (data?.payment) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: [
+                  ...current.payments.map((item) =>
+                    item.id === data.payment?.id ? data.payment : item
+                  ),
+                  ...(data.nextPayment ? [data.nextPayment] : [])
+                ],
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
         setMessage(status === 'paid' ? 'Оплата подтверждена.' : 'Подтверждение отклонено.');
       }
       return;
@@ -1124,13 +1290,35 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'request_delay',
-        paymentId,
-        requestedDate: draft.requestedDate,
-        comment: draft.comment
-      });
-      if (success) setMessage('Запрос отсрочки отправлен.');
+      const data = await runRemoteActionWithPending<{
+        payment?: PaymentRequest;
+        notification?: LocalNotification;
+      }>(
+        {
+          action: 'request_delay',
+          paymentId,
+          requestedDate: draft.requestedDate,
+          comment: draft.comment
+        },
+        `request-delay:${paymentId}`
+      );
+      if (data?.payment) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: current.payments.map((item) =>
+                  item.id === data.payment?.id ? data.payment : item
+                ),
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
+        setMessage('Запрос отсрочки отправлен.');
+      }
       return;
     }
 
@@ -1175,12 +1363,34 @@ export function DashboardApp(): React.ReactElement {
     if (!payment || payment.status !== 'delay_requested') return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({
-        action: 'decide_delay',
-        paymentId,
-        approved
-      });
-      if (success) setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
+      const data = await runRemoteActionWithPending<{
+        payment?: PaymentRequest;
+        notification?: LocalNotification;
+      }>(
+        {
+          action: 'decide_delay',
+          paymentId,
+          approved
+        },
+        `decide-delay:${paymentId}`
+      );
+      if (data?.payment) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: current.payments.map((item) =>
+                  item.id === data.payment?.id ? data.payment : item
+                ),
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
+        setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
+      }
       return;
     }
     const now = new Date().toISOString();
@@ -1232,8 +1442,30 @@ export function DashboardApp(): React.ReactElement {
     if (!payment) return;
 
     if (!isLocalMode) {
-      const success = await runRemoteAction({ action: 'submit_payment', paymentId });
-      if (success) setMessage('Подтверждение отправлено ответственному лицу.');
+      const data = await runRemoteActionWithPending<{
+        payment?: PaymentRequest;
+        notification?: LocalNotification;
+      }>(
+        { action: 'submit_payment', paymentId },
+        `submit-payment:${paymentId}`
+      );
+      if (data?.payment) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: current.payments.map((item) =>
+                  item.id === data.payment?.id ? data.payment : item
+                ),
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
+        setMessage('Подтверждение отправлено ответственному лицу.');
+      }
       return;
     }
     const now = new Date().toISOString();
@@ -1387,7 +1619,19 @@ export function DashboardApp(): React.ReactElement {
     if (!workspace || unreadNotifications.length === 0) return;
 
     if (!isLocalMode) {
-      await runRemoteAction({ action: 'mark_notifications_read' });
+      const data = await runRemoteActionData<{ success?: boolean }>({ action: 'mark_notifications_read' });
+      if (data?.success) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                notifications: current.notifications.map((notification) =>
+                  notification.userId === activeUserId ? { ...notification, read: true } : notification
+                )
+              }
+            : current
+        );
+      }
       return;
     }
 
@@ -1418,18 +1662,18 @@ export function DashboardApp(): React.ReactElement {
 
   function trainerFor(memberId: string): AppUser | null {
     if (!workspace) return null;
-    const assignment = workspace.assignments.find((item) => item.member_id === memberId);
-    return workspace.users.find((user) => user.id === assignment?.trainer_id) ?? null;
+    const assignment = assignmentsByMemberId.get(memberId);
+    return assignment ? usersById.get(assignment.trainer_id) ?? null : null;
   }
 
   function groupFor(memberId: string): LocalTrainingGroup | null {
     if (!workspace) return null;
-    const assignment = workspace.groupMembers.find((item) => item.memberId === memberId);
-    return workspace.groups.find((group) => group.id === assignment?.groupId) ?? null;
+    const assignment = groupMembershipByMemberId.get(memberId);
+    return assignment ? groupsById.get(assignment.groupId) ?? null : null;
   }
 
   function userName(userId: string): string {
-    const user = workspace?.users.find((item) => item.id === userId);
+    const user = usersById.get(userId);
     return user ? `${user.first_name} ${user.last_name}` : 'Неизвестно';
   }
 
@@ -1437,10 +1681,8 @@ export function DashboardApp(): React.ReactElement {
     const existingEdit = paymentEdits[memberId];
     if (existingEdit) return existingEdit;
 
-    const payment = workspace?.payments.find(
-      (item) => item.member_id === memberId && item.is_current !== false
-    );
-    const plan = workspace?.billingPlans.find((item) => item.memberId === memberId && item.active);
+    const payment = currentPaymentByMemberId.get(memberId);
+    const plan = activePlanByMemberId.get(memberId);
     return {
       type: plan?.type ?? 'monthly',
       trainingFormat: plan?.trainingFormat ?? 'group',
@@ -1885,6 +2127,7 @@ export function DashboardApp(): React.ReactElement {
                       {user.role === 'member' ? (
                         <select
                           value={group?.id ?? ''}
+                          disabled={isPendingAction(`assign-member-group:${user.id}`)}
                           onChange={(event) =>
                             assignMemberToGroup(user.id, event.target.value)
                           }
@@ -2150,24 +2393,37 @@ export function DashboardApp(): React.ReactElement {
                     </div>
                     <div className="row-actions">
                       {canManage ? (
-                        <button className="small-button" type="button" onClick={() => saveMemberPayment(member.id)}>
-                          {payment ? 'Сохранить изменения' : 'Назначить счёт'}
+                        <button
+                          className="small-button"
+                          type="button"
+                          disabled={isPendingAction(`save-payment:${member.id}`)}
+                          onClick={() => saveMemberPayment(member.id)}
+                        >
+                          {buttonLabel(`save-payment:${member.id}`, payment ? 'Сохранить изменения' : 'Назначить счёт')}
                         </button>
                       ) : null}
                       {canManage && payment && payment.status !== 'paid' ? (
                         <button
                           className="small-button danger"
                           type="button"
+                          disabled={isPendingAction(`delete-payment:${payment.id}`)}
                           onClick={() => void deleteMemberPayment(payment)}
                         >
-                          Удалить счёт
+                          {buttonLabel(`delete-payment:${payment.id}`, 'Удалить счёт')}
                         </button>
                       ) : null}
                       {hasRole(activeUser, 'member') &&
                       payment &&
                       ['active', 'overdue', 'delayed'].includes(payment.status) ? (
                         <>
-                          <button className="small-button" type="button" onClick={() => submitPaymentConfirmation(payment.id)}>Я оплатил</button>
+                          <button
+                            className="small-button"
+                            type="button"
+                            disabled={isPendingAction(`submit-payment:${payment.id}`)}
+                            onClick={() => submitPaymentConfirmation(payment.id)}
+                          >
+                            {buttonLabel(`submit-payment:${payment.id}`, 'Я оплатил')}
+                          </button>
                           <div className="delay-request-compact">
                             <input
                               aria-label="Новая дата оплаты"
@@ -2186,14 +2442,35 @@ export function DashboardApp(): React.ReactElement {
                                 updateDelayDraft(payment.id, { comment: event.target.value })
                               }
                             />
-                            <button className="small-button secondary" type="button" onClick={() => requestPaymentDelay(payment.id)}>Отсрочка</button>
+                            <button
+                              className="small-button secondary"
+                              type="button"
+                              disabled={isPendingAction(`request-delay:${payment.id}`)}
+                              onClick={() => requestPaymentDelay(payment.id)}
+                            >
+                              {buttonLabel(`request-delay:${payment.id}`, 'Отсрочка')}
+                            </button>
                           </div>
                         </>
                       ) : null}
                       {canManage && payment?.status === 'payment_confirmation' ? (
                         <>
-                          <button className="small-button" type="button" onClick={() => updatePaymentStatus(payment.id, 'paid')}>Подтвердить</button>
-                          <button className="small-button secondary" type="button" onClick={() => updatePaymentStatus(payment.id, 'active')}>Отклонить</button>
+                          <button
+                            className="small-button"
+                            type="button"
+                            disabled={isPendingAction(`decide-payment:${payment.id}`)}
+                            onClick={() => updatePaymentStatus(payment.id, 'paid')}
+                          >
+                            {buttonLabel(`decide-payment:${payment.id}`, 'Подтвердить')}
+                          </button>
+                          <button
+                            className="small-button secondary"
+                            type="button"
+                            disabled={isPendingAction(`decide-payment:${payment.id}`)}
+                            onClick={() => updatePaymentStatus(payment.id, 'active')}
+                          >
+                            {buttonLabel(`decide-payment:${payment.id}`, 'Отклонить')}
+                          </button>
                         </>
                       ) : null}
                       {canManage && payment?.status === 'delay_requested' ? (
@@ -2202,8 +2479,22 @@ export function DashboardApp(): React.ReactElement {
                             До {payment.delay_requested_date}
                             {payment.delay_comment ? ` · ${payment.delay_comment}` : ''}
                           </span>
-                          <button className="small-button" type="button" onClick={() => decidePaymentDelay(payment.id, true)}>Одобрить</button>
-                          <button className="small-button secondary" type="button" onClick={() => decidePaymentDelay(payment.id, false)}>Отклонить</button>
+                          <button
+                            className="small-button"
+                            type="button"
+                            disabled={isPendingAction(`decide-delay:${payment.id}`)}
+                            onClick={() => decidePaymentDelay(payment.id, true)}
+                          >
+                            {buttonLabel(`decide-delay:${payment.id}`, 'Одобрить')}
+                          </button>
+                          <button
+                            className="small-button secondary"
+                            type="button"
+                            disabled={isPendingAction(`decide-delay:${payment.id}`)}
+                            onClick={() => decidePaymentDelay(payment.id, false)}
+                          >
+                            {buttonLabel(`decide-delay:${payment.id}`, 'Отклонить')}
+                          </button>
                         </>
                       ) : null}
                     </div>
@@ -2269,8 +2560,13 @@ export function DashboardApp(): React.ReactElement {
                           <button className="small-button" type="button" onClick={() => startGroupEdit(group)}>
                             Редактировать
                           </button>
-                          <button className="small-button secondary" type="button" onClick={() => deleteGroup(group.id)}>
-                            Удалить
+                          <button
+                            className="small-button secondary"
+                            type="button"
+                            disabled={isPendingAction(`delete-group:${group.id}`)}
+                            onClick={() => deleteGroup(group.id)}
+                          >
+                            {buttonLabel(`delete-group:${group.id}`, 'Удалить')}
                           </button>
                         </div>
                       ) : null}
@@ -2368,8 +2664,12 @@ export function DashboardApp(): React.ReactElement {
                   />
                 </label>
                 <div className="form-actions">
-                  <button className="primary-button" type="submit">
-                    {editingGroupId ? 'Сохранить группу' : 'Создать группу'}
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
+                  >
+                    {buttonLabel(`save-group:${editingGroupId || 'new'}`, editingGroupId ? 'Сохранить группу' : 'Создать группу')}
                   </button>
                   {editingGroupId ? (
                     <button className="small-button secondary" type="button" onClick={cancelGroupEdit}>

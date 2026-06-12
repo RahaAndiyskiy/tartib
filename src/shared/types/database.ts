@@ -223,6 +223,29 @@ export type Database = {
         Args: Record<string, never>;
         Returns: AppUser | null;
       };
+      get_current_identity: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          auth_user_id: string;
+          profile_id: string;
+          organization_id: string;
+          role: UserRole;
+          username: string | null;
+          first_name: string;
+          last_name: string;
+          phone: string | null;
+          email: string | null;
+          created_at: string;
+          roles: UserRole[];
+        }>;
+      };
+      get_workspace: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          workspace: Json;
+          active_user_id: string;
+        }>;
+      };
     };
     Enums: {
       user_role: UserRole;
