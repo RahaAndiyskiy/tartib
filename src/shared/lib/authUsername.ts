@@ -7,3 +7,8 @@ export function normalizeUsername(username: string): string {
 export function usernameToAuthEmail(username: string): string {
   return `${normalizeUsername(username)}@${AUTH_DOMAIN}`;
 }
+
+export function loginToAuthEmail(login: string): string {
+  const normalizedLogin = login.trim().toLowerCase();
+  return normalizedLogin.includes('@') ? normalizedLogin : usernameToAuthEmail(normalizedLogin);
+}

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@shared/lib/supabaseClient';
-import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
+import { loginToAuthEmail, normalizeUsername } from '@shared/lib/authUsername';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
@@ -72,7 +72,7 @@ function SupabaseAuthPanel(): React.ReactElement {
       }
 
       const result = await supabase.auth.signInWithPassword({
-        email: usernameToAuthEmail(normalizedUsername),
+        email: loginToAuthEmail(username),
         password
       });
 
@@ -153,7 +153,7 @@ function SupabaseAuthPanel(): React.ReactElement {
           <input
             autoComplete="username"
             minLength={3}
-            pattern="[A-Za-z0-9._-]+"
+            placeholder="Логин или старый email"
             required
             value={username}
             onChange={(event) => setUsername(event.target.value)}
