@@ -11,25 +11,26 @@ type RegisterOwnerBody = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as RegisterOwnerBody;
-  const username = normalizeUsername(body.username ?? '');
-  const password = body.password ?? '';
-  const organizationName = body.organizationName?.trim() ?? '';
-  const firstName = body.firstName?.trim() ?? '';
-  const lastName = body.lastName?.trim() ?? '';
+  try {
+    const body = (await request.json()) as RegisterOwnerBody;
+    const username = normalizeUsername(body.username ?? '');
+    const password = body.password ?? '';
+    const organizationName = body.organizationName?.trim() ?? '';
+    const firstName = body.firstName?.trim() ?? '';
+    const lastName = body.lastName?.trim() ?? '';
 
-  if (!organizationName || !firstName || !lastName || username.length < 3 || password.length < 6) {
-    return NextResponse.json(
-      { error: 'Заполните все поля. Логин — от 3 символов, пароль — от 6.' },
-      { status: 400 }
-    );
-  }
+    if (!organizationName || !firstName || !lastName || username.length < 3 || password.length < 6) {
+      return NextResponse.json(
+        { error: 'Заполните все поля. Логин — от 3 символов, пароль — от 6.' },
+        { status: 400 }
+      );
+    }
 
-  const admin = getSupabaseAdmin();
-  const existing = await admin.from('users').select('id').ilike('username', username).maybeSingle();
-  if (existing.data) {
-    return NextResponse.json({ error: 'Этот логин уже занят.' }, { status: 409 });
-  }
+    const admin = getSupabaseAdmin();
+    const existing = await admin.from('users').select('id').ilike('username', username).maybeSingle();
+    if (existing.data) {
+      return NextResponse.json({ error: 'Этот логин уже занят.' }, { status: 409 });
+    }
 
   const authResult = await admin.auth.admin.createUser({
     email: usernameToAuthEmail(username),
@@ -92,5 +93,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: rolesResult.error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ username }, { status: 201 });
+    return NextResponse.json({ username }, { status: 201 });
+  } catch (error) {
+    console.error('[register-owner] failed', error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error && error.message.includes('Supabase environment variables')
+            ? 'Supabase не настроен в переменных окружения Vercel.'
+            : 'Не удалось создать организацию.'
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -11,3 +11,5 @@ pnpm-debug.log*
 tsconfig.tsbuildinfo
 public/sw.js
 public/workbox-*.js
+
+.vercel

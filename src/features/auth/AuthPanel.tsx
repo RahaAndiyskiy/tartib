@@ -48,42 +48,54 @@ function SupabaseAuthPanel(): React.ReactElement {
     setIsSubmitting(true);
     setMessage('');
 
-    const supabase = getSupabaseClient();
-    const normalizedUsername = normalizeUsername(username);
+    try {
+      const supabase = getSupabaseClient();
+      const normalizedUsername = normalizeUsername(username);
 
-    if (mode === 'sign-up') {
-      const registrationResponse = await fetch('/api/auth/register-owner', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationName,
-          firstName,
-          lastName,
-          username: normalizedUsername,
-          password
-        })
+      if (mode === 'sign-up') {
+        const registrationResponse = await fetch('/api/auth/register-owner', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizationName,
+            firstName,
+            lastName,
+            username: normalizedUsername,
+            password
+          })
+        });
+        const registration = (await registrationResponse.json()) as { error?: string };
+        if (!registrationResponse.ok) {
+          setMessage(registration.error ?? 'Не удалось создать аккаунт.');
+          return;
+        }
+      }
+
+      const result = await supabase.auth.signInWithPassword({
+        email: usernameToAuthEmail(normalizedUsername),
+        password
       });
-      const registration = (await registrationResponse.json()) as { error?: string };
-      if (!registrationResponse.ok) {
-        setIsSubmitting(false);
-        setMessage(registration.error ?? 'Не удалось создать аккаунт.');
+
+      if (result.error) {
+        setMessage(
+          result.error.message === 'Invalid login credentials'
+            ? 'Неверный логин или пароль.'
+            : result.error.message
+        );
         return;
       }
-    }
 
-    const result = await supabase.auth.signInWithPassword({
-      email: usernameToAuthEmail(normalizedUsername),
-      password
-    });
-
-    if (result.error) {
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('[auth] failed', error);
+      setMessage(
+        error instanceof Error && error.message.includes('Supabase environment variables')
+          ? 'Сервис входа пока не настроен на сервере. Проверьте переменные Supabase в Vercel.'
+          : 'Не удалось связаться с сервисом входа. Попробуйте ещё раз.'
+      );
+    } finally {
       setIsSubmitting(false);
-      setMessage(result.error.message);
-      return;
     }
-
-    setIsSubmitting(false);
-    router.push('/dashboard');
   }
 
   return (
