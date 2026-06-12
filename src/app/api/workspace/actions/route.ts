@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
+import { createHash, randomBytes } from 'node:crypto';
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
 import { hasServerRole, requireIdentity, type ServerIdentity } from '@shared/lib/serverAuth';
 import type { BillingPlanType, PaymentRequestStatus, TrainingFormat } from '@shared/types/domain';
 
 type ActionBody =
+  | {
+      action: 'create_member_invite';
+      firstName: string;
+      lastName: string;
+      groupId: string;
+    }
   | {
       action: 'create_user';
       role: 'trainer' | 'member';
@@ -105,8 +112,7 @@ async function createUserAction(
   body: Extract<ActionBody, { action: 'create_user' }>
 ): Promise<NextResponse> {
   const isOwner = hasServerRole(identity, 'owner');
-  const isTrainer = hasServerRole(identity, 'trainer');
-  if ((!isOwner && !isTrainer) || (!isOwner && body.role !== 'member')) {
+  if (!isOwner || body.role !== 'trainer') {
     return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
   }
 
@@ -127,23 +133,6 @@ async function createUserAction(
   const existing = await admin.from('users').select('id').ilike('username', username).maybeSingle();
   if (existing.data) {
     return NextResponse.json({ error: 'Этот логин уже занят.' }, { status: 409 });
-  }
-
-  let group:
-    | { id: string; trainer_id: string; organization_id: string }
-    | null = null;
-  if (body.role === 'member') {
-    const groupResult = await admin
-      .from('groups')
-      .select('id,trainer_id,organization_id')
-      .eq('id', body.groupId ?? '')
-      .eq('organization_id', identity.profile.organization_id)
-      .maybeSingle();
-    group = groupResult.data;
-
-    if (!group || !canManageTrainer(identity, group.trainer_id)) {
-      return NextResponse.json({ error: 'Выберите доступную группу.' }, { status: 400 });
-    }
   }
 
   const authResult = await admin.auth.admin.createUser({
@@ -185,57 +174,72 @@ async function createUserAction(
   const user = profileResult.data;
   await admin.from('user_roles').insert({ user_id: user.id, role: body.role });
 
-  if (body.role === 'member' && group) {
-    await Promise.all([
-      admin.from('trainer_members').insert({
-        organization_id: identity.profile.organization_id,
-        trainer_id: group.trainer_id,
-        member_id: user.id
-      }),
-      admin.from('group_members').insert({
-        organization_id: identity.profile.organization_id,
-        group_id: group.id,
-        member_id: user.id
-      })
-    ]);
+  return NextResponse.json({ ok: true }, { status: 201 });
+}
 
-    if (body.amount && body.amount > 0 && body.dueDate) {
-      const planResult = await admin
-        .from('billing_plans')
-        .insert({
-          organization_id: identity.profile.organization_id,
-          member_id: user.id,
-          trainer_id: group.trainer_id,
-          type: body.paymentType ?? 'monthly',
-          training_format: body.trainingFormat ?? 'group',
-          base_amount: body.amount,
-          billing_day:
-            (body.paymentType ?? 'monthly') === 'monthly'
-              ? new Date(`${body.dueDate}T12:00:00Z`).getUTCDate()
-              : null,
-          active: true
-        })
-        .select('*')
-        .single();
-
-      if (planResult.data) {
-        await admin.from('payment_requests').insert({
-          organization_id: identity.profile.organization_id,
-          member_id: user.id,
-          trainer_id: group.trainer_id,
-          amount: body.amount,
-          due_date: body.dueDate,
-          status: dateValue(body.dueDate) < dateValue(todayString()) ? 'overdue' : 'active',
-          plan_id: planResult.data.id,
-          period_label: periodLabel(body.dueDate),
-          is_current: true,
-          paid_at: null
-        });
-      }
-    }
+async function createMemberInviteAction(
+  request: Request,
+  identity: ServerIdentity,
+  body: Extract<ActionBody, { action: 'create_member_invite' }>
+): Promise<NextResponse> {
+  if (!hasServerRole(identity, 'owner') && !hasServerRole(identity, 'trainer')) {
+    return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
   }
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  const firstName = body.firstName.trim();
+  const lastName = body.lastName.trim();
+  if (!firstName || !lastName || !body.groupId) {
+    return NextResponse.json({ error: 'Укажите имя, фамилию и группу.' }, { status: 400 });
+  }
+
+  const admin = getSupabaseAdmin();
+  const groupResult = await admin
+    .from('groups')
+    .select('id,trainer_id,organization_id')
+    .eq('id', body.groupId)
+    .eq('organization_id', identity.profile.organization_id)
+    .maybeSingle();
+  const group = groupResult.data;
+
+  if (!group || !canManageTrainer(identity, group.trainer_id)) {
+    return NextResponse.json({ error: 'Выберите доступную группу.' }, { status: 400 });
+  }
+
+  const token = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const inviteResult = await admin
+    .from('member_invites')
+    .insert({
+      organization_id: identity.profile.organization_id,
+      group_id: group.id,
+      trainer_id: group.trainer_id,
+      created_by: identity.profile.id,
+      first_name: firstName,
+      last_name: lastName,
+      token_hash: tokenHash,
+      expires_at: expiresAt
+    })
+    .select('id')
+    .single();
+
+  if (inviteResult.error) {
+    return NextResponse.json(
+      { error: inviteResult.error.message || 'Не удалось создать приглашение.' },
+      { status: 400 }
+    );
+  }
+
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+  const requestOrigin = new URL(request.url).origin;
+  return NextResponse.json(
+    {
+      ok: true,
+      inviteUrl: `${configuredOrigin || requestOrigin}/join/${token}`,
+      expiresAt
+    },
+    { status: 201 }
+  );
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -247,6 +251,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as ActionBody;
   const admin = getSupabaseAdmin();
   const organizationId = identity.profile.organization_id;
+
+  if (body.action === 'create_member_invite') {
+    return createMemberInviteAction(request, identity, body);
+  }
 
   if (body.action === 'create_user') {
     return createUserAction(identity, body);

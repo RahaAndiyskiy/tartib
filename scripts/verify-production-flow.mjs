@@ -100,21 +100,49 @@ try {
   const group = trainerWorkspace.workspace.groups[0];
   if (!group) throw new Error('Group was not created');
 
+  const invitation = await action(trainerToken, {
+    action: 'create_member_invite',
+    firstName: 'Тест',
+    lastName: 'Ученик',
+    groupId: group.id
+  });
+  const inviteToken = new URL(invitation.inviteUrl).pathname.split('/').pop();
+  if (!inviteToken) throw new Error('Invitation token was not returned');
+  const inviteDetails = await api(`/api/invitations/${inviteToken}`);
+  if (
+    inviteDetails.firstName !== 'Тест' ||
+    inviteDetails.lastName !== 'Ученик' ||
+    inviteDetails.group.activity !== 'ММА'
+  ) {
+    throw new Error('Invitation page returned incorrect student or group data');
+  }
+
+  await api(`/api/invitations/${inviteToken}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: memberUsername,
+      password
+    })
+  });
+
+  trainerWorkspace = await workspace(trainerToken);
+  const member = trainerWorkspace.workspace.users.find(
+    (item) => item.username === memberUsername
+  );
+  if (!member) throw new Error('Member was not added after accepting invitation');
+
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 2);
   const due = dueDate.toISOString().slice(0, 10);
   await action(trainerToken, {
-    action: 'create_user',
-    role: 'member',
-    firstName: 'Тест',
-    lastName: 'Ученик',
-    username: memberUsername,
-    password,
-    groupId: group.id,
-    paymentType: 'monthly',
+    action: 'save_payment',
+    memberId: member.id,
+    type: 'monthly',
     trainingFormat: 'group',
     amount: 5000,
-    dueDate: due
+    dueDate: due,
+    updateFuture: true
   });
 
   const memberToken = await signIn(memberUsername);

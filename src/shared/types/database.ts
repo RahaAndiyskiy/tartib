@@ -79,6 +79,22 @@ type NotificationRow = {
   created_at: string;
 };
 
+type MemberInviteRow = {
+  id: string;
+  organization_id: string;
+  group_id: string;
+  trainer_id: string;
+  created_by: string;
+  first_name: string;
+  last_name: string;
+  token_hash: string;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  expires_at: string;
+  accepted_user_id: string | null;
+  accepted_at: string | null;
+  created_at: string;
+};
+
 type TrainerMemberInsert = {
   id?: string;
   organization_id: string;
@@ -165,6 +181,18 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<NotificationRow>;
+        Relationships: [];
+      };
+      member_invites: {
+        Row: MemberInviteRow;
+        Insert: Omit<MemberInviteRow, 'id' | 'created_at' | 'status' | 'accepted_user_id' | 'accepted_at'> & {
+          id?: string;
+          status?: MemberInviteRow['status'];
+          accepted_user_id?: string | null;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<MemberInviteRow>;
         Relationships: [];
       };
       trainer_members: {

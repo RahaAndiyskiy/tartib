@@ -4,12 +4,14 @@ import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
+  Copy,
   CreditCard,
   ExternalLink,
   LayoutDashboard,
   LogOut,
   Plus,
   RotateCcw,
+  Share2,
   CalendarDays,
   Layers3,
   Users,
@@ -52,6 +54,12 @@ type PersonDraft = {
   trainingFormat: TrainingFormat;
   initialAmount: string;
   initialDueDate: string;
+};
+
+type MemberInviteResult = {
+  inviteUrl: string;
+  expiresAt: string;
+  studentName: string;
 };
 
 type PaymentEdit = {
@@ -214,6 +222,7 @@ export function DashboardApp(): React.ReactElement {
   const [message, setMessage] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -417,12 +426,20 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function runRemoteAction(payload: Record<string, unknown>): Promise<boolean> {
+    const data = await runRemoteActionData<{ ok: boolean }>(payload);
+    return Boolean(data);
+  }
+
+  async function runRemoteActionData<T>(
+    payload: Record<string, unknown>,
+    reloadWorkspace = true
+  ): Promise<T | null> {
     const supabase = getSupabaseClient();
     const sessionResult = await supabase.auth.getSession();
     const token = sessionResult.data.session?.access_token;
     if (!token) {
       window.location.href = '/login';
-      return false;
+      return null;
     }
 
     const response = await fetch('/api/workspace/actions', {
@@ -433,14 +450,14 @@ export function DashboardApp(): React.ReactElement {
       },
       body: JSON.stringify(payload)
     });
-    const data = (await response.json()) as { error?: string };
+    const data = (await response.json()) as T & { error?: string };
     if (!response.ok) {
       setMessage(data.error ?? 'Не удалось выполнить действие.');
-      return false;
+      return null;
     }
 
-    await loadRemoteWorkspace();
-    return true;
+    if (reloadWorkspace) await loadRemoteWorkspace();
+    return data;
   }
 
   function selectActiveUser(userId: string): void {
@@ -483,24 +500,45 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
+      if (effectiveRole === 'member') {
+        const result = await runRemoteActionData<{ inviteUrl: string; expiresAt: string }>(
+          {
+            action: 'create_member_invite',
+            firstName: personDraft.firstName,
+            lastName: personDraft.lastName,
+            groupId: personDraft.groupId
+          },
+          false
+        );
+        if (result) {
+          setMemberInvite({
+            inviteUrl: result.inviteUrl,
+            expiresAt: result.expiresAt,
+            studentName: `${personDraft.firstName.trim()} ${personDraft.lastName.trim()}`
+          });
+          setPersonDraft((current) => ({
+            ...emptyPersonDraft,
+            role: 'member',
+            groupId: current.groupId
+          }));
+          setMessage('Приглашение создано. Отправьте ссылку ученику.');
+        }
+        return;
+      }
+
       const success = await runRemoteAction({
         action: 'create_user',
-        role: effectiveRole,
+        role: 'trainer',
         firstName: personDraft.firstName,
         lastName: personDraft.lastName,
         username: personDraft.username,
         password: personDraft.password,
-        phone: personDraft.phone,
-        groupId: personDraft.groupId,
-        paymentType: personDraft.paymentType,
-        trainingFormat: personDraft.trainingFormat,
-        amount: Number(personDraft.initialAmount) || undefined,
-        dueDate: personDraft.initialDueDate || undefined
+        phone: personDraft.phone
       });
       if (success) {
         setPersonDraft(emptyPersonDraft);
         setMobileFormOpen(false);
-        setMessage(effectiveRole === 'member' ? 'Ученик создан.' : 'Тренер создан.');
+        setMessage('Тренер создан.');
       }
       return;
     }
@@ -594,6 +632,25 @@ export function DashboardApp(): React.ReactElement {
         ? 'Ученик создан и назначен тренеру.'
         : 'Тренер создан. Теперь к нему можно добавлять учеников.'
     );
+  }
+
+  async function copyMemberInvite(): Promise<void> {
+    if (!memberInvite) return;
+    await navigator.clipboard.writeText(memberInvite.inviteUrl);
+    setMessage('Ссылка скопирована.');
+  }
+
+  async function shareMemberInvite(): Promise<void> {
+    if (!memberInvite) return;
+    if (navigator.share) {
+      await navigator.share({
+        title: `Приглашение для ${memberInvite.studentName}`,
+        text: 'Завершите регистрацию в Tartib и присоединитесь к группе.',
+        url: memberInvite.inviteUrl
+      });
+      return;
+    }
+    await copyMemberInvite();
   }
 
   async function createGroup(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -1815,7 +1872,10 @@ export function DashboardApp(): React.ReactElement {
                     <button
                       className={personDraft.role === 'trainer' ? 'active' : ''}
                       type="button"
-                      onClick={() => setPersonDraft((current) => ({ ...current, role: 'trainer' }))}
+                      onClick={() => {
+                        setMemberInvite(null);
+                        setPersonDraft((current) => ({ ...current, role: 'trainer' }));
+                      }}
                     >
                       Тренер
                     </button>
@@ -1823,7 +1883,10 @@ export function DashboardApp(): React.ReactElement {
                       className={personDraft.role === 'member' ? 'active' : ''}
                       disabled={visibleGroups.length === 0}
                       type="button"
-                      onClick={() => setPersonDraft((current) => ({ ...current, role: 'member' }))}
+                      onClick={() => {
+                        setMemberInvite(null);
+                        setPersonDraft((current) => ({ ...current, role: 'member' }));
+                      }}
                     >
                       Ученик
                     </button>
@@ -1832,7 +1895,11 @@ export function DashboardApp(): React.ReactElement {
 
                 <label>Имя<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
                 <label>Фамилия<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
-                {!isLocalMode ? (
+                {!isLocalMode &&
+                !(
+                  (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
+                  personDraft.role === 'member'
+                ) ? (
                   <div className="split-fields">
                     <label>
                       Логин
@@ -1866,7 +1933,12 @@ export function DashboardApp(): React.ReactElement {
                     </label>
                   </div>
                 ) : null}
-                <label>Телефон <span className="optional-label">необязательно</span><input value={personDraft.phone} onChange={(event) => setPersonDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
+                {!(
+                  (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
+                  personDraft.role === 'member'
+                ) ? (
+                  <label>Телефон <span className="optional-label">необязательно</span><input value={personDraft.phone} onChange={(event) => setPersonDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
+                ) : null}
 
                 {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? (
                   <>
@@ -1890,48 +1962,37 @@ export function DashboardApp(): React.ReactElement {
                         ))}
                       </select>
                     </label>
-                    <label>
-                      Схема оплаты
-                      <select
-                        value={personDraft.paymentType}
-                        onChange={(event) =>
-                          setPersonDraft((current) => ({
-                            ...current,
-                            paymentType: event.target.value as BillingPlanType
-                          }))
-                        }
-                      >
-                        <option value="monthly">Абонемент</option>
-                        <option value="one_time">Разовая оплата</option>
-                      </select>
-                    </label>
-                    {personDraft.paymentType === 'monthly' ? (
-                      <label>
-                        Формат занятий
-                        <select
-                          value={personDraft.trainingFormat}
-                          onChange={(event) =>
-                            setPersonDraft((current) => ({
-                              ...current,
-                              trainingFormat: event.target.value as TrainingFormat
-                            }))
-                          }
-                        >
-                          <option value="group">Группа</option>
-                          <option value="individual">Индивидуально</option>
-                        </select>
-                      </label>
-                    ) : null}
-                    <div className="split-fields">
-                      <label>Сумма<input min="1" step="0.01" type="number" value={personDraft.initialAmount} onChange={(event) => setPersonDraft((current) => ({ ...current, initialAmount: event.target.value }))} /></label>
-                      <label>Срок<input type="date" value={personDraft.initialDueDate} onChange={(event) => setPersonDraft((current) => ({ ...current, initialDueDate: event.target.value }))} /></label>
-                    </div>
+                    <p className="inline-hint invite-form-hint">
+                      Ученик сам создаст логин и пароль по ссылке. После регистрации он автоматически появится в этой группе.
+                    </p>
                   </>
                 ) : null}
 
                 <button className="primary-button" type="submit">
-                  {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? 'Добавить ученика' : 'Добавить тренера'}
+                  {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? 'Создать приглашение' : 'Добавить тренера'}
                 </button>
+
+                {memberInvite &&
+                ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
+                  personDraft.role === 'member') ? (
+                  <div className="invite-result">
+                    <div>
+                      <strong>Ссылка для {memberInvite.studentName}</strong>
+                      <span>
+                        Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
+                    <input aria-label="Ссылка-приглашение" readOnly value={memberInvite.inviteUrl} />
+                    <div className="invite-result-actions">
+                      <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
+                        <Copy size={17} /> Копировать
+                      </button>
+                      <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
+                        <Share2 size={17} /> Поделиться
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </form>
             ) : null}
           </section>
