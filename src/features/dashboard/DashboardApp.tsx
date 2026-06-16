@@ -246,7 +246,7 @@ function canSubmitPayment(payment: PaymentRequest): boolean {
 
 function paymentLockedText(payment: PaymentRequest): string | null {
   if (canSubmitPayment(payment) || !['active', 'delayed'].includes(payment.status)) return null;
-  return `Счёт откроется ${formatShortDate(payment.due_date)}. Если хотите закрыть его заранее, используйте предоплату ниже.`;
+  return `Счёт откроется ${formatShortDate(payment.due_date)}. Если хотите закрыть его заранее, используйте `;
 }
 
 export function DashboardApp(): React.ReactElement {
@@ -633,6 +633,19 @@ export function DashboardApp(): React.ReactElement {
     setSelectedPaymentMemberId(payment.member_id);
     setPaymentEditOpen(false);
     setMobileFormOpen(false);
+  }
+
+  function openPrepayment(payment: PaymentRequest): void {
+    setActiveSection('payments');
+    setPaymentView('all');
+    setSelectedPaymentMemberId(payment.member_id);
+    setPaymentEditOpen(false);
+    window.setTimeout(() => {
+      document.getElementById(`prepayment-${payment.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }, 80);
   }
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -2148,7 +2161,13 @@ export function DashboardApp(): React.ReactElement {
                     </div>
                   ) : null}
                   {activeMemberPayment && paymentLockedText(activeMemberPayment) ? (
-                    <p className="payment-locked-note">{paymentLockedText(activeMemberPayment)}</p>
+                    <p className="payment-locked-note">
+                      {paymentLockedText(activeMemberPayment)}
+                      <button type="button" onClick={() => openPrepayment(activeMemberPayment)}>
+                        предоплату
+                      </button>
+                      .
+                    </p>
                   ) : null}
                   {activeMemberPayment?.status === 'delay_requested' ? (
                     <p className="inline-note">
@@ -2811,12 +2830,18 @@ export function DashboardApp(): React.ReactElement {
                     {hasRole(activeUser, 'member') && selectedPayment && paymentLockedText(selectedPayment) ? (
                       <div className="payment-info-card">
                         <strong>Оплата ещё не открыта</strong>
-                        <span>{paymentLockedText(selectedPayment)}</span>
+                        <span>
+                          {paymentLockedText(selectedPayment)}
+                          <button type="button" onClick={() => openPrepayment(selectedPayment)}>
+                            предоплату
+                          </button>
+                          .
+                        </span>
                       </div>
                     ) : null}
 
                     {selectedPayment && canSubmitPrepayment(selectedPayment) ? (
-                      <div className="payment-prepay-card">
+                      <div className="payment-prepay-card" id={`prepayment-${selectedPayment.id}`}>
                         <div>
                           <strong>Предоплата</strong>
                           <span>Можно оплатить раньше срока или закрыть несколько месяцев одним платежом.</span>

@@ -1548,6 +1548,19 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+.payment-info-card button,
+.payment-locked-note button {
+  display: inline;
+  border: 0;
+  background: transparent;
+  color: #1f6d51;
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .payment-prepay-card {
   display: grid;
   gap: 13px;
