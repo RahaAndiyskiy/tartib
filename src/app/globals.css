@@ -1009,9 +1009,9 @@ button:disabled {
 
 .crm-table-head,
 .crm-table-row {
-  min-width: 720px;
+  min-width: 860px;
   display: grid;
-  grid-template-columns: 1.2fr 0.7fr 1fr 1fr;
+  grid-template-columns: 1.15fr 0.65fr 1.15fr 1fr 110px;
   gap: 14px;
   align-items: center;
   padding: 0 18px;
@@ -2524,6 +2524,7 @@ button:disabled {
 
   .crm-table-row > span:nth-child(2)::before,
   .crm-table-row > span:nth-child(4)::before,
+  .crm-table-row > span:nth-child(5)::before,
   .crm-table-row > select::before {
     display: block;
     color: #7a8680;
@@ -2540,7 +2541,15 @@ button:disabled {
     content: 'Контакт';
   }
 
+  .crm-table-row > span:nth-child(5)::before {
+    content: 'Действия';
+  }
+
   .crm-table-row select {
+    width: 100%;
+  }
+
+  .crm-table-row .small-button {
     width: 100%;
   }
 

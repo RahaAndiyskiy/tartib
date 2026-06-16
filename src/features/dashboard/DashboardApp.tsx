@@ -65,7 +65,7 @@ type PersonDraft = {
 type MemberInviteResult = {
   inviteUrl: string;
   expiresAt: string;
-  studentName: string;
+  groupName: string;
 };
 
 type PaymentEdit = {
@@ -723,8 +723,6 @@ export function DashboardApp(): React.ReactElement {
         const result = await runRemoteActionData<{ inviteUrl: string; expiresAt: string }>(
           {
             action: 'create_member_invite',
-            firstName: personDraft.firstName,
-            lastName: personDraft.lastName,
             groupId: personDraft.groupId
           }
         );
@@ -732,7 +730,7 @@ export function DashboardApp(): React.ReactElement {
           setMemberInvite({
             inviteUrl: result.inviteUrl,
             expiresAt: result.expiresAt,
-            studentName: `${personDraft.firstName.trim()} ${personDraft.lastName.trim()}`
+            groupName: selectedGroup!.activity
           });
           setPersonDraft((current) => ({
             ...emptyPersonDraft,
@@ -863,7 +861,7 @@ export function DashboardApp(): React.ReactElement {
     if (!memberInvite) return;
     if (navigator.share) {
       await navigator.share({
-        title: `Приглашение для ${memberInvite.studentName}`,
+        title: `Приглашение в группу ${memberInvite.groupName}`,
         text: 'Завершите регистрацию в Tartib и присоединитесь к группе.',
         url: memberInvite.inviteUrl
       });
@@ -1081,6 +1079,55 @@ export function DashboardApp(): React.ReactElement {
           ]
     });
     setMessage('Ученик назначен в группу.');
+  }
+
+  async function deleteMember(memberId: string): Promise<void> {
+    if (!workspace) return;
+
+    if (!isLocalMode) {
+      const data = await runRemoteActionWithPending<{ deletedMemberId: string }>(
+        { action: 'delete_member', memberId },
+        `delete-member:${memberId}`
+      );
+      if (data?.deletedMemberId) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                users: current.users.filter((user) => user.id !== data.deletedMemberId),
+                assignments: current.assignments.filter(
+                  (assignment) => assignment.member_id !== data.deletedMemberId
+                ),
+                groupMembers: current.groupMembers.filter(
+                  (assignment) => assignment.memberId !== data.deletedMemberId
+                ),
+                billingPlans: current.billingPlans.filter(
+                  (plan) => plan.memberId !== data.deletedMemberId
+                ),
+                payments: current.payments.filter(
+                  (payment) => payment.member_id !== data.deletedMemberId
+                ),
+                schedules: current.schedules.filter(
+                  (schedule) => schedule.memberId !== data.deletedMemberId
+                )
+              }
+            : current
+        );
+        setMessage('Ученик удалён.');
+      }
+      return;
+    }
+
+    saveWorkspace({
+      ...workspace,
+      users: workspace.users.filter((user) => user.id !== memberId),
+      assignments: workspace.assignments.filter((assignment) => assignment.member_id !== memberId),
+      groupMembers: workspace.groupMembers.filter((assignment) => assignment.memberId !== memberId),
+      billingPlans: workspace.billingPlans.filter((plan) => plan.memberId !== memberId),
+      payments: workspace.payments.filter((payment) => payment.member_id !== memberId),
+      schedules: workspace.schedules.filter((schedule) => schedule.memberId !== memberId)
+    });
+    setMessage('Ученик удалён.');
   }
 
   async function saveMemberPayment(memberId: string): Promise<void> {
@@ -1991,6 +2038,11 @@ export function DashboardApp(): React.ReactElement {
     activeUser && hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
       ? visibleMembers
       : workspace?.users ?? [];
+  const isMemberInviteForm =
+    Boolean(activeUser) &&
+    !isLocalMode &&
+    ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
+      personDraft.role === 'member');
   const userNotifications =
     workspace?.notifications.filter((notification) => notification.userId === activeUserId) ?? [];
   const sectionMeta: Record<DashboardSection, { title: string; description: string }> = {
@@ -2409,7 +2461,7 @@ export function DashboardApp(): React.ReactElement {
               </div>
               <div className="crm-table">
                 <div className="crm-table-head">
-                  <span>Имя</span><span>Роль</span><span>Группа</span><span>Контакт</span>
+                  <span>Имя</span><span>Роль</span><span>Группа</span><span>Контакт</span><span>Действия</span>
                 </div>
                 {peopleForView.map((user) => {
                   const group = user.role === 'member' ? groupFor(user.id) : null;
@@ -2436,6 +2488,18 @@ export function DashboardApp(): React.ReactElement {
                         <span>—</span>
                       )}
                       <span>{user.email ?? user.phone ?? 'Не указан'}</span>
+                      {user.role === 'member' ? (
+                        <button
+                          className="small-button danger"
+                          type="button"
+                          disabled={isPendingAction(`delete-member:${user.id}`)}
+                          onClick={() => void deleteMember(user.id)}
+                        >
+                          {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
+                        </button>
+                      ) : (
+                        <span>—</span>
+                      )}
                     </div>
                   );
                 })}
@@ -2478,8 +2542,12 @@ export function DashboardApp(): React.ReactElement {
                   </div>
                 ) : null}
 
-                <label>Имя<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
-                <label>Фамилия<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
+                {!isMemberInviteForm ? (
+                  <>
+                    <label>Имя<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
+                    <label>Фамилия<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
+                  </>
+                ) : null}
                 {!isLocalMode &&
                 !(
                   (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
@@ -2562,7 +2630,7 @@ export function DashboardApp(): React.ReactElement {
                   personDraft.role === 'member') ? (
                   <div className="invite-result">
                     <div>
-                      <strong>Ссылка для {memberInvite.studentName}</strong>
+                      <strong>Ссылка для группы {memberInvite.groupName}</strong>
                       <span>
                         Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
                       </span>

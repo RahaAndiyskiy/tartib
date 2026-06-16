@@ -20,8 +20,8 @@ import type {
 type ActionBody =
   | {
       action: 'create_member_invite';
-      firstName: string;
-      lastName: string;
+      firstName?: string;
+      lastName?: string;
       groupId: string;
     }
   | {
@@ -49,6 +49,7 @@ type ActionBody =
     }
   | { action: 'delete_group'; groupId: string }
   | { action: 'assign_member_group'; memberId: string; groupId: string }
+  | { action: 'delete_member'; memberId: string }
   | {
       action: 'save_payment';
       memberId: string;
@@ -329,10 +330,10 @@ async function createMemberInviteAction(
     return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
   }
 
-  const firstName = body.firstName.trim();
-  const lastName = body.lastName.trim();
-  if (!firstName || !lastName || !body.groupId) {
-    return NextResponse.json({ error: 'Укажите имя, фамилию и группу.' }, { status: 400 });
+  const firstName = body.firstName?.trim() ?? '';
+  const lastName = body.lastName?.trim() ?? '';
+  if (!body.groupId) {
+    return NextResponse.json({ error: 'Выберите группу для ссылки.' }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
@@ -358,8 +359,8 @@ async function createMemberInviteAction(
       group_id: group.id,
       trainer_id: group.trainer_id,
       created_by: identity.profile.id,
-      first_name: firstName,
-      last_name: lastName,
+      first_name: firstName || null,
+      last_name: lastName || null,
       token_hash: tokenHash,
       expires_at: expiresAt
     })
@@ -510,6 +511,42 @@ export async function POST(request: Request): Promise<NextResponse> {
       assignment: trainerResult.data,
       groupMember: toLocalGroupMember(groupResult.data as GroupMemberRow)
     });
+  }
+
+  if (body.action === 'delete_member') {
+    const memberResult = await admin
+      .from('users')
+      .select('id,auth_user_id,organization_id,role')
+      .eq('id', body.memberId)
+      .eq('organization_id', organizationId)
+      .eq('role', 'member')
+      .maybeSingle();
+    const member = memberResult.data;
+
+    if (!member) {
+      return NextResponse.json({ error: 'Ученик не найден.' }, { status: 404 });
+    }
+
+    const assignment = await admin
+      .from('trainer_members')
+      .select('trainer_id')
+      .eq('member_id', body.memberId)
+      .eq('organization_id', organizationId)
+      .maybeSingle();
+    if (!hasServerRole(identity, 'owner') && assignment.data?.trainer_id !== identity.profile.id) {
+      return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
+    }
+
+    const deleteResult = await admin.from('users').delete().eq('id', body.memberId);
+    if (deleteResult.error) {
+      return NextResponse.json({ error: deleteResult.error.message }, { status: 400 });
+    }
+
+    if (member.auth_user_id) {
+      await admin.auth.admin.deleteUser(member.auth_user_id);
+    }
+
+    return NextResponse.json({ deletedMemberId: body.memberId });
   }
 
   if (body.action === 'save_payment') {

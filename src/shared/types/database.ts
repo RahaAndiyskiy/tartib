@@ -85,8 +85,8 @@ type MemberInviteRow = {
   group_id: string;
   trainer_id: string;
   created_by: string;
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
   token_hash: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
   expires_at: string;

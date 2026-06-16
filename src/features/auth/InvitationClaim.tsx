@@ -18,6 +18,7 @@ type InviteDetails = {
     time: string;
   };
   expiresAt: string;
+  isPersonal: boolean;
 };
 
 export function InvitationClaim(): React.ReactElement {
@@ -25,6 +26,8 @@ export function InvitationClaim(): React.ReactElement {
   const router = useRouter();
   const token = params.token;
   const [invite, setInvite] = useState<InviteDetails | null>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,6 +45,8 @@ export function InvitationClaim(): React.ReactElement {
           return;
         }
         setInvite(data);
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
       } catch {
         setMessage('Не удалось загрузить приглашение. Попробуйте ещё раз.');
       } finally {
@@ -62,7 +67,13 @@ export function InvitationClaim(): React.ReactElement {
       const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, password, phone })
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          username: normalizedUsername,
+          password,
+          phone
+        })
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -107,7 +118,7 @@ export function InvitationClaim(): React.ReactElement {
               <CheckCircle2 aria-hidden="true" size={28} />
               <div>
                 <h1>{invite.organizationName}</h1>
-                <p>Вас пригласили присоединиться к группе</p>
+                <p>Заполните данные, чтобы присоединиться к группе</p>
               </div>
             </div>
 
@@ -119,8 +130,26 @@ export function InvitationClaim(): React.ReactElement {
 
             <form className="form-stack" onSubmit={submit}>
               <div className="split-fields">
-                <label>Имя<input disabled value={invite.firstName} /></label>
-                <label>Фамилия<input disabled value={invite.lastName} /></label>
+                <label>
+                  Имя
+                  <input
+                    autoComplete="given-name"
+                    disabled={invite.isPersonal}
+                    required
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Фамилия
+                  <input
+                    autoComplete="family-name"
+                    disabled={invite.isPersonal}
+                    required
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                  />
+                </label>
               </div>
               <label>
                 Придумайте логин

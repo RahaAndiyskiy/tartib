@@ -32,13 +32,17 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
   const invite = inviteResult.data;
 
   if (!invite || invite.status !== 'pending') {
-    return NextResponse.json({ error: 'Приглашение недействительно или уже использовано.' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Приглашение недействительно или уже использовано.' },
+      { status: 404 }
+    );
   }
 
   if (new Date(invite.expires_at).getTime() <= Date.now()) {
     await admin.from('member_invites').update({ status: 'expired' }).eq('id', invite.id);
     return NextResponse.json({ error: 'Срок действия приглашения истёк.' }, { status: 410 });
   }
+
   const [organizationResult, groupResult, trainerResult] = await Promise.all([
     admin.from('organizations').select('name').eq('id', invite.organization_id).single(),
     admin.from('groups').select('activity,days,time').eq('id', invite.group_id).single(),
@@ -46,32 +50,40 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
   ]);
 
   if (!organizationResult.data || !groupResult.data || !trainerResult.data) {
-    return NextResponse.json({ error: 'Данные приглашения больше недоступны.' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Данные приглашения больше недоступны.' },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({
-    firstName: invite.first_name,
-    lastName: invite.last_name,
+    firstName: invite.first_name ?? '',
+    lastName: invite.last_name ?? '',
     organizationName: organizationResult.data.name,
     group: groupResult.data,
     trainerName: `${trainerResult.data.first_name} ${trainerResult.data.last_name}`,
-    expiresAt: invite.expires_at
+    expiresAt: invite.expires_at,
+    isPersonal: Boolean(invite.first_name && invite.last_name)
   });
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
   const { token } = await context.params;
   const body = (await request.json()) as {
+    firstName?: string;
+    lastName?: string;
     username?: string;
     password?: string;
     phone?: string;
   };
+  const firstName = body.firstName?.trim() ?? '';
+  const lastName = body.lastName?.trim() ?? '';
   const username = normalizeUsername(body.username ?? '');
   const password = body.password ?? '';
 
-  if (username.length < 3 || password.length < 6) {
+  if (!firstName || !lastName || username.length < 3 || password.length < 6) {
     return NextResponse.json(
-      { error: 'Логин должен быть от 3 символов, пароль — от 6 символов.' },
+      { error: 'Укажите имя, фамилию, логин от 3 символов и пароль от 6 символов.' },
       { status: 400 }
     );
   }
@@ -81,32 +93,40 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   const invite = inviteResult.data;
 
   if (!invite || invite.status !== 'pending') {
-    return NextResponse.json({ error: 'Приглашение недействительно или уже использовано.' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Приглашение недействительно или уже использовано.' },
+      { status: 404 }
+    );
   }
 
   if (new Date(invite.expires_at).getTime() <= Date.now()) {
     await admin.from('member_invites').update({ status: 'expired' }).eq('id', invite.id);
     return NextResponse.json({ error: 'Срок действия приглашения истёк.' }, { status: 410 });
   }
+
   const activeInvite = invite;
+  const isPersonalInvite = Boolean(activeInvite.first_name && activeInvite.last_name);
 
   const existing = await admin.from('users').select('id').ilike('username', username).maybeSingle();
   if (existing.data) {
     return NextResponse.json({ error: 'Этот логин уже занят.' }, { status: 409 });
   }
 
-  const claimResult = await admin
-    .from('member_invites')
-    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-    .eq('id', invite.id)
-    .eq('status', 'pending')
-    .select('id')
-    .maybeSingle();
-  if (!claimResult.data) {
-    return NextResponse.json({ error: 'Приглашение уже используется.' }, { status: 409 });
+  if (isPersonalInvite) {
+    const claimResult = await admin
+      .from('member_invites')
+      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .eq('id', invite.id)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle();
+    if (!claimResult.data) {
+      return NextResponse.json({ error: 'Приглашение уже используется.' }, { status: 409 });
+    }
   }
 
   async function releaseInvite(): Promise<void> {
+    if (!isPersonalInvite) return;
     await admin
       .from('member_invites')
       .update({ status: 'pending', accepted_at: null, accepted_user_id: null })
@@ -136,8 +156,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
       organization_id: activeInvite.organization_id,
       role: 'member',
       username,
-      first_name: activeInvite.first_name,
-      last_name: activeInvite.last_name,
+      first_name: activeInvite.first_name || firstName,
+      last_name: activeInvite.last_name || lastName,
       phone: body.phone?.trim() || null,
       email: null
     })
@@ -181,7 +201,11 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
 
   await admin
     .from('member_invites')
-    .update({ accepted_user_id: user.id })
+    .update(
+      isPersonalInvite
+        ? { accepted_user_id: user.id }
+        : { accepted_user_id: user.id, accepted_at: new Date().toISOString() }
+    )
     .eq('id', activeInvite.id);
 
   return NextResponse.json({ ok: true }, { status: 201 });
