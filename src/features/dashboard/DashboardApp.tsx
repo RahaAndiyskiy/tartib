@@ -200,9 +200,14 @@ const formatLabels: Record<TrainingFormat, string> = {
 };
 
 function nextMonthDate(date: string, billingDay: number | null): string {
+  return addMonthsDate(date, billingDay, 1);
+}
+
+function addMonthsDate(date: string, billingDay: number | null, monthCount: number): string {
   const source = new Date(`${date}T12:00:00`);
-  const year = source.getMonth() === 11 ? source.getFullYear() + 1 : source.getFullYear();
-  const month = (source.getMonth() + 1) % 12;
+  const target = new Date(source.getFullYear(), source.getMonth() + monthCount, 1);
+  const year = target.getFullYear();
+  const month = target.getMonth();
   const lastDay = new Date(year, month + 1, 0).getDate();
   const day = Math.min(billingDay ?? source.getDate(), lastDay);
 
@@ -213,6 +218,13 @@ function periodLabel(date: string): string {
   return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(
     new Date(`${date}T12:00:00`)
   );
+}
+
+function prepaymentPeriodLabel(date: string, months: number): string {
+  const start = periodLabel(date);
+  if (months <= 1) return `Предоплата: ${start}`;
+  const end = periodLabel(addMonthsDate(date, null, months - 1));
+  return `Предоплата: ${start} - ${end}`;
 }
 
 function formatShortDate(date?: string | null): string {
@@ -246,6 +258,7 @@ export function DashboardApp(): React.ReactElement {
   const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [delayDrafts, setDelayDrafts] = useState<Record<string, DelayDraft>>({});
+  const [prepaymentMonths, setPrepaymentMonths] = useState<Record<string, number>>({});
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
@@ -742,6 +755,7 @@ export function DashboardApp(): React.ReactElement {
             plan_id: planId,
             period_label: periodLabel(personDraft.initialDueDate),
             is_current: true,
+            coverage_months: 1,
             paid_at: null
           }
         ];
@@ -1102,6 +1116,7 @@ export function DashboardApp(): React.ReactElement {
           plan_id: planId,
           period_label: periodLabel(edit.dueDate),
           is_current: true,
+          coverage_months: 1,
           paid_at: null
         };
 
@@ -1258,7 +1273,9 @@ export function DashboardApp(): React.ReactElement {
       plan?.active &&
       plan.type !== 'one_time';
     const nextDueDate =
-      shouldAdvance && payment ? nextMonthDate(payment.due_date, plan.billingDay) : null;
+      shouldAdvance && payment
+        ? addMonthsDate(payment.due_date, plan.billingDay, payment.coverage_months ?? 1)
+        : null;
     const nextAmount =
       Number(plan?.baseAmount ?? 0);
     const nextPayment: PaymentRequest | null =
@@ -1275,6 +1292,7 @@ export function DashboardApp(): React.ReactElement {
             plan_id: plan.id,
             period_label: periodLabel(nextDueDate),
             is_current: true,
+            coverage_months: 1,
             paid_at: null
           }
         : null;
@@ -1338,6 +1356,20 @@ export function DashboardApp(): React.ReactElement {
         ...patch
       }
     }));
+  }
+
+  function prepaymentMonthsFor(paymentId: string): number {
+    return prepaymentMonths[paymentId] ?? 1;
+  }
+
+  function canSubmitPrepayment(payment: PaymentRequest): boolean {
+    const plan = activePlanByMemberId.get(payment.member_id);
+    return (
+      hasRole(activeUser, 'member') &&
+      payment.member_id === activeUser?.id &&
+      ['active', 'overdue', 'delayed'].includes(payment.status) &&
+      Boolean(plan?.active && plan.type === 'monthly')
+    );
   }
 
   async function requestPaymentDelay(paymentId: string): Promise<void> {
@@ -1560,6 +1592,75 @@ export function DashboardApp(): React.ReactElement {
       ]
     });
     setMessage('Подтверждение отправлено ответственному лицу.');
+  }
+
+  async function submitPrepayment(paymentId: string): Promise<void> {
+    if (!workspace || !activeUser || !hasRole(activeUser, 'member')) return;
+
+    const payment = workspace.payments.find((item) => item.id === paymentId);
+    if (!payment || !canSubmitPrepayment(payment)) return;
+
+    const plan = activePlanByMemberId.get(payment.member_id);
+    if (!plan) return;
+
+    const months = Math.max(1, Math.min(12, Math.trunc(prepaymentMonthsFor(paymentId))));
+    const amount = Number(plan.baseAmount) * months;
+
+    if (!isLocalMode) {
+      const data = await runRemoteActionWithPending<{
+        payment?: PaymentRequest;
+        notification?: LocalNotification;
+      }>(
+        { action: 'submit_prepayment', paymentId, months },
+        `submit-prepayment:${paymentId}`
+      );
+      if (data?.payment) {
+        setWorkspace((current) =>
+          current
+            ? {
+                ...current,
+                payments: current.payments.map((item) =>
+                  item.id === data.payment?.id ? data.payment : item
+                ),
+                notifications:
+                  data.notification && data.notification.userId === activeUserId
+                    ? [...current.notifications, data.notification]
+                    : current.notifications
+              }
+            : current
+        );
+        setMessage('Предоплата отправлена тренеру на подтверждение.');
+      }
+      return;
+    }
+
+    const now = new Date().toISOString();
+    saveWorkspace({
+      ...workspace,
+      payments: workspace.payments.map((item) =>
+        item.id === paymentId
+          ? {
+              ...item,
+              status: 'payment_confirmation',
+              amount,
+              coverage_months: months,
+              period_label: prepaymentPeriodLabel(item.due_date, months)
+            }
+          : item
+      ),
+      notifications: [
+        ...workspace.notifications,
+        {
+          id: createId(),
+          userId: payment.trainer_id,
+          message: `${userName(payment.member_id)} отправил предоплату на ${months} мес.: ${amount.toFixed(2)} ₽.`,
+          createdAt: now,
+          read: false,
+          paymentId
+        }
+      ]
+    });
+    setMessage('Предоплата отправлена тренеру на подтверждение.');
   }
 
   function createExpense(event: FormEvent<HTMLFormElement>): void {
@@ -2698,6 +2799,49 @@ export function DashboardApp(): React.ReactElement {
                       <div className="payment-info-card">
                         <strong>Оплата ещё не открыта</strong>
                         <span>{paymentLockedText(selectedPayment)}</span>
+                      </div>
+                    ) : null}
+
+                    {selectedPayment && canSubmitPrepayment(selectedPayment) ? (
+                      <div className="payment-prepay-card">
+                        <div>
+                          <strong>Предоплата</strong>
+                          <span>Можно оплатить раньше срока или закрыть несколько месяцев одним платежом.</span>
+                        </div>
+                        <div className="prepay-months" aria-label="Количество месяцев предоплаты">
+                          {[1, 2, 3].map((months) => (
+                            <button
+                              className={prepaymentMonthsFor(selectedPayment.id) === months ? 'active' : ''}
+                              key={months}
+                              type="button"
+                              onClick={() =>
+                                setPrepaymentMonths((current) => ({
+                                  ...current,
+                                  [selectedPayment.id]: months
+                                }))
+                              }
+                            >
+                              {months} мес.
+                            </button>
+                          ))}
+                        </div>
+                        <div className="prepay-total">
+                          <span>{prepaymentPeriodLabel(selectedPayment.due_date, prepaymentMonthsFor(selectedPayment.id))}</span>
+                          <strong>
+                            {(
+                              Number(selectedPaymentPlan?.baseAmount ?? selectedPayment.amount) *
+                              prepaymentMonthsFor(selectedPayment.id)
+                            ).toFixed(2)} ₽
+                          </strong>
+                        </div>
+                        <button
+                          className="ghost-button"
+                          type="button"
+                          disabled={isPendingAction(`submit-prepayment:${selectedPayment.id}`)}
+                          onClick={() => submitPrepayment(selectedPayment.id)}
+                        >
+                          Отправить предоплату
+                        </button>
                       </div>
                     ) : null}
 

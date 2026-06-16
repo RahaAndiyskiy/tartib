@@ -163,6 +163,7 @@ export function readWorkspace(): LocalWorkspace {
               ? 'payment_confirmation'
               : payment.status,
         is_current: payment.is_current ?? true,
+        coverage_months: payment.coverage_months ?? 1,
         paid_at: payment.paid_at ?? null,
         delay_requested_date: payment.delay_requested_date ?? null,
         delay_comment: payment.delay_comment ?? null,

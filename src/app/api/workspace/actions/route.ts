@@ -59,6 +59,7 @@ type ActionBody =
     }
   | { action: 'delete_payment'; paymentId: string }
   | { action: 'submit_payment'; paymentId: string }
+  | { action: 'submit_prepayment'; paymentId: string; months: number }
   | {
       action: 'request_delay';
       paymentId: string;
@@ -83,13 +84,21 @@ function periodLabel(date: string): string {
   );
 }
 
-function nextMonthDate(date: string, billingDay: number | null): string {
+function addMonthsDate(date: string, billingDay: number | null, monthCount: number): string {
   const source = new Date(`${date}T12:00:00Z`);
-  const year = source.getUTCMonth() === 11 ? source.getUTCFullYear() + 1 : source.getUTCFullYear();
-  const month = (source.getUTCMonth() + 1) % 12;
+  const target = new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth() + monthCount, 1));
+  const year = target.getUTCFullYear();
+  const month = target.getUTCMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const day = Math.min(billingDay ?? source.getUTCDate(), lastDay);
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function prepaymentPeriodLabel(date: string, months: number): string {
+  const start = periodLabel(date);
+  if (months <= 1) return `Предоплата: ${start}`;
+  const end = periodLabel(addMonthsDate(date, null, months - 1));
+  return `Предоплата: ${start} - ${end}`;
 }
 
 function canManageTrainer(identity: ServerIdentity, trainerId: string): boolean {
@@ -217,6 +226,7 @@ function toLocalPayment(row: PaymentRequest): PaymentRequest {
     plan_id: row.plan_id,
     period_label: row.period_label,
     is_current: row.is_current,
+    coverage_months: row.coverage_months ?? 1,
     paid_at: row.paid_at,
     delay_requested_date: row.delay_requested_date,
     delay_comment: row.delay_comment,
@@ -567,7 +577,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: (dateValue(body.dueDate) < dateValue(todayString())
         ? 'overdue'
         : 'active') as PaymentRequestStatus,
-      is_current: true
+      is_current: true,
+      coverage_months: 1
     };
     const paymentResult = existingPayment.data
       ? await admin
@@ -643,7 +654,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   }
 
-  const paymentActions = ['submit_payment', 'request_delay', 'decide_delay', 'decide_payment'];
+  const paymentActions = [
+    'submit_payment',
+    'submit_prepayment',
+    'request_delay',
+    'decide_delay',
+    'decide_payment'
+  ];
   if (paymentActions.includes(body.action)) {
     const paymentId = 'paymentId' in body ? body.paymentId : '';
     const paymentResult = await admin
@@ -683,6 +700,56 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (!notification) {
         return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
       }
+      return NextResponse.json({
+        payment: toLocalPayment(paymentResult.data as PaymentRequest),
+        notification
+      });
+    }
+
+    if (body.action === 'submit_prepayment') {
+      const months = Math.trunc(Number(body.months));
+      if (
+        payment.member_id !== identity.profile.id ||
+        !['active', 'overdue', 'delayed'].includes(payment.status) ||
+        months < 1 ||
+        months > 12
+      ) {
+        return NextResponse.json({ error: 'Действие недоступно.' }, { status: 403 });
+      }
+
+      const plan = payment.plan_id
+        ? await admin.from('billing_plans').select('*').eq('id', payment.plan_id).maybeSingle()
+        : null;
+      if (!plan?.data?.active || plan.data.type !== 'monthly') {
+        return NextResponse.json({ error: 'Предоплата доступна только для месячного абонемента.' }, { status: 400 });
+      }
+
+      const amount = Number(plan.data.base_amount) * months;
+      const paymentResult = await admin
+        .from('payment_requests')
+        .update({
+          status: 'payment_confirmation',
+          amount,
+          coverage_months: months,
+          period_label: prepaymentPeriodLabel(payment.due_date, months)
+        })
+        .eq('id', payment.id)
+        .select('*')
+        .single();
+      if (paymentResult.error || !paymentResult.data) {
+        return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось отправить предоплату.' }, { status: 400 });
+      }
+
+      const notification = await createNotification(
+        organizationId,
+        payment.trainer_id,
+        `${await profileName(payment.member_id)} отправил предоплату на ${months} мес.: ${amount.toFixed(2)} ₽.`,
+        payment.id
+      );
+      if (!notification) {
+        return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+      }
+
       return NextResponse.json({
         payment: toLocalPayment(paymentResult.data as PaymentRequest),
         notification
@@ -838,7 +905,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     let nextPayment: PaymentRequest | null = null;
     if (shouldAdvance && plan?.data) {
-      const nextDueDate = nextMonthDate(payment.due_date, plan.data.billing_day);
+      const coverageMonths = Math.max(1, Math.trunc(Number(payment.coverage_months ?? 1)));
+      const nextDueDate = addMonthsDate(payment.due_date, plan.data.billing_day, coverageMonths);
       const nextPaymentResult = await admin
         .from('payment_requests')
         .insert({
@@ -851,6 +919,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           plan_id: plan.data.id,
           period_label: periodLabel(nextDueDate),
           is_current: true,
+          coverage_months: 1,
           paid_at: null
         })
         .select('*')

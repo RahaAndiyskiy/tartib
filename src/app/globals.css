@@ -1548,6 +1548,64 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+.payment-prepay-card {
+  display: grid;
+  gap: 13px;
+  border: 1px solid #d7dfc3;
+  border-radius: 8px;
+  background: #fbfcf5;
+  padding: 15px;
+}
+
+.payment-prepay-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.payment-prepay-card span {
+  color: #647064;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.prepay-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  border-radius: 8px;
+  background: #eef2e6;
+  padding: 4px;
+}
+
+.prepay-months button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #52615a;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.prepay-months button.active {
+  background: #ffffff;
+  color: #236b59;
+  box-shadow: 0 4px 12px rgba(31, 47, 39, 0.08);
+}
+
+.prepay-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid #e5eadb;
+  padding-top: 11px;
+}
+
+.prepay-total strong {
+  white-space: nowrap;
+}
+
 .payment-locked-note {
   margin: 0;
   padding: 12px;

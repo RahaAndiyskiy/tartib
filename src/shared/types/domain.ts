@@ -50,6 +50,7 @@ export type PaymentRequest = {
   plan_id?: string;
   period_label?: string;
   is_current?: boolean;
+  coverage_months?: number;
   paid_at?: string | null;
   delay_requested_date?: string | null;
   delay_comment?: string | null;
