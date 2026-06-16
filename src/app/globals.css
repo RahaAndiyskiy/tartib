@@ -1858,13 +1858,31 @@ button:disabled {
 }
 
 .payment-action-group-header {
-  min-height: 64px;
+  width: 100%;
+  min-height: 54px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  border: 0;
   background: #fbfcfb;
-  padding: 13px 18px;
+  color: #18201d;
+  padding: 10px 18px;
+  text-align: left;
+}
+
+.payment-action-group-header > svg {
+  flex: 0 0 auto;
+  color: #7b8881;
+  transition: transform 160ms ease;
+}
+
+.payment-action-group-header > svg.open {
+  transform: rotate(90deg);
+}
+
+.payment-action-group-header > div {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .payment-action-group-header h3 {
@@ -1880,6 +1898,7 @@ button:disabled {
 
 .payment-action-group-header > strong {
   min-width: 30px;
+  flex: 0 0 auto;
   border-radius: 999px;
   background: #edf3f0;
   color: #236b59;
@@ -2732,6 +2751,15 @@ button:disabled {
     min-height: 34px;
     padding: 0 9px;
     font-size: 0.78rem;
+  }
+
+  .payment-action-group-header {
+    min-height: 50px;
+    padding: 10px 14px;
+  }
+
+  .payment-action-group-header p {
+    display: none;
   }
 
   .payments-search {

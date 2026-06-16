@@ -266,11 +266,12 @@ export function DashboardApp(): React.ReactElement {
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [paymentView, setPaymentView] = useState<PaymentView>('actions');
+  const [paymentView, setPaymentView] = useState<PaymentView>('all');
   const [paymentSearch, setPaymentSearch] = useState('');
   const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
   const [paymentEditOpen, setPaymentEditOpen] = useState(false);
   const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
+  const [paymentActionGroupsOpen, setPaymentActionGroupsOpen] = useState<Record<string, boolean>>({});
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -2764,14 +2765,14 @@ export function DashboardApp(): React.ReactElement {
             <div className="crm-panel payments-registry">
               <div className="payments-toolbar">
                 <div className="payment-view-tabs" role="tablist" aria-label="Фильтр оплат">
+                  <button className={paymentView === 'all' ? 'active' : ''} type="button" onClick={() => setPaymentView('all')}>
+                    Все <span>{visibleMembers.length}</span>
+                  </button>
                   <button className={paymentView === 'actions' ? 'active' : ''} type="button" onClick={() => setPaymentView('actions')}>
                     Действия <span>{paymentActionCount}</span>
                   </button>
                   <button className={paymentView === 'overdue' ? 'active' : ''} type="button" onClick={() => setPaymentView('overdue')}>
                     Просрочено <span>{overduePayments.length}</span>
-                  </button>
-                  <button className={paymentView === 'all' ? 'active' : ''} type="button" onClick={() => setPaymentView('all')}>
-                    Все <span>{visibleMembers.length}</span>
                   </button>
                   <button className={paymentView === 'paid' ? 'active' : ''} type="button" onClick={() => setPaymentView('paid')}>
                     История
@@ -2825,24 +2826,35 @@ export function DashboardApp(): React.ReactElement {
                 </div>
               ) : paymentView === 'actions' ? (
                 <div className="payment-action-groups">
-                  {paymentActionGroups.map((group) => (
-                    <section className="payment-action-group" key={group.id}>
-                      <div className="payment-action-group-header">
-                        <div>
-                          <h3>{group.title}</h3>
-                          <p>{group.description}</p>
-                        </div>
-                        <strong>{group.members.length}</strong>
-                      </div>
-                      {group.members.length > 0 ? (
+                  {paymentActionGroups.map((group) => {
+                    const groupOpen = paymentActionGroupsOpen[group.id] ?? group.members.length > 0;
+                    return (
+                      <section className={`payment-action-group ${groupOpen ? 'open' : ''}`} key={group.id}>
+                        <button
+                          className="payment-action-group-header"
+                          type="button"
+                          onClick={() =>
+                            setPaymentActionGroupsOpen((current) => ({
+                              ...current,
+                              [group.id]: !groupOpen
+                            }))
+                          }
+                        >
+                          <ChevronRight className={groupOpen ? 'open' : ''} size={18} />
+                          <div>
+                            <h3>{group.title}</h3>
+                            <p>{group.description}</p>
+                          </div>
+                          <strong>{group.members.length}</strong>
+                        </button>
+                        {groupOpen && group.members.length > 0 ? (
                         <div className="payment-registry-list compact">
                           {group.members.map((member) => renderPaymentRow(member))}
                         </div>
-                      ) : (
-                        <p className="empty-state compact">Нет задач.</p>
-                      )}
-                    </section>
-                  ))}
+                        ) : null}
+                      </section>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="payment-registry-list">
