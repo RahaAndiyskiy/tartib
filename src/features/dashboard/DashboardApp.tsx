@@ -447,6 +447,12 @@ export function DashboardApp(): React.ReactElement {
   const selectedPaymentPlan = selectedPaymentMember
     ? activePlanByMemberId.get(selectedPaymentMember.id)
     : undefined;
+  const selectedPaymentGroup = selectedPaymentMember ? groupFor(selectedPaymentMember.id) : null;
+  const selectedPaymentTrainer = selectedPayment
+    ? usersById.get(selectedPayment.trainer_id) ?? null
+    : selectedPaymentPlan
+      ? usersById.get(selectedPaymentPlan.trainerId) ?? null
+      : null;
   const selectedPaymentHistory = selectedPaymentMember
     ? visiblePayments
         .filter(
@@ -2413,6 +2419,7 @@ export function DashboardApp(): React.ReactElement {
                   </div>
                   {filteredPaymentMembers.map((member) => {
                     const payment = currentPaymentByMemberId.get(member.id);
+                    const plan = activePlanByMemberId.get(member.id);
                     const group = groupFor(member.id);
                     return (
                       <button
@@ -2426,7 +2433,10 @@ export function DashboardApp(): React.ReactElement {
                       >
                         <div className="payment-person">
                           <strong>{userName(member.id)}</strong>
-                          <span>{group ? group.activity : payment?.period_label ?? 'Без группы'}</span>
+                          <span>
+                            {group ? group.activity : 'Без группы'}
+                            {plan ? ` · ${planLabels[plan.type]}` : ' · условия не настроены'}
+                          </span>
                         </div>
                         <strong className="payment-amount">{payment ? `${Number(payment.amount).toFixed(2)} ₽` : '—'}</strong>
                         <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
@@ -2458,7 +2468,7 @@ export function DashboardApp(): React.ReactElement {
                       <span>Оплата ученика</span>
                       <h2>{userName(selectedPaymentMember.id)}</h2>
                       <p>
-                        {groupFor(selectedPaymentMember.id)?.activity ?? 'Без группы'}
+                        {selectedPaymentGroup?.activity ?? 'Без группы'}
                         {selectedPayment?.period_label ? ` · ${selectedPayment.period_label}` : ''}
                       </p>
                     </div>
@@ -2468,19 +2478,61 @@ export function DashboardApp(): React.ReactElement {
                   </div>
 
                   <div className="payment-drawer-body">
-                    <div className="payment-detail-summary">
-                      <div>
-                        <span>Сумма</span>
-                        <strong>{selectedPayment ? `${Number(selectedPayment.amount).toFixed(2)} ₽` : 'Не назначена'}</strong>
-                      </div>
-                      <div>
-                        <span>Срок</span>
-                        <strong>{formatShortDate(selectedPayment?.due_date)}</strong>
-                      </div>
-                      <div>
-                        <span>Статус</span>
-                        <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
-                      </div>
+                    <div className="payment-split-overview">
+                      <section className="payment-current-card">
+                        <div className="payment-card-heading">
+                          <span>Текущий счёт</span>
+                          <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
+                        </div>
+                        <strong>{selectedPayment ? `${Number(selectedPayment.amount).toFixed(2)} ₽` : 'Не назначен'}</strong>
+                        <dl>
+                          <div>
+                            <dt>Период</dt>
+                            <dd>{selectedPayment?.period_label ?? 'Текущий период'}</dd>
+                          </div>
+                          <div>
+                            <dt>Оплатить до</dt>
+                            <dd>{formatShortDate(selectedPayment?.due_date)}</dd>
+                          </div>
+                        </dl>
+                      </section>
+
+                      <section className="payment-plan-card">
+                        <div className="payment-card-heading">
+                          <span>Условия оплаты</span>
+                          <strong>{selectedPaymentPlan ? 'Настроены' : 'Не настроены'}</strong>
+                        </div>
+                        <dl>
+                          <div>
+                            <dt>Схема</dt>
+                            <dd>{selectedPaymentPlan ? planLabels[selectedPaymentPlan.type] : '—'}</dd>
+                          </div>
+                          <div>
+                            <dt>Формат</dt>
+                            <dd>
+                              {selectedPaymentPlan?.type === 'monthly'
+                                ? formatLabels[selectedPaymentPlan.trainingFormat]
+                                : '—'}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Базовая сумма</dt>
+                            <dd>
+                              {selectedPaymentPlan ? `${Number(selectedPaymentPlan.baseAmount).toFixed(2)} ₽` : '—'}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>День оплаты</dt>
+                            <dd>
+                              {selectedPaymentPlan?.billingDay
+                                ? `${selectedPaymentPlan.billingDay} число`
+                                : selectedPaymentPlan?.type === 'one_time'
+                                  ? 'Разово'
+                                  : '—'}
+                            </dd>
+                          </div>
+                        </dl>
+                      </section>
                     </div>
 
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && !paymentEditOpen ? (
@@ -2492,7 +2544,7 @@ export function DashboardApp(): React.ReactElement {
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && paymentEditOpen ? (
                       <div className="payment-edit-form">
                         <div className="payment-detail-section-heading">
-                          <h3>{selectedPayment ? 'Редактирование' : 'Новая оплата'}</h3>
+                          <h3>{selectedPayment ? 'Редактировать счёт и условия' : 'Настроить оплату'}</h3>
                           <button className="text-button" type="button" onClick={() => setPaymentEditOpen(false)}>Отмена</button>
                         </div>
                         <label>
@@ -2544,7 +2596,7 @@ export function DashboardApp(): React.ReactElement {
                               type="checkbox"
                               onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
                             />
-                            Применить сумму к следующим периодам
+                            Обновить условия оплаты на будущие периоды
                           </label>
                         ) : null}
                         <button
@@ -2625,12 +2677,11 @@ export function DashboardApp(): React.ReactElement {
 
                     <div className="payment-detail-section">
                       <div className="payment-detail-section-heading">
-                        <h3>Параметры</h3>
+                        <h3>Ответственность</h3>
                       </div>
                       <dl className="payment-detail-list">
-                        <div><dt>Схема</dt><dd>{selectedPaymentPlan ? planLabels[selectedPaymentPlan.type] : 'Не настроена'}</dd></div>
-                        <div><dt>Формат</dt><dd>{selectedPaymentPlan?.type === 'monthly' ? formatLabels[selectedPaymentPlan.trainingFormat] : '—'}</dd></div>
-                        <div><dt>Тренер</dt><dd>{selectedPayment ? userName(selectedPayment.trainer_id) : '—'}</dd></div>
+                        <div><dt>Группа</dt><dd>{selectedPaymentGroup?.activity ?? 'Без группы'}</dd></div>
+                        <div><dt>Тренер</dt><dd>{selectedPaymentTrainer ? `${selectedPaymentTrainer.first_name} ${selectedPaymentTrainer.last_name}` : '—'}</dd></div>
                       </dl>
                     </div>
 
