@@ -6,6 +6,7 @@ import type {
   TrainingFormat,
   TrainerMember
 } from '@shared/types/domain';
+import { formatMoney } from '@shared/constants/app';
 
 export type LocalWorkspace = {
   version: 5;
@@ -241,9 +242,9 @@ export function reconcileWorkspace(
     if (payment.is_current !== false && reminderKey && !notificationKeys.has(reminderKey)) {
       const message =
         difference === 3
-          ? `Через 3 дня срок оплаты: ${Number(payment.amount).toFixed(2)} ₽.`
+          ? `Оплата через 3 дня: ${formatMoney(payment.amount)}.`
           : difference === 0
-            ? `Сегодня срок оплаты: ${Number(payment.amount).toFixed(2)} ₽.`
+            ? `Сегодня оплата: ${formatMoney(payment.amount)}.`
             : 'Оплата просрочена. Нужна отсрочка?';
 
       notifications.push({

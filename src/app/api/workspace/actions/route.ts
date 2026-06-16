@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
 import { hasServerRole, requireIdentity, type ServerIdentity } from '@shared/lib/serverAuth';
+import { formatMoney } from '@shared/constants/app';
 import type {
   BillingPlanType,
   PaymentRequest,
@@ -641,7 +642,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const notification = await createNotification(
       organizationId,
       payment.member_id,
-      `Счёт на ${Number(payment.amount).toFixed(2)} ₺ отменён ответственным лицом.`
+      `Счёт отменён: ${formatMoney(payment.amount)}.`
     );
     if (!notification) {
       return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
@@ -678,7 +679,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
       if (payment.status !== 'overdue' && dateValue(payment.due_date) > dateValue(todayString())) {
         return NextResponse.json(
-          { error: 'Счёт ещё не наступил. Для оплаты раньше срока нужен отдельный сценарий предоплаты.' },
+          { error: 'Счёт ещё не открыт. Для оплаты заранее используйте предоплату.' },
           { status: 400 }
         );
       }
@@ -691,7 +692,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const notification = await createNotification(
         organizationId,
         payment.trainer_id,
-        `${await profileName(payment.member_id)} сообщил об оплате ${Number(payment.amount).toFixed(2)} ₽.`,
+        `${await profileName(payment.member_id)}: оплата ${formatMoney(payment.amount)}.`,
         payment.id
       );
       if (paymentResult.error || !paymentResult.data) {
@@ -743,7 +744,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const notification = await createNotification(
         organizationId,
         payment.trainer_id,
-        `${await profileName(payment.member_id)} отправил предоплату на ${months} мес.: ${amount.toFixed(2)} ₽.`,
+        `${await profileName(payment.member_id)}: предоплата ${months} мес., ${formatMoney(amount)}.`,
         payment.id
       );
       if (!notification) {

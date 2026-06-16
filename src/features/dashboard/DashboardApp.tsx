@@ -37,6 +37,7 @@ import {
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import { getSupabaseClient } from '@shared/lib/supabaseClient';
+import { formatMoney } from '@shared/constants/app';
 import type {
   AppUser,
   BillingPlanType,
@@ -245,7 +246,7 @@ function canSubmitPayment(payment: PaymentRequest): boolean {
 
 function paymentLockedText(payment: PaymentRequest): string | null {
   if (canSubmitPayment(payment) || !['active', 'delayed'].includes(payment.status)) return null;
-  return `Счёт наступит ${formatShortDate(payment.due_date)}. Для оплаты раньше срока нужен отдельный сценарий предоплаты.`;
+  return `Счёт откроется ${formatShortDate(payment.due_date)}. Если хотите закрыть его заранее, используйте предоплату ниже.`;
 }
 
 export function DashboardApp(): React.ReactElement {
@@ -620,6 +621,18 @@ export function DashboardApp(): React.ReactElement {
     if (section === 'notifications' && unreadNotifications.length > 0) {
       void markNotificationsRead();
     }
+  }
+
+  function openNotificationPayment(paymentId?: string | null): void {
+    if (!paymentId || !workspace) return;
+    const payment = workspace.payments.find((item) => item.id === paymentId);
+    if (!payment) return;
+
+    setActiveSection('payments');
+    setPaymentView(payment.status === 'paid' ? 'paid' : 'all');
+    setSelectedPaymentMemberId(payment.member_id);
+    setPaymentEditOpen(false);
+    setMobileFormOpen(false);
   }
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -1148,7 +1161,7 @@ export function DashboardApp(): React.ReactElement {
   async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {
     if (!workspace || payment.status === 'paid') return;
     const confirmed = window.confirm(
-      `Удалить счёт на ${Number(payment.amount).toFixed(2)} ₺? Ученик увидит, что счёт отменён.`
+      `Удалить счёт на ${formatMoney(payment.amount)}? Ученик увидит, что счёт отменён.`
     );
     if (!confirmed) return;
 
@@ -1201,7 +1214,7 @@ export function DashboardApp(): React.ReactElement {
         {
           id: createId(),
           userId: payment.member_id,
-          message: `Счёт на ${Number(payment.amount).toFixed(2)} ₺ отменён ответственным лицом.`,
+          message: `Счёт отменён: ${formatMoney(payment.amount)}.`,
           createdAt: now,
           read: false
         }
@@ -1584,7 +1597,7 @@ export function DashboardApp(): React.ReactElement {
         {
           id: createId(),
           userId: payment.trainer_id,
-          message: `${userName(payment.member_id)} сообщил об оплате ${Number(payment.amount).toFixed(2)} ₽.`,
+          message: `${userName(payment.member_id)}: оплата ${formatMoney(payment.amount)}.`,
           createdAt: now,
           read: false,
           paymentId
@@ -1653,7 +1666,7 @@ export function DashboardApp(): React.ReactElement {
         {
           id: createId(),
           userId: payment.trainer_id,
-          message: `${userName(payment.member_id)} отправил предоплату на ${months} мес.: ${amount.toFixed(2)} ₽.`,
+          message: `${userName(payment.member_id)}: предоплата ${months} мес., ${formatMoney(amount)}.`,
           createdAt: now,
           read: false,
           paymentId
@@ -2082,7 +2095,7 @@ export function DashboardApp(): React.ReactElement {
                   <div className="member-card-label">Текущая оплата</div>
                   <strong className="member-payment-amount">
                     {activeMemberPayment
-                      ? `${Number(activeMemberPayment.amount).toFixed(2)} ₽`
+                      ? formatMoney(activeMemberPayment.amount)
                       : 'Не назначена'}
                   </strong>
                   <div className="member-payment-meta">
@@ -2167,7 +2180,7 @@ export function DashboardApp(): React.ReactElement {
             ) : (
               <section className="metric-grid">
                 <Metric label="Ученики" value={visibleMembers.length} />
-                <Metric label="Получено" value={`${paidAmount.toFixed(2)} ₽`} />
+                <Metric label="Получено" value={formatMoney(paidAmount)} />
                 {hasRole(activeUser, 'owner') ? (
                   <>
                     <Metric label="Тренеры" value={trainers.length} />
@@ -2267,7 +2280,7 @@ export function DashboardApp(): React.ReactElement {
                     : upcomingPayments.map((payment) => (
                         <div key={payment.id}>
                           <span>{userName(payment.member_id)} · {payment.due_date}</span>
-                          <strong>{Number(payment.amount).toFixed(0)} ₽</strong>
+                          <strong>{formatMoney(payment.amount, 0)}</strong>
                         </div>
                       ))}
                   {(hasRole(activeUser, 'owner') ? trainers : upcomingPayments).length === 0 ? (
@@ -2519,7 +2532,7 @@ export function DashboardApp(): React.ReactElement {
                           <strong>{userName(payment.member_id)}</strong>
                           <span>{payment.period_label ?? payment.due_date}</span>
                         </div>
-                        <strong className="payment-amount">{Number(payment.amount).toFixed(2)} ₽</strong>
+                        <strong className="payment-amount">{formatMoney(payment.amount)}</strong>
                         <span className="payment-due">{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('ru-RU') : 'Подтверждено'}</span>
                         <span className="status-pill paid">Оплачено</span>
                         <ChevronRight className="payment-row-arrow" size={18} />
@@ -2559,7 +2572,7 @@ export function DashboardApp(): React.ReactElement {
                             {plan ? ` · ${planLabels[plan.type]}` : ' · условия не настроены'}
                           </span>
                         </div>
-                        <strong className="payment-amount">{payment ? `${Number(payment.amount).toFixed(2)} ₽` : '—'}</strong>
+                        <strong className="payment-amount">{payment ? formatMoney(payment.amount) : '—'}</strong>
                         <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
                         <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
                         <ChevronRight className="payment-row-arrow" size={18} />
@@ -2605,7 +2618,7 @@ export function DashboardApp(): React.ReactElement {
                           <span>Текущий счёт</span>
                           <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
                         </div>
-                        <strong>{selectedPayment ? `${Number(selectedPayment.amount).toFixed(2)} ₽` : 'Не назначен'}</strong>
+                        <strong>{selectedPayment ? formatMoney(selectedPayment.amount) : 'Не назначен'}</strong>
                         <dl>
                           <div>
                             <dt>Период</dt>
@@ -2639,7 +2652,7 @@ export function DashboardApp(): React.ReactElement {
                           <div>
                             <dt>Базовая сумма</dt>
                             <dd>
-                              {selectedPaymentPlan ? `${Number(selectedPaymentPlan.baseAmount).toFixed(2)} ₽` : '—'}
+                              {selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : '—'}
                             </dd>
                           </div>
                           <div>
@@ -2828,10 +2841,10 @@ export function DashboardApp(): React.ReactElement {
                         <div className="prepay-total">
                           <span>{prepaymentPeriodLabel(selectedPayment.due_date, prepaymentMonthsFor(selectedPayment.id))}</span>
                           <strong>
-                            {(
+                            {formatMoney(
                               Number(selectedPaymentPlan?.baseAmount ?? selectedPayment.amount) *
                               prepaymentMonthsFor(selectedPayment.id)
-                            ).toFixed(2)} ₽
+                            )}
                           </strong>
                         </div>
                         <button
@@ -2864,7 +2877,7 @@ export function DashboardApp(): React.ReactElement {
                         {selectedPaymentHistory.map((payment) => (
                           <div key={payment.id}>
                             <span>{payment.period_label ?? payment.due_date}</span>
-                            <strong>{Number(payment.amount).toFixed(2)} ₽</strong>
+                            <strong>{formatMoney(payment.amount)}</strong>
                           </div>
                         ))}
                         {selectedPaymentHistory.length === 0 ? <p>Оплат пока нет.</p> : null}
@@ -3136,7 +3149,7 @@ export function DashboardApp(): React.ReactElement {
               <div className="crm-panel-header">
                 <div>
                   <h2>Расходы клуба</h2>
-                  <p>К оплате: {pendingExpenses.toFixed(2)} ₽</p>
+                  <p>К оплате: {formatMoney(pendingExpenses)}</p>
                 </div>
               </div>
               <div className="expense-table">
@@ -3150,7 +3163,7 @@ export function DashboardApp(): React.ReactElement {
                       <span>{expense.periodLabel}</span>
                     </div>
                     <span>{expense.type === 'recurring' ? 'Базовый ежемесячный' : 'Разовый'}</span>
-                    <strong>{Number(expense.amount).toFixed(2)} ₽</strong>
+                    <strong>{formatMoney(expense.amount)}</strong>
                     <span>{expense.dueDate}</span>
                     <button className="small-button" type="button" onClick={() => markExpensePaid(expense.id)}>
                       Отметить оплаченным
@@ -3166,7 +3179,7 @@ export function DashboardApp(): React.ReactElement {
                 <div className="crm-panel-header">
                   <div>
                     <h2>История расходов</h2>
-                    <p>Всего оплачено: {paidExpenses.toFixed(2)} ₽</p>
+                    <p>Всего оплачено: {formatMoney(paidExpenses)}</p>
                   </div>
                 </div>
                 {[...workspace.expenses]
@@ -3178,7 +3191,7 @@ export function DashboardApp(): React.ReactElement {
                         <strong>{expense.name}</strong>
                         <span>{expense.periodLabel}</span>
                       </div>
-                      <strong>{Number(expense.amount).toFixed(2)} ₽</strong>
+                      <strong>{formatMoney(expense.amount)}</strong>
                       <span>
                         {expense.paidAt
                           ? new Date(expense.paidAt).toLocaleDateString('ru-RU')
@@ -3268,6 +3281,15 @@ export function DashboardApp(): React.ReactElement {
                 <article className={notification.read ? 'notification-row' : 'notification-row unread'} key={notification.id}>
                   <Bell size={18} />
                   <div><strong>{notification.message}</strong><span>{new Date(notification.createdAt).toLocaleString('ru-RU')}</span></div>
+                  {notification.paymentId ? (
+                    <button
+                      className="small-button secondary"
+                      type="button"
+                      onClick={() => openNotificationPayment(notification.paymentId)}
+                    >
+                      Открыть
+                    </button>
+                  ) : null}
                 </article>
               ))}
               {userNotifications.length === 0 ? <p className="empty-state">Уведомлений пока нет.</p> : null}
