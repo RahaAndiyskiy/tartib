@@ -1525,6 +1525,35 @@ button:disabled {
   padding: 15px;
 }
 
+.payment-info-card,
+.payment-locked-note {
+  border: 1px solid #d8e4df;
+  border-radius: 8px;
+  background: #f7faf8;
+  color: #52615a;
+  line-height: 1.5;
+}
+
+.payment-info-card {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+}
+
+.payment-info-card strong {
+  color: #24302b;
+}
+
+.payment-info-card span {
+  font-size: 0.86rem;
+}
+
+.payment-locked-note {
+  margin: 0;
+  padding: 12px;
+  font-size: 0.88rem;
+}
+
 .payment-decision-card > div:first-child {
   display: grid;
   gap: 4px;

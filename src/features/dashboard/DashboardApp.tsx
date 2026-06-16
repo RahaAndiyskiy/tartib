@@ -223,6 +223,19 @@ function formatShortDate(date?: string | null): string {
   });
 }
 
+function isPaymentDue(payment: PaymentRequest): boolean {
+  return payment.status === 'overdue' || dateAtNoon(payment.due_date) <= dateAtNoon(todayString());
+}
+
+function canSubmitPayment(payment: PaymentRequest): boolean {
+  return ['active', 'overdue', 'delayed'].includes(payment.status) && isPaymentDue(payment);
+}
+
+function paymentLockedText(payment: PaymentRequest): string | null {
+  if (canSubmitPayment(payment) || !['active', 'delayed'].includes(payment.status)) return null;
+  return `Счёт наступит ${formatShortDate(payment.due_date)}. Для оплаты раньше срока нужен отдельный сценарий предоплаты.`;
+}
+
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const [workspace, setWorkspace] = useState<LocalWorkspace | null>(null);
@@ -1495,6 +1508,11 @@ export function DashboardApp(): React.ReactElement {
     const payment = workspace.payments.find((item) => item.id === paymentId);
     if (!payment) return;
 
+    if (!canSubmitPayment(payment)) {
+      setMessage('Счёт ещё не наступил. Предоплату нужно оформить отдельным сценарием.');
+      return;
+    }
+
     if (!isLocalMode) {
       const data = await runRemoteActionWithPending<{
         payment?: PaymentRequest;
@@ -1974,8 +1992,7 @@ export function DashboardApp(): React.ReactElement {
                       {statusLabels[activeMemberPayment?.status ?? 'not-set']}
                     </span>
                   </div>
-                  {activeMemberPayment &&
-                  ['active', 'overdue', 'delayed'].includes(activeMemberPayment.status) ? (
+                  {activeMemberPayment && canSubmitPayment(activeMemberPayment) ? (
                     <div className="member-payment-actions">
                       <button
                         className="primary-button"
@@ -2015,6 +2032,9 @@ export function DashboardApp(): React.ReactElement {
                         </button>
                       </div>
                     </div>
+                  ) : null}
+                  {activeMemberPayment && paymentLockedText(activeMemberPayment) ? (
+                    <p className="payment-locked-note">{paymentLockedText(activeMemberPayment)}</p>
                   ) : null}
                   {activeMemberPayment?.status === 'delay_requested' ? (
                     <p className="inline-note">
@@ -2644,7 +2664,7 @@ export function DashboardApp(): React.ReactElement {
                       </div>
                     ) : null}
 
-                    {hasRole(activeUser, 'member') && selectedPayment && ['active', 'overdue', 'delayed'].includes(selectedPayment.status) ? (
+                    {hasRole(activeUser, 'member') && selectedPayment && canSubmitPayment(selectedPayment) ? (
                       <div className="member-payment-controls">
                         <button className="primary-button" type="button" disabled={isPendingAction(`submit-payment:${selectedPayment.id}`)} onClick={() => submitPaymentConfirmation(selectedPayment.id)}>
                           Я оплатил
@@ -2672,6 +2692,12 @@ export function DashboardApp(): React.ReactElement {
                             Запросить отсрочку
                           </button>
                         </div>
+                      </div>
+                    ) : null}
+                    {hasRole(activeUser, 'member') && selectedPayment && paymentLockedText(selectedPayment) ? (
+                      <div className="payment-info-card">
+                        <strong>Оплата ещё не открыта</strong>
+                        <span>{paymentLockedText(selectedPayment)}</span>
                       </div>
                     ) : null}
 

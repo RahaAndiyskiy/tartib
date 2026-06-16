@@ -659,6 +659,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (payment.member_id !== identity.profile.id || !['active', 'overdue', 'delayed'].includes(payment.status)) {
         return NextResponse.json({ error: 'Действие недоступно.' }, { status: 403 });
       }
+      if (payment.status !== 'overdue' && dateValue(payment.due_date) > dateValue(todayString())) {
+        return NextResponse.json(
+          { error: 'Счёт ещё не наступил. Для оплаты раньше срока нужен отдельный сценарий предоплаты.' },
+          { status: 400 }
+        );
+      }
       const paymentResult = await admin
         .from('payment_requests')
         .update({ status: 'payment_confirmation' })
