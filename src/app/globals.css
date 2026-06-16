@@ -1526,6 +1526,65 @@ button:disabled {
   display: flex;
 }
 
+.payment-plan-options {
+  border: 1px solid #e0e7e3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.payment-plan-options summary {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.payment-plan-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.payment-plan-options summary > span {
+  display: grid;
+  gap: 2px;
+  color: #2f3d36;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.payment-plan-options summary small {
+  color: #748079;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.payment-plan-options summary svg {
+  color: #7b8881;
+  transition: transform 160ms ease;
+}
+
+.payment-plan-options[open] summary svg {
+  transform: rotate(90deg);
+}
+
+.payment-plan-options-body {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #edf0ee;
+  padding: 12px;
+}
+
+.payment-plan-options-body > label {
+  display: grid;
+  gap: 6px;
+  color: #52615a;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .payment-decision-card {
   display: grid;
   gap: 14px;

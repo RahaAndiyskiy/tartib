@@ -2953,34 +2953,12 @@ export function DashboardApp(): React.ReactElement {
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && paymentEditOpen ? (
                       <div className="payment-edit-form">
                         <div className="payment-detail-section-heading">
-                          <h3>{selectedPayment ? 'Редактировать счёт и условия' : 'Настроить оплату'}</h3>
+                          <h3>{selectedPayment ? 'Редактировать счёт' : 'Назначить счёт'}</h3>
                           <button className="text-button" type="button" onClick={() => setPaymentEditOpen(false)}>Отмена</button>
                         </div>
-                        <label>
-                          Схема
-                          <select
-                            value={paymentEditFor(selectedPaymentMember.id).type}
-                            onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { type: event.target.value as BillingPlanType })}
-                          >
-                            <option value="monthly">Абонемент</option>
-                            <option value="one_time">Разовая</option>
-                          </select>
-                        </label>
-                        {paymentEditFor(selectedPaymentMember.id).type === 'monthly' ? (
-                          <label>
-                            Формат
-                            <select
-                              value={paymentEditFor(selectedPaymentMember.id).trainingFormat}
-                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { trainingFormat: event.target.value as TrainingFormat })}
-                            >
-                              <option value="group">Группа</option>
-                              <option value="individual">Индивидуально</option>
-                            </select>
-                          </label>
-                        ) : null}
                         <div className="split-fields">
                           <label>
-                            Сумма
+                            Сумма счёта
                             <input
                               min="1"
                               step="0.01"
@@ -2990,7 +2968,7 @@ export function DashboardApp(): React.ReactElement {
                             />
                           </label>
                           <label>
-                            Срок
+                            Оплатить до
                             <input
                               type="date"
                               value={paymentEditFor(selectedPaymentMember.id).dueDate}
@@ -2998,16 +2976,49 @@ export function DashboardApp(): React.ReactElement {
                             />
                           </label>
                         </div>
-                        {paymentEditFor(selectedPaymentMember.id).type !== 'one_time' ? (
-                          <label className="payment-future-toggle">
-                            <input
-                              checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
-                              type="checkbox"
-                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
-                            />
-                            Обновить условия оплаты на будущие периоды
-                          </label>
-                        ) : null}
+                        <details className="payment-plan-options">
+                          <summary>
+                            <span>
+                              Условия на будущее
+                              <small>Схема, формат и повторение</small>
+                            </span>
+                            <ChevronRight size={17} />
+                          </summary>
+                          <div className="payment-plan-options-body">
+                            <label>
+                              Схема
+                              <select
+                                value={paymentEditFor(selectedPaymentMember.id).type}
+                                onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { type: event.target.value as BillingPlanType })}
+                              >
+                                <option value="monthly">Абонемент</option>
+                                <option value="one_time">Разовая</option>
+                              </select>
+                            </label>
+                            {paymentEditFor(selectedPaymentMember.id).type === 'monthly' ? (
+                              <label>
+                                Формат
+                                <select
+                                  value={paymentEditFor(selectedPaymentMember.id).trainingFormat}
+                                  onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { trainingFormat: event.target.value as TrainingFormat })}
+                                >
+                                  <option value="group">Группа</option>
+                                  <option value="individual">Индивидуально</option>
+                                </select>
+                              </label>
+                            ) : null}
+                            {paymentEditFor(selectedPaymentMember.id).type !== 'one_time' ? (
+                              <label className="payment-future-toggle">
+                                <input
+                                  checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
+                                  type="checkbox"
+                                  onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
+                                />
+                                Использовать эту сумму в следующих месяцах
+                              </label>
+                            ) : null}
+                          </div>
+                        </details>
                         <button
                           className="primary-button"
                           type="button"
