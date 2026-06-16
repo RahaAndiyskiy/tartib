@@ -476,6 +476,38 @@ export function DashboardApp(): React.ReactElement {
     if (paymentView === 'overdue') return payment?.status === 'overdue';
     return true;
   });
+  const paymentActionGroups = [
+    {
+      id: 'confirmations',
+      title: 'Ожидают подтверждения',
+      description: 'Ученики нажали «Я оплатил» или отправили предоплату.',
+      members: visibleMembers.filter(
+        (member) => currentPaymentByMemberId.get(member.id)?.status === 'payment_confirmation'
+      )
+    },
+    {
+      id: 'delays',
+      title: 'Запросили отсрочку',
+      description: 'Нужно одобрить или отклонить новую дату.',
+      members: visibleMembers.filter(
+        (member) => currentPaymentByMemberId.get(member.id)?.status === 'delay_requested'
+      )
+    },
+    {
+      id: 'overdue',
+      title: 'Просрочено',
+      description: 'Счёт уже должен быть оплачен.',
+      members: visibleMembers.filter(
+        (member) => currentPaymentByMemberId.get(member.id)?.status === 'overdue'
+      )
+    },
+    {
+      id: 'without-payment',
+      title: 'Без оплаты',
+      description: 'Ученикам ещё не назначен текущий счёт.',
+      members: visibleMembers.filter((member) => !currentPaymentByMemberId.has(member.id))
+    }
+  ];
   const selectedPaymentMember =
     visibleMembers.find((member) => member.id === selectedPaymentMemberId) ?? null;
   const selectedPayment = selectedPaymentMember
@@ -1899,6 +1931,36 @@ export function DashboardApp(): React.ReactElement {
     return user ? `${user.first_name} ${user.last_name}` : 'Неизвестно';
   }
 
+  function renderPaymentRow(member: AppUser): React.ReactElement {
+    const payment = currentPaymentByMemberId.get(member.id);
+    const plan = activePlanByMemberId.get(member.id);
+    const group = groupFor(member.id);
+
+    return (
+      <button
+        className={`payment-registry-row ${selectedPaymentMemberId === member.id ? 'selected' : ''}`}
+        key={member.id}
+        type="button"
+        onClick={() => {
+          setSelectedPaymentMemberId(member.id);
+          setPaymentEditOpen(false);
+        }}
+      >
+        <div className="payment-person">
+          <strong>{userName(member.id)}</strong>
+          <span>
+            {group ? group.activity : 'Без группы'}
+            {plan ? ` · ${planLabels[plan.type]}` : ' · условия не настроены'}
+          </span>
+        </div>
+        <strong className="payment-amount">{payment ? formatMoney(payment.amount) : '—'}</strong>
+        <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
+        <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
+        <ChevronRight className="payment-row-arrow" size={18} />
+      </button>
+    );
+  }
+
   function paymentEditFor(memberId: string): PaymentEdit {
     const existingEdit = paymentEdits[memberId];
     if (existingEdit) return existingEdit;
@@ -2761,6 +2823,27 @@ export function DashboardApp(): React.ReactElement {
                     <p className="empty-state">Подтверждённых оплат пока нет.</p>
                   ) : null}
                 </div>
+              ) : paymentView === 'actions' ? (
+                <div className="payment-action-groups">
+                  {paymentActionGroups.map((group) => (
+                    <section className="payment-action-group" key={group.id}>
+                      <div className="payment-action-group-header">
+                        <div>
+                          <h3>{group.title}</h3>
+                          <p>{group.description}</p>
+                        </div>
+                        <strong>{group.members.length}</strong>
+                      </div>
+                      {group.members.length > 0 ? (
+                        <div className="payment-registry-list compact">
+                          {group.members.map((member) => renderPaymentRow(member))}
+                        </div>
+                      ) : (
+                        <p className="empty-state compact">Нет задач.</p>
+                      )}
+                    </section>
+                  ))}
+                </div>
               ) : (
                 <div className="payment-registry-list">
                   <div className="payment-registry-head">
@@ -2770,34 +2853,7 @@ export function DashboardApp(): React.ReactElement {
                     <span>Статус</span>
                     <span />
                   </div>
-                  {filteredPaymentMembers.map((member) => {
-                    const payment = currentPaymentByMemberId.get(member.id);
-                    const plan = activePlanByMemberId.get(member.id);
-                    const group = groupFor(member.id);
-                    return (
-                      <button
-                        className={`payment-registry-row ${selectedPaymentMemberId === member.id ? 'selected' : ''}`}
-                        key={member.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPaymentMemberId(member.id);
-                          setPaymentEditOpen(false);
-                        }}
-                      >
-                        <div className="payment-person">
-                          <strong>{userName(member.id)}</strong>
-                          <span>
-                            {group ? group.activity : 'Без группы'}
-                            {plan ? ` · ${planLabels[plan.type]}` : ' · условия не настроены'}
-                          </span>
-                        </div>
-                        <strong className="payment-amount">{payment ? formatMoney(payment.amount) : '—'}</strong>
-                        <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
-                        <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
-                        <ChevronRight className="payment-row-arrow" size={18} />
-                      </button>
-                    );
-                  })}
+                  {filteredPaymentMembers.map((member) => renderPaymentRow(member))}
                   {filteredPaymentMembers.length === 0 ? (
                     <p className="empty-state">
                       {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
