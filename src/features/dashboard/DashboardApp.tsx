@@ -270,6 +270,7 @@ export function DashboardApp(): React.ReactElement {
   const [paymentSearch, setPaymentSearch] = useState('');
   const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
   const [paymentEditOpen, setPaymentEditOpen] = useState(false);
+  const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -488,6 +489,9 @@ export function DashboardApp(): React.ReactElement {
         )
         .reverse()
     : [];
+  const selectedPaymentHistoryOpen = selectedPaymentMember
+    ? historyOpenByMember[selectedPaymentMember.id] ?? false
+    : false;
   const upcomingPayments = currentPayments.filter((payment) => {
     if (!['active', 'delayed'].includes(payment.status)) return false;
     const difference = Math.round(
@@ -2894,19 +2898,36 @@ export function DashboardApp(): React.ReactElement {
                     </div>
 
                     <div className="payment-detail-section">
-                      <div className="payment-detail-section-heading">
-                        <h3>История оплат</h3>
-                        <span>{selectedPaymentHistory.length}</span>
-                      </div>
-                      <div className="payment-detail-history">
-                        {selectedPaymentHistory.map((payment) => (
-                          <div key={payment.id}>
-                            <span>{payment.period_label ?? payment.due_date}</span>
-                            <strong>{formatMoney(payment.amount)}</strong>
-                          </div>
-                        ))}
-                        {selectedPaymentHistory.length === 0 ? <p>Оплат пока нет.</p> : null}
-                      </div>
+                      <button
+                        className="payment-history-toggle"
+                        type="button"
+                        onClick={() =>
+                          setHistoryOpenByMember((current) => ({
+                            ...current,
+                            [selectedPaymentMember.id]: !selectedPaymentHistoryOpen
+                          }))
+                        }
+                      >
+                        <span>
+                          <strong>История оплат</strong>
+                          <small>{selectedPaymentHistory.length} записей</small>
+                        </span>
+                        <ChevronRight
+                          className={selectedPaymentHistoryOpen ? 'open' : ''}
+                          size={18}
+                        />
+                      </button>
+                      {selectedPaymentHistoryOpen ? (
+                        <div className="payment-detail-history">
+                          {selectedPaymentHistory.map((payment) => (
+                            <div key={payment.id}>
+                              <span>{payment.period_label ?? payment.due_date}</span>
+                              <strong>{formatMoney(payment.amount)}</strong>
+                            </div>
+                          ))}
+                          {selectedPaymentHistory.length === 0 ? <p>Оплат пока нет.</p> : null}
+                        </div>
+                      ) : null}
                     </div>
 
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && selectedPayment && selectedPayment.status !== 'paid' ? (

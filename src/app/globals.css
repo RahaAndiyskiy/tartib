@@ -1674,6 +1674,40 @@ button:disabled {
   text-align: center;
 }
 
+.payment-history-toggle {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: #18201d;
+  padding: 0;
+  text-align: left;
+}
+
+.payment-history-toggle > span {
+  display: grid;
+  gap: 3px;
+}
+
+.payment-history-toggle small {
+  color: #748079;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.payment-history-toggle svg {
+  color: #7b8881;
+  transition: transform 160ms ease;
+}
+
+.payment-history-toggle svg.open {
+  transform: rotate(90deg);
+}
+
 .payment-detail-list {
   display: grid;
   gap: 0;
