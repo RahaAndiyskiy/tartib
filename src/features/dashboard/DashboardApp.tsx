@@ -3421,9 +3421,9 @@ export function DashboardApp(): React.ReactElement {
                     }
                   />
                 </label>
-                <div className="form-actions">
+                <div className="form-actions full-width-actions">
                   <button
-                    className="primary-button"
+                    className="primary-button full-width-button"
                     type="submit"
                     disabled={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
                   >

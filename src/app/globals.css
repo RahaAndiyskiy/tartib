@@ -245,6 +245,10 @@ button:disabled {
   box-shadow: 0 10px 22px rgba(124, 92, 255, 0.22);
 }
 
+.full-width-button {
+  width: 100%;
+}
+
 .ghost-button {
   background: var(--color-surface-glass-strong);
   color: var(--color-primary);
