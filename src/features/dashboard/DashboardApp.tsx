@@ -265,6 +265,7 @@ export function DashboardApp(): React.ReactElement {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
+  const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [paymentView, setPaymentView] = useState<PaymentView>('all');
   const [paymentSearch, setPaymentSearch] = useState('');
@@ -764,6 +765,7 @@ export function DashboardApp(): React.ReactElement {
         expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
         groupName: selectedGroup.activity
       });
+      setLastCreatedGroupId('');
       setMessage('В локальном режиме ссылка показана для проверки интерфейса.');
       return;
     }
@@ -782,6 +784,7 @@ export function DashboardApp(): React.ReactElement {
         expiresAt: result.expiresAt,
         groupName: selectedGroup.activity
       });
+      setLastCreatedGroupId('');
       setMessage('Ссылка для набора создана.');
     }
   }
@@ -970,6 +973,7 @@ export function DashboardApp(): React.ReactElement {
         `save-group:${editingGroupId || 'new'}`
       );
       if (data?.group) {
+        const wasEditingGroup = Boolean(editingGroupId);
         setWorkspace((current) =>
           current
             ? {
@@ -983,7 +987,8 @@ export function DashboardApp(): React.ReactElement {
         setGroupDraft(emptyGroupDraft);
         setEditingGroupId('');
         setMobileFormOpen(false);
-        setMessage(editingGroupId ? 'Группа обновлена.' : 'Группа создана.');
+        setLastCreatedGroupId(wasEditingGroup ? '' : data.group.id);
+        setMessage(wasEditingGroup ? 'Группа обновлена.' : 'Группа создана. Теперь можно создать ссылку для набора.');
       }
       return;
     }
@@ -1013,7 +1018,8 @@ export function DashboardApp(): React.ReactElement {
         ...workspace,
         groups: [...workspace.groups, group]
       });
-      setMessage('Группа создана.');
+      setLastCreatedGroupId(group.id);
+      setMessage('Группа создана. Теперь можно создать ссылку для набора.');
     }
 
     setGroupDraft(emptyGroupDraft);
@@ -1024,6 +1030,7 @@ export function DashboardApp(): React.ReactElement {
     if (!activeUser || !hasRole(activeUser, 'trainer')) return;
 
     setEditingGroupId(group.id);
+    setLastCreatedGroupId('');
     setGroupDraft({
       activity: group.activity,
       days: group.days,
@@ -1049,6 +1056,7 @@ export function DashboardApp(): React.ReactElement {
       );
       if (data?.deletedGroupId) {
         if (editingGroupId === groupId) cancelGroupEdit();
+        if (lastCreatedGroupId === groupId) setLastCreatedGroupId('');
         setWorkspace((current) =>
           current
             ? {
@@ -1071,6 +1079,9 @@ export function DashboardApp(): React.ReactElement {
 
     if (editingGroupId === groupId) {
       cancelGroupEdit();
+    }
+    if (lastCreatedGroupId === groupId) {
+      setLastCreatedGroupId('');
     }
 
     setMessage('Группа удалена.');
@@ -2598,6 +2609,7 @@ export function DashboardApp(): React.ReactElement {
               <div className="people-accordion">
                 {filteredPeopleForView.map((user) => {
                   const group = user.role === 'member' ? groupFor(user.id) : null;
+                  const payment = user.role === 'member' ? currentPaymentByMemberId.get(user.id) : null;
                   const isOpen = expandedPeople[user.id] ?? false;
                   const contact = user.email ?? user.phone ?? 'Не указан';
                   return (
@@ -2616,12 +2628,19 @@ export function DashboardApp(): React.ReactElement {
                           <strong>{user.first_name} {user.last_name}</strong>
                           <small>{roleLabel(user)}</small>
                         </span>
-                        <span className="person-group-chip">
-                          {user.role === 'member'
-                            ? group
-                              ? `${group.activity} · ${group.days} ${group.time}`
-                              : 'Без группы'
-                            : 'Команда клуба'}
+                        <span className="person-summary-meta">
+                          <span className="person-group-chip">
+                            {user.role === 'member'
+                              ? group
+                                ? `${group.activity} · ${group.days} ${group.time}`
+                                : 'Без группы'
+                              : 'Команда клуба'}
+                          </span>
+                          {user.role === 'member' ? (
+                            <span className={`status-pill compact ${payment?.status ?? 'not-set'}`}>
+                              {statusLabels[payment?.status ?? 'not-set']}
+                            </span>
+                          ) : null}
                         </span>
                         <ChevronRight className={isOpen ? 'open' : ''} size={18} />
                       </button>
@@ -2666,7 +2685,23 @@ export function DashboardApp(): React.ReactElement {
                   );
                 })}
                 {filteredPeopleForView.length === 0 ? (
-                  <p className="empty-state">По этому поиску никого нет.</p>
+                  <div className="empty-state action-empty">
+                    <p>{peopleForView.length === 0 ? 'Людей пока нет.' : 'По этому поиску никого нет.'}</p>
+                    {!hasRole(activeUser, 'member') && visibleGroups.length === 0 ? (
+                      <button className="small-button secondary" type="button" onClick={openCreateGroup}>
+                        Создать группу
+                      </button>
+                    ) : null}
+                    {!hasRole(activeUser, 'member') && visibleGroups.length > 0 ? (
+                      <button
+                        className="small-button secondary"
+                        type="button"
+                        onClick={() => openInviteFlow(visibleGroups[0]?.id)}
+                      >
+                        Дать ссылку
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <div className="crm-table legacy-people-table">
@@ -3106,11 +3141,16 @@ export function DashboardApp(): React.ReactElement {
                       </button>
                     ))}
                   {paidPaymentResults.length === 0 ? (
-                    <p className="empty-state">
-                      {paymentSearch.trim()
-                        ? 'По этому поиску подтверждённых оплат нет.'
-                        : 'Подтверждённых оплат пока нет.'}
-                    </p>
+                    <div className="empty-state action-empty">
+                      <p>
+                        {paymentSearch.trim()
+                          ? 'По этому поиску подтверждённых оплат нет.'
+                          : 'Подтверждённых оплат пока нет.'}
+                      </p>
+                      <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
+                        Все оплаты
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               ) : paymentView === 'actions' ? (
@@ -3145,11 +3185,16 @@ export function DashboardApp(): React.ReactElement {
                     );
                   })}
                   {visiblePaymentActionGroups.length === 0 ? (
-                    <p className="empty-state">
-                      {paymentSearch.trim()
-                        ? 'По этому поиску задач по оплатам нет.'
-                        : 'Сейчас нет задач по оплатам.'}
-                    </p>
+                    <div className="empty-state action-empty">
+                      <p>
+                        {paymentSearch.trim()
+                          ? 'По этому поиску задач по оплатам нет.'
+                          : 'Сейчас нет задач по оплатам.'}
+                      </p>
+                      <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
+                        Все оплаты
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               ) : (
@@ -3163,9 +3208,20 @@ export function DashboardApp(): React.ReactElement {
                   </div>
                   {filteredPaymentMembers.map((member) => renderPaymentRow(member))}
                   {filteredPaymentMembers.length === 0 ? (
-                    <p className="empty-state">
-                      {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
-                    </p>
+                    <div className="empty-state action-empty">
+                      <p>
+                        {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
+                      </p>
+                      {visibleGroups.length > 0 ? (
+                        <button className="small-button secondary" type="button" onClick={() => openInviteFlow(visibleGroups[0]?.id)}>
+                          Дать ссылку
+                        </button>
+                      ) : (
+                        <button className="small-button secondary" type="button" onClick={openCreateGroup}>
+                          Создать группу
+                        </button>
+                      )}
+                    </div>
                   ) : null}
                 </div>
               )}
@@ -3270,7 +3326,7 @@ export function DashboardApp(): React.ReactElement {
 
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && !paymentEditOpen ? (
                       <button className="ghost-button payment-edit-trigger" type="button" onClick={() => setPaymentEditOpen(true)}>
-                        {selectedPayment ? 'Изменить условия или текущий счёт' : 'Настроить условия и счёт'}
+                        {selectedPayment ? 'Изменить' : 'Настроить'}
                       </button>
                     ) : null}
 
@@ -3565,7 +3621,7 @@ export function DashboardApp(): React.ReactElement {
                             disabled={isPendingAction(`create-invite:${group.id}`)}
                             onClick={() => void createMemberInviteForGroup(group.id)}
                           >
-                            {buttonLabel(`create-invite:${group.id}`, 'Ссылка для набора')}
+                            {buttonLabel(`create-invite:${group.id}`, 'Ссылка')}
                           </button>
                           <button className="small-button" type="button" onClick={() => startGroupEdit(group)}>
                             Редактировать
@@ -3584,9 +3640,30 @@ export function DashboardApp(): React.ReactElement {
                   );
                 })}
                 {visibleGroups.length === 0 ? (
-                  <p className="empty-state">Групп пока нет. Создайте первую справа.</p>
+                  <div className="empty-state action-empty">
+                    <p>Групп пока нет.</p>
+                    <button className="small-button secondary" type="button" onClick={openCreateGroup}>
+                      Создать группу
+                    </button>
+                  </div>
                 ) : null}
               </div>
+              {lastCreatedGroupId && visibleGroups.some((group) => group.id === lastCreatedGroupId) ? (
+                <div className="group-next-step">
+                  <div>
+                    <strong>Группа создана</strong>
+                    <span>Следующий шаг: дать ученикам ссылку для входа.</span>
+                  </div>
+                  <button
+                    className="small-button primary-soft"
+                    type="button"
+                    disabled={isPendingAction(`create-invite:${lastCreatedGroupId}`)}
+                    onClick={() => void createMemberInviteForGroup(lastCreatedGroupId)}
+                  >
+                    Ссылка
+                  </button>
+                </div>
+              ) : null}
               {memberInvite ? (
                 <div className="invite-result group-invite-result">
                   <div>

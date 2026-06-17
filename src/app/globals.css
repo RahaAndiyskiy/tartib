@@ -129,10 +129,19 @@
 }
 
 .person-accordion-summary strong,
-.person-group-chip {
+.person-group-chip,
+.person-summary-meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.person-summary-meta {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
 }
 
 .person-accordion-summary small {
@@ -142,7 +151,6 @@
 }
 
 .person-group-chip {
-  justify-self: start;
   max-width: 100%;
   border-radius: 999px;
   background: var(--color-primary-faint);
@@ -150,6 +158,14 @@
   padding: 7px 10px;
   font-size: 0.82rem;
   font-weight: 750;
+}
+
+.status-pill.compact {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  font-size: 0.72rem;
 }
 
 .person-accordion-summary svg {
@@ -222,7 +238,7 @@
     padding: 13px 14px;
   }
 
-  .person-group-chip {
+  .person-summary-meta {
     grid-column: 1 / -1;
     max-width: 100%;
   }
@@ -610,6 +626,27 @@ button:disabled {
 
 .group-invite-result {
   margin: 14px 16px 16px;
+}
+
+.group-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(139, 127, 171, 0.16);
+  background: rgba(246, 243, 255, 0.72);
+  padding: 14px 18px;
+}
+
+.group-next-step > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.group-next-step span {
+  color: var(--color-muted);
+  font-size: 0.84rem;
 }
 
 .notice.success {
@@ -2390,6 +2427,21 @@ button:disabled {
   padding: 18px;
 }
 
+.action-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.action-empty p {
+  margin: 0;
+}
+
+.action-empty .small-button {
+  flex: 0 0 auto;
+}
+
 .member-overview {
   display: grid;
   grid-template-columns: minmax(320px, 1.2fr) minmax(240px, 0.8fr) minmax(240px, 0.8fr);
@@ -2627,6 +2679,17 @@ button:disabled {
 
   .invite-result-actions {
     grid-template-columns: 1fr;
+  }
+
+  .action-empty,
+  .group-next-step {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .action-empty .small-button,
+  .group-next-step .small-button {
+    width: 100%;
   }
 
   .quick-actions {
