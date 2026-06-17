@@ -3212,15 +3212,11 @@ export function DashboardApp(): React.ReactElement {
                       <p>
                         {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
                       </p>
-                      {visibleGroups.length > 0 ? (
-                        <button className="small-button secondary" type="button" onClick={() => openInviteFlow(visibleGroups[0]?.id)}>
-                          Дать ссылку
+                      {paymentView !== 'all' ? (
+                        <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
+                          Все оплаты
                         </button>
-                      ) : (
-                        <button className="small-button secondary" type="button" onClick={openCreateGroup}>
-                          Создать группу
-                        </button>
-                      )}
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
