@@ -565,17 +565,19 @@ button:disabled {
 }
 
 .weekday-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   align-items: center;
 }
 
 .weekday-checkbox {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 3px 6px;
+  padding: 7px 6px;
   border: 1px solid #dce3e0;
   border-radius: 4px;
   background: #ffffff;
@@ -1101,19 +1103,28 @@ button:disabled {
 .crm-side-form {
   position: sticky;
   top: 22px;
-  padding-bottom: 18px;
+  gap: 14px;
+  padding: 0 18px 18px;
 }
 
 .crm-side-form > label,
 .crm-side-form > .split-fields,
 .crm-side-form > .segmented-control,
 .crm-side-form > button {
-  margin-left: 18px;
-  margin-right: 18px;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .crm-side-form > .crm-panel-header {
+  margin-right: -18px;
   margin-bottom: 16px;
+  margin-left: -18px;
+}
+
+.crm-side-form .invite-form-hint,
+.crm-side-form .form-actions {
+  margin-right: 0;
+  margin-left: 0;
 }
 
 .crm-payment-head,
@@ -2763,6 +2774,7 @@ button:disabled {
     display: none;
     position: static;
     order: -1;
+    padding: 0 14px 16px;
   }
 
   .crm-side-form.mobile-form-open {
@@ -2773,8 +2785,13 @@ button:disabled {
   .crm-side-form > .split-fields,
   .crm-side-form > .segmented-control,
   .crm-side-form > button {
-    margin-left: 14px;
-    margin-right: 14px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .crm-side-form > .crm-panel-header {
+    margin-right: -14px;
+    margin-left: -14px;
   }
 
   .crm-side-form .split-fields {
@@ -2785,8 +2802,8 @@ button:disabled {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
-    margin-right: 14px;
-    margin-left: 14px;
+    margin-right: 0;
+    margin-left: 0;
   }
 
   .crm-side-form .form-actions > button {
