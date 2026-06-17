@@ -754,20 +754,6 @@ export function DashboardApp(): React.ReactElement {
     }));
   }
 
-  function openAssignPayment(): void {
-    const targetMember =
-      visibleMembers.find((member) => !currentPaymentByMemberId.has(member.id)) ?? visibleMembers[0];
-
-    setActiveSection('payments');
-    setPaymentView('all');
-    setPaymentEditOpen(Boolean(targetMember));
-    setSelectedPaymentMemberId(targetMember?.id ?? '');
-
-    if (!targetMember) {
-      setMessage('Сначала добавьте ученика или отправьте ссылку для набора.');
-    }
-  }
-
   async function createMemberInviteForGroup(groupId: string): Promise<void> {
     const selectedGroup = workspace?.groups.find((group) => group.id === groupId);
     if (!workspace || !selectedGroup) return;
@@ -2461,7 +2447,7 @@ export function DashboardApp(): React.ReactElement {
             <section className="quick-actions-panel">
               <div>
                 <span>Основные действия</span>
-                <strong>Группа, набор и оплата</strong>
+                <strong>Группа и набор учеников</strong>
               </div>
               <div className="quick-actions">
                 {hasRole(activeUser, 'trainer') ? (
@@ -2478,15 +2464,6 @@ export function DashboardApp(): React.ReactElement {
                 >
                   <Share2 size={18} />
                   <span>Дать ссылку</span>
-                </button>
-                <button
-                  className="quick-action-card"
-                  type="button"
-                  disabled={visibleMembers.length === 0}
-                  onClick={openAssignPayment}
-                >
-                  <CreditCard size={18} />
-                  <span>Назначить оплату</span>
                 </button>
               </div>
             </section>
