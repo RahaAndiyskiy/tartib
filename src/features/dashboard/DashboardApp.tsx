@@ -723,6 +723,70 @@ export function DashboardApp(): React.ReactElement {
     }, 80);
   }
 
+  function openCreateGroup(): void {
+    setActiveSection('groups');
+    setMobileFormOpen(true);
+    setEditingGroupId('');
+    setGroupDraft(emptyGroupDraft);
+  }
+
+  function openInviteFlow(groupId?: string): void {
+    setActiveSection(groupId ? 'groups' : 'people');
+    setMobileFormOpen(true);
+    setMemberInvite(null);
+    setPersonDraft((current) => ({
+      ...current,
+      role: 'member',
+      groupId: groupId ?? current.groupId
+    }));
+  }
+
+  function openAssignPayment(): void {
+    const targetMember =
+      visibleMembers.find((member) => !currentPaymentByMemberId.has(member.id)) ?? visibleMembers[0];
+
+    setActiveSection('payments');
+    setPaymentView('all');
+    setPaymentEditOpen(Boolean(targetMember));
+    setSelectedPaymentMemberId(targetMember?.id ?? '');
+
+    if (!targetMember) {
+      setMessage('Сначала добавьте ученика или отправьте ссылку для набора.');
+    }
+  }
+
+  async function createMemberInviteForGroup(groupId: string): Promise<void> {
+    const selectedGroup = workspace?.groups.find((group) => group.id === groupId);
+    if (!workspace || !selectedGroup) return;
+
+    if (isLocalMode) {
+      setMemberInvite({
+        inviteUrl: `${window.location.origin}/join/local-${selectedGroup.id}`,
+        expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        groupName: selectedGroup.activity
+      });
+      setMessage('В локальном режиме ссылка показана для проверки интерфейса.');
+      return;
+    }
+
+    const result = await runRemoteActionWithPending<{ inviteUrl: string; expiresAt: string }>(
+      {
+        action: 'create_member_invite',
+        groupId
+      },
+      `create-invite:${groupId}`
+    );
+
+    if (result) {
+      setMemberInvite({
+        inviteUrl: result.inviteUrl,
+        expiresAt: result.expiresAt,
+        groupName: selectedGroup.activity
+      });
+      setMessage('Ссылка для набора создана.');
+    }
+  }
+
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!workspace || !activeUser) return;
@@ -739,24 +803,13 @@ export function DashboardApp(): React.ReactElement {
 
     if (!isLocalMode) {
       if (effectiveRole === 'member') {
-        const result = await runRemoteActionData<{ inviteUrl: string; expiresAt: string }>(
-          {
-            action: 'create_member_invite',
-            groupId: personDraft.groupId
-          }
-        );
-        if (result) {
-          setMemberInvite({
-            inviteUrl: result.inviteUrl,
-            expiresAt: result.expiresAt,
-            groupName: selectedGroup!.activity
-          });
+        await createMemberInviteForGroup(personDraft.groupId);
+        if (selectedGroup) {
           setPersonDraft((current) => ({
             ...emptyPersonDraft,
             role: 'member',
             groupId: current.groupId
           }));
-          setMessage('Приглашение создано. Отправьте ссылку ученику.');
         }
         return;
       }
@@ -2392,6 +2445,41 @@ export function DashboardApp(): React.ReactElement {
             )}
 
             {!hasRole(activeUser, 'member') ? (
+            <section className="quick-actions-panel">
+              <div>
+                <span>Быстрый путь тренера</span>
+                <strong>Группа → ссылка → оплата</strong>
+              </div>
+              <div className="quick-actions">
+                {hasRole(activeUser, 'trainer') ? (
+                  <button className="quick-action-card" type="button" onClick={openCreateGroup}>
+                    <Layers3 size={18} />
+                    <span>Создать группу</span>
+                  </button>
+                ) : null}
+                <button
+                  className="quick-action-card"
+                  type="button"
+                  disabled={visibleGroups.length === 0}
+                  onClick={() => openInviteFlow(visibleGroups[0]?.id)}
+                >
+                  <Share2 size={18} />
+                  <span>Дать ссылку</span>
+                </button>
+                <button
+                  className="quick-action-card"
+                  type="button"
+                  disabled={visibleMembers.length === 0}
+                  onClick={openAssignPayment}
+                >
+                  <CreditCard size={18} />
+                  <span>Назначить оплату</span>
+                </button>
+              </div>
+            </section>
+            ) : null}
+
+            {!hasRole(activeUser, 'member') ? (
             <section className="crm-overview-grid">
               <div className="crm-panel">
                 <div className="crm-panel-header">
@@ -2786,10 +2874,26 @@ export function DashboardApp(): React.ReactElement {
         {activeSection === 'payments' && hasRole(activeUser, 'member') ? (
           <section className="member-payment-page">
             <div className="crm-panel member-payment-focus">
+              <div className="payment-concept-strip">
+                <div>
+                  <span>Условия</span>
+                  <strong>{activeMemberPlan ? formatMoney(activeMemberPlan.baseAmount) : 'Не настроены'}</strong>
+                </div>
+                <ChevronRight size={16} />
+                <div>
+                  <span>Текущий счёт</span>
+                  <strong>{activeMemberPayment ? statusLabels[activeMemberPayment.status] : 'Нет счёта'}</strong>
+                </div>
+                <ChevronRight size={16} />
+                <div>
+                  <span>История</span>
+                  <strong>{activeMemberPaymentHistory.length} оплат</strong>
+                </div>
+              </div>
               <div className="payment-split-overview">
                 <section className="payment-current-card">
                   <div className="payment-card-heading">
-                    <span>Мой счёт</span>
+                    <span>Текущий счёт</span>
                     <span className={`status-pill ${activeMemberPayment?.status ?? 'not-set'}`}>
                       {statusLabels[activeMemberPayment?.status ?? 'not-set']}
                     </span>
@@ -2809,7 +2913,7 @@ export function DashboardApp(): React.ReactElement {
 
                 <section className="payment-plan-card">
                   <div className="payment-card-heading">
-                    <span>Условия</span>
+                    <span>Условия оплаты</span>
                     <strong>{activeMemberPlan ? 'Настроены' : 'Не настроены'}</strong>
                   </div>
                   <dl>
@@ -3101,6 +3205,22 @@ export function DashboardApp(): React.ReactElement {
                   </div>
 
                   <div className="payment-drawer-body">
+                    <div className="payment-concept-strip">
+                      <div>
+                        <span>Условия</span>
+                        <strong>{selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : 'Не настроены'}</strong>
+                      </div>
+                      <ChevronRight size={16} />
+                      <div>
+                        <span>Текущий счёт</span>
+                        <strong>{selectedPayment ? statusLabels[selectedPayment.status] : 'Нет счёта'}</strong>
+                      </div>
+                      <ChevronRight size={16} />
+                      <div>
+                        <span>История</span>
+                        <strong>{selectedPaymentHistory.length} оплат</strong>
+                      </div>
+                    </div>
                     <div className="payment-split-overview">
                       <section className="payment-current-card">
                         <div className="payment-card-heading">
@@ -3160,14 +3280,14 @@ export function DashboardApp(): React.ReactElement {
 
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && !paymentEditOpen ? (
                       <button className="ghost-button payment-edit-trigger" type="button" onClick={() => setPaymentEditOpen(true)}>
-                        {selectedPayment ? 'Редактировать оплату' : 'Назначить оплату'}
+                        {selectedPayment ? 'Изменить условия или текущий счёт' : 'Настроить условия и счёт'}
                       </button>
                     ) : null}
 
                     {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && paymentEditOpen ? (
                       <div className="payment-edit-form">
                         <div className="payment-detail-section-heading">
-                          <h3>{selectedPayment ? 'Редактировать счёт' : 'Назначить счёт'}</h3>
+                          <h3>{selectedPayment ? 'Условия и текущий счёт' : 'Новая оплата ученика'}</h3>
                           <button className="text-button" type="button" onClick={() => setPaymentEditOpen(false)}>Отмена</button>
                         </div>
                         <div className="split-fields">
@@ -3449,6 +3569,14 @@ export function DashboardApp(): React.ReactElement {
                       <div><span>Комментарий</span><strong>{group.note || '—'}</strong></div>
                       {hasRole(activeUser, 'trainer') ? (
                         <div className="row-actions">
+                          <button
+                            className="small-button primary-soft"
+                            type="button"
+                            disabled={isPendingAction(`create-invite:${group.id}`)}
+                            onClick={() => void createMemberInviteForGroup(group.id)}
+                          >
+                            {buttonLabel(`create-invite:${group.id}`, 'Ссылка для набора')}
+                          </button>
                           <button className="small-button" type="button" onClick={() => startGroupEdit(group)}>
                             Редактировать
                           </button>
@@ -3469,6 +3597,25 @@ export function DashboardApp(): React.ReactElement {
                   <p className="empty-state">Групп пока нет. Создайте первую справа.</p>
                 ) : null}
               </div>
+              {memberInvite ? (
+                <div className="invite-result group-invite-result">
+                  <div>
+                    <strong>Ссылка для группы {memberInvite.groupName}</strong>
+                    <span>
+                      Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
+                    </span>
+                  </div>
+                  <input aria-label="Ссылка для набора" readOnly value={memberInvite.inviteUrl} />
+                  <div className="invite-result-actions">
+                    <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
+                      <Copy size={17} /> Копировать
+                    </button>
+                    <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
+                      <Share2 size={17} /> Поделиться
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {hasRole(activeUser, 'trainer') ? (
