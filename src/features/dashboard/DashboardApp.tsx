@@ -699,6 +699,14 @@ export function DashboardApp(): React.ReactElement {
     }
   }
 
+  function openPaymentsView(view: PaymentView): void {
+    setActiveSection('payments');
+    setPaymentView(view);
+    setSelectedPaymentMemberId('');
+    setPaymentEditOpen(false);
+    setMobileFormOpen(false);
+  }
+
   function openNotificationPayment(paymentId?: string | null): void {
     if (!paymentId || !workspace) return;
     const payment = workspace.payments.find((item) => item.id === paymentId);
@@ -2434,22 +2442,17 @@ export function DashboardApp(): React.ReactElement {
               </section>
             ) : (
               <section className="metric-grid">
-                <Metric label="Ученики" value={visibleMembers.length} />
                 <Metric label="Получено" value={formatMoney(paidAmount)} />
+                <Metric label="Активные оплаты" value={currentPayments.length} />
+                <Metric label="Просрочено" value={overduePayments.length} />
+                <Metric
+                  label="Отсрочки"
+                  value={`${delayRequestedPayments.length} ждёт / ${delayedPayments.length} одобрено`}
+                />
                 {hasRole(activeUser, 'owner') ? (
-                  <>
-                    <Metric label="Тренеры" value={trainers.length} />
-                    <Metric label="Просрочено" value={overduePayments.length} />
-                    <Metric label="Запрошено отсрочек" value={delayRequestedPayments.length} />
-                    <Metric label="Одобрено отсрочек" value={delayedPayments.length} />
-                  </>
+                  <Metric label="Тренеры" value={trainers.length} />
                 ) : (
-                  <>
-                    <Metric label="Подтвердить оплаты" value={confirmationPayments.length} />
-                    <Metric label="Запросы отсрочки" value={delayRequestedPayments.length} />
-                    <Metric label="Просрочено" value={overduePayments.length} />
-                    <Metric label="Ближайшие оплаты" value={upcomingPayments.length} />
-                  </>
+                  <Metric label="Ближайшие оплаты" value={upcomingPayments.length} />
                 )}
               </section>
             )}
@@ -2481,92 +2484,34 @@ export function DashboardApp(): React.ReactElement {
             ) : null}
 
             {!hasRole(activeUser, 'member') ? (
-            <section className="crm-overview-grid">
+            <section className="crm-overview-grid overview-attention-grid">
               <div className="crm-panel">
                 <div className="crm-panel-header">
                   <div>
-                    <h2>{hasRole(activeUser, 'owner') ? 'Контроль оплат' : 'Требуют действия'}</h2>
-                    <p>
-                      {hasRole(activeUser, 'owner')
-                        ? 'Текущая ситуация по клубу'
-                        : 'Подтверждения, отсрочки и просрочки'}
-                    </p>
+                    <h2>Требуют внимания</h2>
+                    <p>Короткий путь к задачам на сегодня</p>
                   </div>
-                  <button className="text-button" type="button" onClick={() => openSection('payments')}>
+                  <button className="text-button" type="button" onClick={() => openPaymentsView('all')}>
                     Все оплаты
                   </button>
                 </div>
-                <div className="crm-list">
-                  {visibleMembers
-                    .filter((member) => {
-                      const payment = workspace.payments.find(
-                        (item) => item.member_id === member.id && item.is_current !== false
-                      );
-                      return hasRole(activeUser, 'owner')
-                        ? Boolean(payment)
-                        : Boolean(
-                            payment &&
-                              ['payment_confirmation', 'delay_requested', 'overdue'].includes(
-                                payment.status
-                              )
-                          );
-                    })
-                    .slice(0, 6)
-                    .map((member) => {
-                    const payment = workspace.payments.find(
-                      (item) => item.member_id === member.id && item.is_current !== false
-                    );
-                    return (
-                      <div className="crm-list-row" key={member.id}>
-                        <div>
-                          <strong>{userName(member.id)}</strong>
-                          <span>{trainerFor(member.id)?.first_name ?? 'Без тренера'}</span>
-                        </div>
-                        <span className={`status-pill ${payment?.status ?? 'not-set'}`}>
-                          {statusLabels[payment?.status ?? 'not-set']}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {visibleMembers.length === 0 ? <p className="empty-state">Ученики ещё не добавлены.</p> : null}
-                </div>
-              </div>
-
-              <div className="crm-panel">
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>{hasRole(activeUser, 'owner') ? 'По тренерам' : 'Ближайшие оплаты'}</h2>
-                    <p>{hasRole(activeUser, 'owner') ? 'Ученики и контроль по ответственным' : 'Срок в течение трёх дней'}</p>
-                  </div>
-                  <button className="text-button" type="button" onClick={() => openSection('people')}>
-                    Открыть
+                <div className="overview-attention-list">
+                  <button type="button" onClick={() => openPaymentsView('actions')}>
+                    <span>Подтвердить оплаты</span>
+                    <strong>{confirmationPayments.length}</strong>
                   </button>
-                </div>
-                <div className="crm-summary">
-                  {hasRole(activeUser, 'owner')
-                    ? trainers.map((trainer) => {
-                        const trainerPayments = currentPayments.filter(
-                          (payment) => payment.trainer_id === trainer.id
-                        );
-                        return (
-                          <div key={trainer.id}>
-                            <span>{userName(trainer.id)}</span>
-                            <strong>
-                              {trainerPayments.filter((payment) => payment.status === 'overdue').length} /{' '}
-                              {trainerPayments.length}
-                            </strong>
-                          </div>
-                        );
-                      })
-                    : upcomingPayments.map((payment) => (
-                        <div key={payment.id}>
-                          <span>{userName(payment.member_id)} · {payment.due_date}</span>
-                          <strong>{formatMoney(payment.amount, 0)}</strong>
-                        </div>
-                      ))}
-                  {(hasRole(activeUser, 'owner') ? trainers : upcomingPayments).length === 0 ? (
-                    <p className="empty-state">Нет данных для отображения.</p>
-                  ) : null}
+                  <button type="button" onClick={() => openPaymentsView('actions')}>
+                    <span>Запросы отсрочки</span>
+                    <strong>{delayRequestedPayments.length}</strong>
+                  </button>
+                  <button type="button" onClick={() => openPaymentsView('overdue')}>
+                    <span>Просрочено</span>
+                    <strong>{overduePayments.length}</strong>
+                  </button>
+                  <button type="button" onClick={() => openPaymentsView('all')}>
+                    <span>Ближайшие оплаты</span>
+                    <strong>{upcomingPayments.length}</strong>
+                  </button>
                 </div>
               </div>
             </section>

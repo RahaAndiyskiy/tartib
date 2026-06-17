@@ -1373,6 +1373,46 @@ button:disabled {
   font-size: 1.25rem;
 }
 
+.overview-attention-grid {
+  grid-template-columns: 1fr;
+}
+
+.overview-attention-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px;
+}
+
+.overview-attention-list button {
+  min-height: 86px;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text);
+  padding: 14px;
+  text-align: left;
+}
+
+.overview-attention-list button:hover {
+  border-color: rgba(124, 92, 255, 0.34);
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.1);
+}
+
+.overview-attention-list span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.overview-attention-list strong {
+  color: var(--color-primary-strong);
+  font-size: 1.55rem;
+}
+
 .crm-table,
 .crm-payment-table {
   width: 100%;
@@ -2635,6 +2675,10 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .overview-attention-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .quick-actions-panel {
     grid-template-columns: 1fr;
   }
@@ -2693,6 +2737,10 @@ button:disabled {
   }
 
   .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-attention-list {
     grid-template-columns: 1fr;
   }
 
