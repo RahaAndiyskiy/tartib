@@ -710,6 +710,19 @@ export function DashboardApp(): React.ReactElement {
     setMobileFormOpen(false);
   }
 
+  function notificationPayment(notification: LocalNotification): PaymentRequest | null {
+    if (!notification.paymentId || !workspace) return null;
+    return workspace.payments.find((payment) => payment.id === notification.paymentId) ?? null;
+  }
+
+  function canDecideNotificationPayment(payment: PaymentRequest): boolean {
+    return Boolean(
+      activeUser &&
+        (hasRole(activeUser, 'owner') ||
+          (hasRole(activeUser, 'trainer') && payment.trainer_id === activeUser.id))
+    );
+  }
+
   function openPrepayment(payment: PaymentRequest): void {
     setActiveSection('payments');
     setPaymentView('all');
@@ -2447,8 +2460,8 @@ export function DashboardApp(): React.ReactElement {
             {!hasRole(activeUser, 'member') ? (
             <section className="quick-actions-panel">
               <div>
-                <span>Быстрый путь тренера</span>
-                <strong>Группа → ссылка → оплата</strong>
+                <span>Основные действия</span>
+                <strong>Группа, набор и оплата</strong>
               </div>
               <div className="quick-actions">
                 {hasRole(activeUser, 'trainer') ? (
@@ -3941,27 +3954,76 @@ export function DashboardApp(): React.ReactElement {
           <section className="crm-panel">
             <div className="crm-panel-header">
               <div>
-                <h2>Журнал уведомлений</h2>
-                <p>Сообщения для текущего пользователя</p>
+                <h2>Уведомления</h2>
+                <p>События и действия, которые можно обработать сразу</p>
               </div>
               {unreadNotifications.length > 0 ? <button className="small-button secondary" type="button" onClick={markNotificationsRead}>Отметить прочитанными</button> : null}
             </div>
             <div className="notification-list">
-              {[...userNotifications].reverse().map((notification) => (
-                <article className={notification.read ? 'notification-row' : 'notification-row unread'} key={notification.id}>
-                  <Bell size={18} />
-                  <div><strong>{notification.message}</strong><span>{new Date(notification.createdAt).toLocaleString('ru-RU')}</span></div>
-                  {notification.paymentId ? (
-                    <button
-                      className="small-button secondary"
-                      type="button"
-                      onClick={() => openNotificationPayment(notification.paymentId)}
-                    >
-                      Открыть
-                    </button>
-                  ) : null}
-                </article>
-              ))}
+              {[...userNotifications].reverse().map((notification) => {
+                const payment = notificationPayment(notification);
+                const canDecide = payment ? canDecideNotificationPayment(payment) : false;
+                return (
+                  <article className={notification.read ? 'notification-row' : 'notification-row unread'} key={notification.id}>
+                    <Bell size={18} />
+                    <div>
+                      <strong>{notification.message}</strong>
+                      <span>{new Date(notification.createdAt).toLocaleString('ru-RU')}</span>
+                    </div>
+                    {payment ? (
+                      <div className="notification-actions">
+                        {canDecide && payment.status === 'payment_confirmation' ? (
+                          <>
+                            <button
+                              className="small-button"
+                              type="button"
+                              disabled={isPendingAction(`decide-payment:${payment.id}`)}
+                              onClick={() => updatePaymentStatus(payment.id, 'paid')}
+                            >
+                              Подтвердить
+                            </button>
+                            <button
+                              className="small-button secondary"
+                              type="button"
+                              disabled={isPendingAction(`decide-payment:${payment.id}`)}
+                              onClick={() => updatePaymentStatus(payment.id, 'active')}
+                            >
+                              Отклонить
+                            </button>
+                          </>
+                        ) : null}
+                        {canDecide && payment.status === 'delay_requested' ? (
+                          <>
+                            <button
+                              className="small-button"
+                              type="button"
+                              disabled={isPendingAction(`decide-delay:${payment.id}`)}
+                              onClick={() => decidePaymentDelay(payment.id, true)}
+                            >
+                              Одобрить
+                            </button>
+                            <button
+                              className="small-button secondary"
+                              type="button"
+                              disabled={isPendingAction(`decide-delay:${payment.id}`)}
+                              onClick={() => decidePaymentDelay(payment.id, false)}
+                            >
+                              Отклонить
+                            </button>
+                          </>
+                        ) : null}
+                        <button
+                          className="small-button secondary"
+                          type="button"
+                          onClick={() => openNotificationPayment(notification.paymentId)}
+                        >
+                          Открыть счёт
+                        </button>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
               {userNotifications.length === 0 ? <p className="empty-state">Уведомлений пока нет.</p> : null}
             </div>
           </section>

@@ -2352,7 +2352,7 @@ button:disabled {
 
 .notification-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(160px, auto);
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid #edf0ee;
@@ -2377,6 +2377,13 @@ button:disabled {
 
 .notification-row .small-button {
   min-width: 84px;
+}
+
+.notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .crm-panel .empty-state {
@@ -3103,9 +3110,14 @@ button:disabled {
     padding: 14px;
   }
 
-  .notification-row .small-button {
+  .notification-actions {
     grid-column: 2;
-    width: fit-content;
+    justify-content: flex-start;
+  }
+
+  .notification-actions .small-button {
+    grid-column: 2;
+    min-height: 38px;
   }
 
   .crm-side-form {
