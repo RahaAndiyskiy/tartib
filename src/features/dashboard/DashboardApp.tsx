@@ -268,6 +268,9 @@ export function DashboardApp(): React.ReactElement {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [paymentView, setPaymentView] = useState<PaymentView>('all');
   const [paymentSearch, setPaymentSearch] = useState('');
+  const [peopleSearch, setPeopleSearch] = useState('');
+  const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
+  const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
   const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
   const [paymentEditOpen, setPaymentEditOpen] = useState(false);
   const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
@@ -2038,6 +2041,24 @@ export function DashboardApp(): React.ReactElement {
     activeUser && hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
       ? visibleMembers
       : workspace?.users ?? [];
+  const filteredPeopleForView = peopleForView.filter((user) => {
+    const query = peopleSearch.trim().toLocaleLowerCase('ru-RU');
+    const group = user.role === 'member' ? groupFor(user.id) : null;
+    const matchesSearch =
+      !query ||
+      `${user.first_name} ${user.last_name}`.toLocaleLowerCase('ru-RU').includes(query) ||
+      (user.phone ?? '').toLocaleLowerCase('ru-RU').includes(query) ||
+      (user.email ?? '').toLocaleLowerCase('ru-RU').includes(query);
+    const matchesGroup =
+      peopleGroupFilter === 'all' ||
+      (peopleGroupFilter === 'no-group' && user.role === 'member' && !group) ||
+      (user.role === 'member' && group?.id === peopleGroupFilter);
+
+    return matchesSearch && matchesGroup;
+  });
+  const peopleGroupsForFilter = visibleGroups.filter((group) =>
+    peopleForView.some((user) => user.role === 'member' && groupFor(user.id)?.id === group.id)
+  );
   const isMemberInviteForm =
     Boolean(activeUser) &&
     !isLocalMode &&
@@ -2456,10 +2477,107 @@ export function DashboardApp(): React.ReactElement {
               <div className="crm-panel-header">
                 <div>
                   <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Мои ученики' : 'Состав клуба'}</h2>
-                  <p>{peopleForView.length} записей</p>
+                  <p>{filteredPeopleForView.length} / {peopleForView.length}</p>
                 </div>
               </div>
-              <div className="crm-table">
+              <div className="people-toolbar">
+                <label className="people-search">
+                  <Search size={17} />
+                  <input
+                    placeholder="Найти человека"
+                    value={peopleSearch}
+                    onChange={(event) => setPeopleSearch(event.target.value)}
+                  />
+                </label>
+                <select
+                  aria-label="Фильтр по группе"
+                  value={peopleGroupFilter}
+                  onChange={(event) => setPeopleGroupFilter(event.target.value)}
+                >
+                  <option value="all">Все группы</option>
+                  {peopleGroupsForFilter.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.activity} · {group.days} {group.time}
+                    </option>
+                  ))}
+                  <option value="no-group">Без группы</option>
+                </select>
+              </div>
+              <div className="people-accordion">
+                {filteredPeopleForView.map((user) => {
+                  const group = user.role === 'member' ? groupFor(user.id) : null;
+                  const isOpen = expandedPeople[user.id] ?? false;
+                  const contact = user.email ?? user.phone ?? 'Не указан';
+                  return (
+                    <article className={`person-accordion-row ${isOpen ? 'open' : ''}`} key={user.id}>
+                      <button
+                        className="person-accordion-summary"
+                        type="button"
+                        onClick={() =>
+                          setExpandedPeople((current) => ({
+                            ...current,
+                            [user.id]: !isOpen
+                          }))
+                        }
+                      >
+                        <span>
+                          <strong>{user.first_name} {user.last_name}</strong>
+                          <small>{roleLabel(user)}</small>
+                        </span>
+                        <span className="person-group-chip">
+                          {user.role === 'member'
+                            ? group
+                              ? `${group.activity} · ${group.days} ${group.time}`
+                              : 'Без группы'
+                            : 'Команда клуба'}
+                        </span>
+                        <ChevronRight className={isOpen ? 'open' : ''} size={18} />
+                      </button>
+                      {isOpen ? (
+                        <div className="person-accordion-detail">
+                          <div>
+                            <span>Контакт</span>
+                            <strong>{contact}</strong>
+                          </div>
+                          {user.role === 'member' ? (
+                            <label>
+                              Группа
+                              <select
+                                value={group?.id ?? ''}
+                                disabled={isPendingAction(`assign-member-group:${user.id}`)}
+                                onChange={(event) =>
+                                  assignMemberToGroup(user.id, event.target.value)
+                                }
+                              >
+                                <option value="">Без группы</option>
+                                {visibleGroups.map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.activity} · {item.days} {item.time}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
+                          {user.role === 'member' ? (
+                            <button
+                              className="small-button danger"
+                              type="button"
+                              disabled={isPendingAction(`delete-member:${user.id}`)}
+                              onClick={() => void deleteMember(user.id)}
+                            >
+                              {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+                {filteredPeopleForView.length === 0 ? (
+                  <p className="empty-state">По этому поиску никого нет.</p>
+                ) : null}
+              </div>
+              <div className="crm-table legacy-people-table">
                 <div className="crm-table-head">
                   <span>Имя</span><span>Роль</span><span>Группа</span><span>Контакт</span><span>Действия</span>
                 </div>
