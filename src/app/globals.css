@@ -3,33 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #eef3f1;
-  --color-bg-soft: #f7faf8;
+  --color-bg: #f2f1f8;
+  --color-bg-soft: #fbfaff;
   --color-surface: #ffffff;
-  --color-surface-soft: #f8faf9;
-  --color-surface-glass: rgba(255, 255, 255, 0.72);
-  --color-surface-glass-strong: rgba(255, 255, 255, 0.86);
-  --color-glass-dark: rgba(24, 31, 28, 0.78);
-  --color-border: #dbe5e0;
-  --color-border-strong: #c9d6d0;
-  --color-text: #17211d;
-  --color-muted: #66756e;
-  --color-muted-strong: #425049;
-  --color-primary: #226d55;
-  --color-primary-strong: #185640;
-  --color-primary-soft: #e4f3ec;
-  --color-danger: #a33f2f;
-  --color-danger-soft: #fff3ef;
-  --color-warning: #8a6a16;
-  --color-warning-soft: #fff8df;
+  --color-surface-soft: #f7f6fc;
+  --color-surface-glass: rgba(255, 255, 255, 0.58);
+  --color-surface-glass-strong: rgba(255, 255, 255, 0.82);
+  --color-glass-dark: rgba(28, 27, 40, 0.74);
+  --color-border: rgba(139, 127, 171, 0.2);
+  --color-border-strong: rgba(120, 107, 153, 0.32);
+  --color-text: #181624;
+  --color-muted: #706b82;
+  --color-muted-strong: #4a445d;
+  --color-primary: #7c5cff;
+  --color-primary-strong: #4f35c8;
+  --color-primary-soft: #eeeaff;
+  --color-primary-faint: #f6f3ff;
+  --color-danger: #b4425d;
+  --color-danger-soft: #fff0f4;
+  --color-warning: #85601f;
+  --color-warning-soft: #fff7df;
+  --color-info: #4964cf;
+  --color-info-soft: #eef2ff;
   --radius-page: 24px;
-  --radius-panel: 12px;
-  --radius-control: 9px;
-  --radius-compact: 7px;
-  --shadow-soft: 0 14px 40px rgba(25, 43, 34, 0.08);
-  --shadow-panel: 0 8px 28px rgba(25, 43, 34, 0.06);
-  --shadow-glass: 0 18px 50px rgba(20, 34, 29, 0.14);
-  --blur-glass: 18px;
+  --radius-panel: 18px;
+  --radius-control: 14px;
+  --radius-compact: 10px;
+  --shadow-soft: 0 18px 56px rgba(63, 53, 101, 0.1);
+  --shadow-panel: 0 12px 34px rgba(63, 53, 101, 0.07);
+  --shadow-glass: 0 24px 70px rgba(67, 55, 111, 0.18);
+  --blur-glass: 22px;
   --sidebar-width: 264px;
   --control-height: 44px;
   --mobile-nav-height: 68px;
@@ -126,14 +129,14 @@ button:disabled {
 
 .home-hero p,
 .auth-copy p {
-  color: #52615a;
+  color: var(--color-muted);
   font-size: 1.05rem;
   line-height: 1.7;
 }
 
 .eyebrow {
   margin: 0 0 10px;
-  color: #2d7a62;
+  color: var(--color-primary-strong);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -172,7 +175,7 @@ button:disabled {
 .muted-copy,
 .section-heading > p,
 .inline-hint {
-  color: #66756e;
+  color: var(--color-muted);
   line-height: 1.55;
 }
 
@@ -212,7 +215,7 @@ button:disabled {
 .form-stack label {
   display: grid;
   gap: 7px;
-  color: #52615a;
+  color: var(--color-muted);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -237,9 +240,9 @@ button:disabled {
 }
 
 .primary-button {
-  background: linear-gradient(180deg, #287b61, var(--color-primary));
+  background: linear-gradient(180deg, rgba(151, 126, 255, 0.98), var(--color-primary));
   color: #ffffff;
-  box-shadow: 0 10px 22px rgba(34, 109, 85, 0.2);
+  box-shadow: 0 10px 22px rgba(124, 92, 255, 0.22);
 }
 
 .ghost-button {
@@ -307,7 +310,7 @@ button:disabled {
 
 .invite-heading > svg {
   flex: 0 0 auto;
-  color: #236b59;
+  color: var(--color-primary);
 }
 
 .invite-heading h1,
@@ -321,13 +324,13 @@ button:disabled {
 
 .invite-heading p {
   margin-top: 4px;
-  color: #66756e;
+  color: var(--color-muted);
 }
 
 .invite-summary {
   display: grid;
   gap: 12px;
-  border-block: 1px solid #e3eae7;
+  border-block: 1px solid var(--color-border);
   margin-bottom: 22px;
   padding: 18px 0;
 }
@@ -336,12 +339,12 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  color: #52615a;
+  color: var(--color-muted);
 }
 
 .invite-summary svg {
   flex: 0 0 auto;
-  color: #236b59;
+  color: var(--color-primary);
 }
 
 .invite-summary span,
@@ -351,7 +354,7 @@ button:disabled {
 
 .invite-summary strong {
   margin-bottom: 2px;
-  color: #18201d;
+  color: var(--color-text);
 }
 
 .invite-form-hint {
@@ -393,9 +396,9 @@ button:disabled {
 }
 
 .notice.success {
-  border-color: #bcdccd;
-  background: #f0faf5;
-  color: #17623d;
+  border-color: rgba(124, 92, 255, 0.24);
+  background: var(--color-primary-faint);
+  color: var(--color-primary-strong);
 }
 
 .notification-panel {
@@ -403,16 +406,16 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border: 1px solid #b9d9ca;
-  border-radius: 8px;
-  background: #eef9f3;
+  border: 1px solid rgba(124, 92, 255, 0.18);
+  border-radius: var(--radius-panel);
+  background: var(--color-primary-faint);
   padding: 16px 18px;
   margin-bottom: 18px;
 }
 
 .notification-panel p {
   margin: 4px 0 0;
-  color: #235a46;
+  color: var(--color-muted-strong);
 }
 
 .notice {
@@ -503,8 +506,8 @@ button:disabled {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #edf3f0;
-  color: #236b59;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   font-size: 1.5rem;
   line-height: 1;
 }
@@ -586,7 +589,7 @@ button:disabled {
   width: 12px;
   height: 12px;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: var(--color-primary);
 }
 
 .dashboard-grid {
@@ -656,8 +659,8 @@ button:disabled {
 }
 
 .status-pill.paid {
-  background: #dcf5e8;
-  color: #17623d;
+  background: #ece9ff;
+  color: #5138c5;
 }
 
 .status-pill.payment_confirmation,
@@ -1003,7 +1006,7 @@ button:disabled {
 .text-button {
   border: 0;
   background: transparent;
-  color: #247257;
+  color: var(--color-primary-strong);
   font-weight: 800;
 }
 
@@ -1251,8 +1254,8 @@ button:disabled {
 
 .payment-view-tabs button:hover,
 .payment-view-tabs button.active {
-  background: #edf3f0;
-  color: #1e5f4e;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
 }
 
 .payment-view-tabs button span {
@@ -1279,8 +1282,8 @@ button:disabled {
 }
 
 .payments-search:focus-within {
-  border-color: #77a798;
-  box-shadow: 0 0 0 3px rgba(35, 107, 89, 0.09);
+  border-color: rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.12);
 }
 
 .payments-search input {
@@ -1324,7 +1327,7 @@ button:disabled {
 }
 
 .payment-registry-row.selected {
-  box-shadow: inset 3px 0 #236b59;
+  box-shadow: inset 3px 0 var(--color-primary);
 }
 
 .payment-person {
@@ -1444,7 +1447,7 @@ button:disabled {
 
 .payment-current-card {
   background: #f8fbfa;
-  border-color: #cfe0d9;
+  border-color: var(--color-border);
 }
 
 .payment-card-heading {
@@ -1463,8 +1466,8 @@ button:disabled {
 
 .payment-card-heading > strong {
   border-radius: 999px;
-  background: #edf3f0;
-  color: #236b59;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   padding: 5px 9px;
   font-size: 0.72rem;
 }
@@ -1681,7 +1684,7 @@ button:disabled {
   display: inline;
   border: 0;
   background: transparent;
-  color: #1f6d51;
+  color: var(--color-primary-strong);
   padding: 0;
   font: inherit;
   font-weight: 800;
@@ -1730,7 +1733,7 @@ button:disabled {
 
 .prepay-months button.active {
   background: #ffffff;
-  color: #236b59;
+  color: var(--color-primary-strong);
   box-shadow: 0 4px 12px rgba(31, 47, 39, 0.08);
 }
 
@@ -1959,8 +1962,8 @@ button:disabled {
   min-width: 30px;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: #edf3f0;
-  color: #236b59;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   padding: 5px 9px;
   font-size: 0.78rem;
   text-align: center;
@@ -2029,8 +2032,8 @@ button:disabled {
 }
 
 .notification-row.unread {
-  background: #f0f8f4;
-  color: #1f6d50;
+  background: var(--color-primary-faint);
+  color: var(--color-primary-strong);
 }
 
 .notification-row div {
@@ -2978,5 +2981,504 @@ button:disabled {
 
   .row-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Tartib violet glass redesign layer.
+   Keep this block as the current visual source of truth while older CSS is gradually cleaned. */
+body {
+  background:
+    radial-gradient(circle at 16% -8%, rgba(255, 255, 255, 0.98), transparent 32%),
+    radial-gradient(circle at 78% 2%, rgba(194, 184, 255, 0.42), transparent 28%),
+    radial-gradient(circle at 96% 82%, rgba(225, 219, 255, 0.46), transparent 34%),
+    linear-gradient(135deg, #fbfaff 0%, #f4f2fb 48%, #eeedf7 100%);
+  color: var(--color-text);
+}
+
+input,
+select {
+  border-color: var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+input:focus,
+select:focus {
+  border-color: rgba(124, 92, 255, 0.62);
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  outline: 0;
+}
+
+.eyebrow,
+.text-button,
+.payment-info-card button,
+.payment-locked-note button {
+  color: var(--color-primary-strong);
+}
+
+.auth-panel,
+.form-card,
+.panel,
+.person-card,
+.invite-card {
+  border-color: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(249, 247, 255, 0.68));
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.metric-card::after {
+  content: '';
+  position: absolute;
+  inset: auto 16px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.42), transparent);
+}
+
+.metric-card span,
+.muted-copy,
+.section-heading > p,
+.inline-hint,
+.crm-header p,
+.crm-panel-header p,
+.crm-list-row div span,
+.crm-payment-row div span,
+.crm-summary span,
+.payment-person span,
+.payment-due,
+.payment-card-heading > span:first-child,
+.payment-current-card dt,
+.payment-plan-card dt,
+.payment-detail-list dt,
+.payment-detail-history span,
+.payment-detail-history p {
+  color: var(--color-muted);
+}
+
+.primary-button {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background:
+    linear-gradient(180deg, rgba(151, 126, 255, 0.98), rgba(124, 92, 255, 0.98));
+  color: #ffffff;
+  box-shadow:
+    0 14px 28px rgba(124, 92, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.ghost-button,
+.mobile-create-button,
+.mobile-icon-button,
+.icon-button {
+  border-color: rgba(139, 127, 171, 0.24);
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--color-primary-strong);
+  box-shadow:
+    0 10px 28px rgba(63, 53, 101, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.small-button {
+  border: 1px solid rgba(124, 92, 255, 0.2);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.small-button.secondary {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.small-button.danger,
+.ghost-button.danger {
+  border-color: rgba(180, 66, 93, 0.24);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  box-shadow: none;
+}
+
+.segmented-control,
+.payment-view-tabs,
+.prepay-months {
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 10px 24px rgba(63, 53, 101, 0.06);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.segmented-control button.active,
+.payment-view-tabs button.active,
+.payment-view-tabs button:hover,
+.prepay-months button.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-primary-strong);
+  box-shadow: 0 10px 22px rgba(63, 53, 101, 0.1);
+}
+
+.crm-shell {
+  background:
+    radial-gradient(circle at 16% -8%, rgba(255, 255, 255, 0.96), transparent 30%),
+    radial-gradient(circle at 86% 0%, rgba(196, 186, 255, 0.42), transparent 31%),
+    radial-gradient(circle at 96% 90%, rgba(220, 214, 255, 0.42), transparent 30%),
+    linear-gradient(135deg, #fbfaff 0%, #f4f2fb 48%, #eeedf7 100%);
+}
+
+.crm-sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(38, 35, 54, 0.84), rgba(26, 25, 38, 0.76)),
+    radial-gradient(circle at 20% 0%, rgba(124, 92, 255, 0.28), transparent 34%);
+  box-shadow:
+    24px 0 70px rgba(38, 35, 80, 0.18),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.crm-brand,
+.crm-sidebar-footer {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.crm-brand-mark {
+  background:
+    linear-gradient(145deg, rgba(170, 150, 255, 0.98), rgba(124, 92, 255, 0.98));
+  box-shadow: 0 14px 30px rgba(124, 92, 255, 0.32);
+}
+
+.crm-brand span:last-child,
+.crm-organization span,
+.crm-sidebar-action,
+.crm-role-select {
+  color: rgba(244, 241, 255, 0.68);
+}
+
+.crm-nav-button {
+  color: rgba(244, 241, 255, 0.72);
+}
+
+.crm-nav-button:hover,
+.crm-sidebar-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.crm-nav-button.active {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-primary-strong);
+  box-shadow:
+    0 16px 36px rgba(12, 10, 24, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.crm-nav-button strong {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.crm-nav-button.active strong {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.crm-role-select select {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.crm-sidebar-action.danger {
+  color: #ffc8d4;
+}
+
+.crm-header {
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(249, 247, 255, 0.48));
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.crm-user-badge {
+  border-left-color: rgba(139, 127, 171, 0.24);
+}
+
+.crm-user-badge span {
+  color: var(--color-muted);
+}
+
+.crm-panel,
+.payment-drawer,
+.payment-current-card,
+.payment-plan-card,
+.payment-detail-summary > div,
+.payment-edit-form,
+.payment-delay-form,
+.payment-plan-options,
+.payment-info-card,
+.payment-locked-note,
+.payment-prepay-card,
+.payment-decision-card {
+  border-color: rgba(139, 127, 171, 0.18);
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--shadow-panel);
+}
+
+.crm-panel-header,
+.crm-list-row,
+.crm-summary div,
+.crm-table-row,
+.crm-payment-row,
+.payment-history,
+.payment-history-row,
+.payments-toolbar,
+.payment-drawer-header,
+.payment-detail-section,
+.payment-detail-list div,
+.payment-detail-history > div,
+.payment-more-actions,
+.payment-action-group,
+.payment-plan-card dl div,
+.payment-plan-options-body,
+.prepay-total {
+  border-color: rgba(139, 127, 171, 0.16);
+}
+
+.crm-table-head,
+.crm-payment-head,
+.payment-registry-head,
+.schedule-head {
+  background: rgba(246, 243, 255, 0.88);
+  color: var(--color-muted-strong);
+}
+
+.crm-table-row span,
+.payment-future-toggle,
+.payment-plan-options summary small,
+.payment-action-group-header p,
+.group-row span,
+.schedule-row > div span,
+.notification-row p {
+  color: var(--color-muted);
+}
+
+.payments-toolbar {
+  background: rgba(255, 255, 255, 0.46);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.payment-view-tabs {
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.payment-view-tabs button {
+  border-radius: 999px;
+  color: var(--color-muted-strong);
+}
+
+.payment-view-tabs button span,
+.payment-detail-section-heading > span,
+.payment-action-group-header > strong,
+.payment-card-heading > strong {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.payments-search {
+  border-color: rgba(139, 127, 171, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-muted);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 10px 24px rgba(63, 53, 101, 0.06);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.payments-search:focus-within {
+  border-color: rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.12);
+}
+
+.payment-registry-row {
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-text);
+}
+
+.payment-registry-row:hover,
+.payment-registry-row.selected {
+  background: #f8f6ff;
+}
+
+.payment-registry-row.selected {
+  box-shadow: inset 4px 0 var(--color-primary);
+}
+
+.payment-row-arrow,
+.payment-plan-options summary svg,
+.payment-history-toggle svg,
+.payment-action-group-header > svg {
+  color: #8b83a2;
+}
+
+.payment-current-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(246, 243, 255, 0.82));
+}
+
+.payment-current-card > strong,
+.payment-amount,
+.crm-summary strong,
+.metric-card strong {
+  color: var(--color-text);
+}
+
+.payment-info-card button,
+.payment-locked-note button,
+.prepay-months button.active {
+  color: var(--color-primary-strong);
+}
+
+.payment-prepay-card {
+  background: #fbf9ff;
+}
+
+.prepay-months {
+  background: rgba(238, 234, 255, 0.74);
+}
+
+.payment-action-group-header {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text);
+}
+
+.status-pill {
+  background: #f0eef7;
+  color: var(--color-muted-strong);
+}
+
+.status-pill.paid {
+  background: #ece9ff;
+  color: #5138c5;
+}
+
+.status-pill.payment_confirmation,
+.status-pill.delay_requested {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-pill.active {
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.status-pill.delayed {
+  background: #f1eaff;
+  color: #6f35b6;
+}
+
+.status-pill.overdue {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.payment-drawer-backdrop {
+  background: rgba(20, 18, 32, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+.payment-drawer {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: -28px 0 80px rgba(43, 35, 75, 0.22);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.payment-decision-card {
+  background: var(--color-warning-soft);
+}
+
+.crm-alert {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.group-row,
+.notification-row,
+.schedule-row,
+.crm-payment-row,
+.crm-table-row {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 720px) {
+  .crm-sidebar {
+    border-top: 1px solid rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 -22px 52px rgba(63, 53, 101, 0.16);
+    backdrop-filter: blur(var(--blur-glass));
+  }
+
+  .crm-nav-button {
+    color: var(--color-muted);
+  }
+
+  .crm-nav-button.active {
+    border: 0;
+    background: transparent;
+    color: var(--color-primary-strong);
+    box-shadow: none;
+  }
+
+  .crm-nav-button.active::before {
+    background: var(--color-primary);
+  }
+
+  .mobile-topbar {
+    border-color: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 16px 38px rgba(63, 53, 101, 0.12);
+    backdrop-filter: blur(var(--blur-glass));
+  }
+
+  .crm-header {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .crm-table-row,
+  .crm-payment-row,
+  .group-row,
+  .notification-row,
+  .payment-registry-row {
+    border-color: rgba(139, 127, 171, 0.18);
+    border-radius: var(--radius-panel);
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 10px 28px rgba(63, 53, 101, 0.07);
+  }
+
+  .payments-toolbar {
+    background: rgba(255, 255, 255, 0.58);
   }
 }

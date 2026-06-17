@@ -144,11 +144,11 @@ Production migration и deploy выполняются только после у
 
 Before large UI changes, read [ui-style.md](./ui-style.md).
 
-Tartib UI direction is **clean CRM + soft glass layer**:
+Tartib UI direction is **clean CRM + soft violet glass layer**:
 
 - CRM readability is more important than decoration.
 - Use glass for sidebar, mobile navigation, toolbars, search, filters, modals and quick actions.
 - Do not use glass for dense payment rows, long financial tables, status pills or destructive actions.
+- Green is not a Tartib brand accent; use violet/purple tokens for primary UI.
 - Use design tokens from `src/app/globals.css`; do not hard-code new shared colors, shadows or radii.
 - New UI must reuse existing classes such as `crm-panel`, `crm-table`, `crm-list-row`, `primary-button`, `ghost-button`, `small-button`, `segmented-control` and `status-pill`.
-

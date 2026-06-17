@@ -1,8 +1,8 @@
 # UI Direction
 
-Tartib UI direction is **clean CRM + soft glass layer**.
+Tartib UI direction is **clean CRM + soft violet glass layer**.
 
-All AI agents must read [ui-style.md](./ui-style.md) before large UI changes. Use tokens from `src/app/globals.css`. Keep glass for navigation, toolbars, filters, modals and quick actions. Keep tables, payment rows and financial data plain, readable and high contrast.
+All AI agents must read [ui-style.md](./ui-style.md) before large UI changes. Use tokens from `src/app/globals.css`. Keep glass for navigation, toolbars, filters, modals and quick actions. Keep tables, payment rows and financial data plain, readable and high contrast. Green is not a Tartib brand accent; primary UI should use violet/purple tokens.
 
 # Project Overview
 

@@ -1,16 +1,17 @@
 # Tartib UI Style Guide
 
-Tartib uses a **clean CRM base with a soft glass layer**.
+Tartib uses a **clean CRM base with a soft violet glass layer**.
 
 The product must feel modern, calm and operational. It should not feel like a decorative landing page, a finance spreadsheet, or a futuristic concept mockup.
 
 ## Product Feel
 
 - Clean CRM first: readable tables, lists, forms and statuses.
-- Soft glass second: modern navigation, toolbars, modal surfaces and quick actions.
+- Soft violet glass second: modern navigation, toolbars, modal surfaces and quick actions.
 - Light, quiet and spacious, but not empty.
 - Financial and member data must stay high contrast and easy to scan.
 - Mobile UI must prioritize one task per screen.
+- Green is not a Tartib brand accent. Do not add new green buttons, navigation states or primary highlights.
 
 ## Design Tokens
 
@@ -33,10 +34,13 @@ Use tokens instead of hard-coded values when adding shared UI:
 - `--color-primary`
 - `--color-primary-strong`
 - `--color-primary-soft`
+- `--color-primary-faint`
 - `--color-danger`
 - `--color-danger-soft`
 - `--color-warning`
 - `--color-warning-soft`
+- `--color-info`
+- `--color-info-soft`
 - `--radius-page`
 - `--radius-panel`
 - `--radius-control`
@@ -71,6 +75,14 @@ Do not use glass for:
 - Danger actions.
 - Status pills where contrast matters.
 - Nested cards inside cards.
+
+## Color Rules
+
+- Primary accent: violet/purple via `--color-primary`.
+- Secondary system colors may use blue, amber and red for informational, warning and danger states.
+- Avoid green as an accent. Paid status can use violet/indigo instead of green.
+- Do not create one-off color palettes inside components.
+- New shared colors must be added as tokens first.
 
 ## Layout Rules
 
