@@ -78,6 +78,20 @@
   box-shadow: none;
 }
 
+.people-search:focus-within {
+  border-color: rgba(124, 92, 255, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 10px 24px rgba(63, 53, 101, 0.06);
+}
+
+.people-search input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+}
+
 .people-toolbar > select {
   min-height: 42px;
 }
@@ -1474,9 +1488,9 @@ button:disabled {
 }
 
 .payments-search {
-  width: min(250px, 34%);
+  width: min(520px, 46vw);
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 420px;
   align-items: center;
   gap: 8px;
   border: 1px solid #d6dfda;
@@ -1494,7 +1508,15 @@ button:disabled {
 .payments-search input {
   min-height: 38px;
   border: 0;
+  background: transparent;
   padding: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.payments-search input:focus {
+  border: 0;
+  box-shadow: none;
   outline: 0;
 }
 
@@ -3515,6 +3537,8 @@ select:focus {
 }
 
 .payments-search {
+  width: min(560px, 48vw);
+  flex: 1 1 440px;
   border-color: rgba(139, 127, 171, 0.2);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
@@ -3527,7 +3551,10 @@ select:focus {
 
 .payments-search:focus-within {
   border-color: rgba(124, 92, 255, 0.5);
-  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.12);
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 10px 24px rgba(63, 53, 101, 0.06);
 }
 
 .payment-registry-row {
@@ -3692,4 +3719,16 @@ select:focus {
   .payments-toolbar {
     background: rgba(255, 255, 255, 0.58);
   }
+
+  .payments-search {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}
+
+.people-search input:focus,
+.payments-search input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
 }
