@@ -461,14 +461,14 @@ export function DashboardApp(): React.ReactElement {
     (member) => !currentPaymentByMemberId.has(member.id)
   ).length;
   const paymentActionCount = paymentAttentionCount + overduePayments.length + membersWithoutPaymentCount;
+  const normalizedPaymentSearch = paymentSearch.trim().toLocaleLowerCase('ru-RU');
+  const memberMatchesPaymentSearch = (member: AppUser): boolean =>
+    !normalizedPaymentSearch ||
+    userName(member.id).toLocaleLowerCase('ru-RU').includes(normalizedPaymentSearch);
   const filteredPaymentMembers = visibleMembers.filter((member) => {
     const payment = currentPaymentByMemberId.get(member.id);
-    const normalizedSearch = paymentSearch.trim().toLocaleLowerCase('ru-RU');
-    const matchesSearch =
-      !normalizedSearch ||
-      userName(member.id).toLocaleLowerCase('ru-RU').includes(normalizedSearch);
 
-    if (!matchesSearch) return false;
+    if (!memberMatchesPaymentSearch(member)) return false;
     if (paymentView === 'actions') {
       return (
         !payment ||
@@ -486,7 +486,9 @@ export function DashboardApp(): React.ReactElement {
       title: 'Ожидают подтверждения',
       description: 'Ученики нажали «Я оплатил» или отправили предоплату.',
       members: visibleMembers.filter(
-        (member) => currentPaymentByMemberId.get(member.id)?.status === 'payment_confirmation'
+        (member) =>
+          memberMatchesPaymentSearch(member) &&
+          currentPaymentByMemberId.get(member.id)?.status === 'payment_confirmation'
       )
     },
     {
@@ -494,7 +496,9 @@ export function DashboardApp(): React.ReactElement {
       title: 'Запросили отсрочку',
       description: 'Нужно одобрить или отклонить новую дату.',
       members: visibleMembers.filter(
-        (member) => currentPaymentByMemberId.get(member.id)?.status === 'delay_requested'
+        (member) =>
+          memberMatchesPaymentSearch(member) &&
+          currentPaymentByMemberId.get(member.id)?.status === 'delay_requested'
       )
     },
     {
@@ -502,16 +506,28 @@ export function DashboardApp(): React.ReactElement {
       title: 'Просрочено',
       description: 'Счёт уже должен быть оплачен.',
       members: visibleMembers.filter(
-        (member) => currentPaymentByMemberId.get(member.id)?.status === 'overdue'
+        (member) =>
+          memberMatchesPaymentSearch(member) &&
+          currentPaymentByMemberId.get(member.id)?.status === 'overdue'
       )
     },
     {
       id: 'without-payment',
       title: 'Без оплаты',
       description: 'Ученикам ещё не назначен текущий счёт.',
-      members: visibleMembers.filter((member) => !currentPaymentByMemberId.has(member.id))
+      members: visibleMembers.filter(
+        (member) => memberMatchesPaymentSearch(member) && !currentPaymentByMemberId.has(member.id)
+      )
     }
   ];
+  const visiblePaymentActionGroups = paymentActionGroups.filter((group) => group.members.length > 0);
+  const paidPaymentResults = [...visiblePayments]
+    .filter(
+      (payment) =>
+        payment.status === 'paid' &&
+        userName(payment.member_id).toLocaleLowerCase('ru-RU').includes(normalizedPaymentSearch)
+    )
+    .reverse();
   const selectedPaymentMember =
     visibleMembers.find((member) => member.id === selectedPaymentMemberId) ?? null;
   const selectedPayment = selectedPaymentMember
@@ -2056,9 +2072,7 @@ export function DashboardApp(): React.ReactElement {
 
     return matchesSearch && matchesGroup;
   });
-  const peopleGroupsForFilter = visibleGroups.filter((group) =>
-    peopleForView.some((user) => user.role === 'member' && groupFor(user.id)?.id === group.id)
-  );
+  const peopleGroupsForFilter = visibleGroups;
   const isMemberInviteForm =
     Boolean(activeUser) &&
     !isLocalMode &&
@@ -2977,16 +2991,7 @@ export function DashboardApp(): React.ReactElement {
 
               {paymentView === 'paid' ? (
                 <div className="payments-history-list">
-                  {[...visiblePayments]
-                    .filter(
-                      (payment) =>
-                        payment.status === 'paid' &&
-                        userName(payment.member_id)
-                          .toLocaleLowerCase('ru-RU')
-                          .includes(paymentSearch.trim().toLocaleLowerCase('ru-RU'))
-                    )
-                    .reverse()
-                    .map((payment) => (
+                  {paidPaymentResults.map((payment) => (
                       <button
                         className="payment-registry-row history"
                         key={payment.id}
@@ -3006,13 +3011,17 @@ export function DashboardApp(): React.ReactElement {
                         <ChevronRight className="payment-row-arrow" size={18} />
                       </button>
                     ))}
-                  {visiblePayments.filter((payment) => payment.status === 'paid').length === 0 ? (
-                    <p className="empty-state">Подтверждённых оплат пока нет.</p>
+                  {paidPaymentResults.length === 0 ? (
+                    <p className="empty-state">
+                      {paymentSearch.trim()
+                        ? 'По этому поиску подтверждённых оплат нет.'
+                        : 'Подтверждённых оплат пока нет.'}
+                    </p>
                   ) : null}
                 </div>
               ) : paymentView === 'actions' ? (
                 <div className="payment-action-groups">
-                  {paymentActionGroups.map((group) => {
+                  {visiblePaymentActionGroups.map((group) => {
                     const groupOpen = paymentActionGroupsOpen[group.id] ?? group.members.length > 0;
                     return (
                       <section className={`payment-action-group ${groupOpen ? 'open' : ''}`} key={group.id}>
@@ -3041,6 +3050,13 @@ export function DashboardApp(): React.ReactElement {
                       </section>
                     );
                   })}
+                  {visiblePaymentActionGroups.length === 0 ? (
+                    <p className="empty-state">
+                      {paymentSearch.trim()
+                        ? 'По этому поиску задач по оплатам нет.'
+                        : 'Сейчас нет задач по оплатам.'}
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="payment-registry-list">
