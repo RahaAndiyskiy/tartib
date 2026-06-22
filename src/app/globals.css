@@ -469,6 +469,24 @@ button:disabled {
   width: 100%;
 }
 
+.group-form-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.group-form-actions.editing {
+  grid-template-columns: minmax(0, 1.45fr) minmax(112px, 0.55fr);
+}
+
+.group-form-actions.editing .full-width-button {
+  width: 100%;
+}
+
+.group-cancel-button {
+  min-height: var(--control-height);
+  color: var(--color-primary-strong);
+}
+
 .ghost-button {
   background: var(--color-surface-glass-strong);
   color: var(--color-primary);
@@ -2895,6 +2913,10 @@ button:disabled {
   .action-empty .small-button,
   .group-next-step .small-button {
     width: 100%;
+  }
+
+  .group-form-actions.editing {
+    grid-template-columns: 1fr;
   }
 
   .quick-actions {

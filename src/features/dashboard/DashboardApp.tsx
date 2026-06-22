@@ -3759,7 +3759,7 @@ export function DashboardApp(): React.ReactElement {
                     }
                   />
                 </label>
-                <div className="form-actions full-width-actions">
+                <div className={editingGroupId ? 'form-actions full-width-actions group-form-actions editing' : 'form-actions full-width-actions group-form-actions'}>
                   <button
                     className="primary-button full-width-button"
                     type="submit"
@@ -3768,7 +3768,7 @@ export function DashboardApp(): React.ReactElement {
                     {buttonLabel(`save-group:${editingGroupId || 'new'}`, editingGroupId ? 'Сохранить группу' : 'Создать группу')}
                   </button>
                   {editingGroupId ? (
-                    <button className="small-button secondary" type="button" onClick={cancelGroupEdit}>
+                    <button className="ghost-button group-cancel-button" type="button" onClick={cancelGroupEdit}>
                       Отменить
                     </button>
                   ) : null}
