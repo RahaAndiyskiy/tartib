@@ -2951,28 +2951,34 @@ button:disabled {
     position: absolute;
     top: 0;
     left: 50%;
-    width: 32px;
+    width: 34px;
     height: 4px;
     border-radius: 0 0 999px 999px;
-    background: rgba(255, 255, 255, 0.96);
+    background: linear-gradient(90deg, rgba(154, 125, 255, 0.55), rgba(127, 88, 255, 0.98), rgba(154, 125, 255, 0.55));
     box-shadow:
-      0 0 14px rgba(255, 255, 255, 0.92),
-      0 9px 28px rgba(127, 88, 255, 0.56),
-      0 22px 38px rgba(127, 88, 255, 0.24);
+      0 0 10px rgba(127, 88, 255, 0.82),
+      0 7px 22px rgba(127, 88, 255, 0.5),
+      0 20px 38px rgba(127, 88, 255, 0.2);
     transform: translateX(-50%);
   }
 
   .crm-nav-button.active::after {
     content: '';
     position: absolute;
-    top: 3px;
+    top: 4px;
     left: 50%;
     z-index: -1;
-    width: 58px;
-    height: 42px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(127, 88, 255, 0.26) 0%, rgba(127, 88, 255, 0.12) 46%, transparent 72%);
-    filter: blur(8px);
+    width: 72px;
+    height: 54px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(127, 88, 255, 0.32) 0%,
+        rgba(127, 88, 255, 0.16) 45%,
+        rgba(127, 88, 255, 0) 100%
+      );
+    clip-path: polygon(36% 0, 64% 0, 100% 100%, 0 100%);
+    filter: blur(7px);
     transform: translateX(-50%);
     pointer-events: none;
   }
@@ -4133,7 +4139,7 @@ select:focus {
   }
 
   .crm-nav-button.active::before {
-    background: rgba(255, 255, 255, 0.96);
+    background: linear-gradient(90deg, rgba(154, 125, 255, 0.55), rgba(127, 88, 255, 0.98), rgba(154, 125, 255, 0.55));
   }
 
   .mobile-topbar {
