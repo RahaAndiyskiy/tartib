@@ -811,17 +811,10 @@ button:disabled {
 }
 
 .today-calm {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.today-calm button {
-  border: 0;
-  background: transparent;
-  color: var(--color-primary-strong);
-  font-weight: 800;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: rgb(255 255 255 / 68%);
+  padding: 14px;
 }
 
 .workspace-section {
@@ -998,27 +991,9 @@ button:disabled {
   text-align: left;
 }
 
-.metric-sparkline {
-  width: 88px;
-  height: 26px;
-  justify-self: end;
-  align-self: end;
-  margin-top: -12px;
-  background:
-    url("data:image/svg+xml,%3Csvg width='96' height='32' viewBox='0 0 96 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 24C13 23 15 16 25 18C35 20 35 25 46 23C57 21 58 8 70 6C82 4 82 18 94 15' stroke='%23BCAEFF' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-  opacity: 0.72;
-}
-
 .metric-card.danger .metric-icon {
   background: var(--color-danger-soft);
   color: var(--color-danger);
-}
-
-.metric-card.danger .metric-sparkline {
-  background:
-    url("data:image/svg+xml,%3Csvg width='96' height='32' viewBox='0 0 96 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 24C13 23 15 16 25 18C35 20 35 25 46 23C57 21 58 8 70 6C82 4 82 18 94 15' stroke='%23FF8FA3' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E")
-    center / contain no-repeat;
 }
 
 .panel {

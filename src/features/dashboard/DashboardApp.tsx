@@ -2490,9 +2490,6 @@ export function DashboardApp(): React.ReactElement {
                 ) : (
                   <div className="today-calm">
                     <span>Новых подтверждений, отсрочек и просрочек нет.</span>
-                    <button type="button" onClick={() => openPaymentsView('all')}>
-                      Все оплаты
-                    </button>
                   </div>
                 )}
               </section>
@@ -4093,7 +4090,6 @@ function Metric({
       <span>{label}</span>
       <strong>{value}</strong>
       {hint ? <small>{hint}</small> : null}
-      <span className="metric-sparkline" aria-hidden="true" />
     </>
   );
 
