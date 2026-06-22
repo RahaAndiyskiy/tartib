@@ -2622,6 +2622,24 @@ button:disabled {
   gap: 4px;
 }
 
+.group-row .row-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.group-row .row-actions .primary-button {
+  grid-column: 1 / -1;
+}
+
+.group-row .row-actions .small-button {
+  min-height: 42px;
+}
+
+.group-row .row-actions .small-button.danger {
+  color: #b34c66;
+}
+
 .group-row span {
   color: #77837d;
   font-size: 0.78rem;
@@ -3500,14 +3518,6 @@ select:focus {
   box-shadow: 0 18px 42px rgba(124, 92, 255, 0.13);
   outline: 0;
   transform: translateY(-1px);
-}
-
-.metric-card::after {
-  content: '';
-  position: absolute;
-  inset: auto 16px 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.42), transparent);
 }
 
 .metric-card span,

@@ -3551,18 +3551,18 @@ export function DashboardApp(): React.ReactElement {
                       {hasRole(activeUser, 'trainer') ? (
                         <div className="row-actions">
                           <button
-                            className="small-button primary-soft"
+                            className="primary-button"
                             type="button"
                             disabled={isPendingAction(`create-invite:${group.id}`)}
                             onClick={() => void createMemberInviteForGroup(group.id)}
                           >
                             {buttonLabel(`create-invite:${group.id}`, 'Ссылка')}
                           </button>
-                          <button className="small-button" type="button" onClick={() => startGroupEdit(group)}>
+                          <button className="small-button secondary" type="button" onClick={() => startGroupEdit(group)}>
                             Редактировать
                           </button>
                           <button
-                            className="small-button secondary"
+                            className="small-button danger"
                             type="button"
                             disabled={isPendingAction(`delete-group:${group.id}`)}
                             onClick={() => deleteGroup(group.id)}
