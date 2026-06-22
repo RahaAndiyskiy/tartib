@@ -755,6 +755,39 @@ button:disabled {
   padding: 28px 0 56px;
 }
 
+.app-shell.loading-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.loading-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-glass-strong);
+  padding: 22px;
+  text-align: center;
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.loading-card strong {
+  font-size: 1.1rem;
+}
+
+.loading-card p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.loading-card > div {
+  display: grid;
+  gap: 10px;
+}
+
 .topbar {
   display: flex;
   align-items: center;

@@ -265,6 +265,7 @@ export function DashboardApp(): React.ReactElement {
   const [prepaymentMonths, setPrepaymentMonths] = useState<Record<string, number>>({});
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
+  const [workspaceLoadError, setWorkspaceLoadError] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
@@ -299,10 +300,23 @@ export function DashboardApp(): React.ReactElement {
     });
   };
 
-  const loadRemoteWorkspace = useCallback(async (options: { silent?: boolean } = {}): Promise<boolean> => {
+  const getAccessToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
     const supabase = getSupabaseClient();
-    const sessionResult = await supabase.auth.getSession();
+    const sessionResult = forceRefresh
+      ? await supabase.auth.refreshSession()
+      : await supabase.auth.getSession();
     const token = sessionResult.data.session?.access_token;
+
+    if (token || forceRefresh) {
+      return token ?? null;
+    }
+
+    const refreshed = await supabase.auth.refreshSession();
+    return refreshed.data.session?.access_token ?? null;
+  }, []);
+
+  const loadRemoteWorkspace = useCallback(async (options: { silent?: boolean } = {}): Promise<boolean> => {
+    const token = await getAccessToken();
 
     if (!token) {
       window.location.href = '/login';
@@ -310,10 +324,20 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const start = performance.now();
-    const response = await fetch('/api/workspace', {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store'
-    });
+    const requestWorkspace = (accessToken: string): Promise<Response> =>
+      fetch('/api/workspace', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store'
+      });
+    let response = await requestWorkspace(token);
+
+    if (response.status === 401) {
+      const refreshedToken = await getAccessToken(true);
+      if (refreshedToken) {
+        response = await requestWorkspace(refreshedToken);
+      }
+    }
+
     const data = (await response.json()) as {
       workspace?: LocalWorkspace;
       activeUserId?: string;
@@ -322,16 +346,19 @@ export function DashboardApp(): React.ReactElement {
     console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
 
     if (!response.ok || !data.workspace || !data.activeUserId) {
+      const nextError = data.error ?? 'Не удалось загрузить данные клуба.';
+      setWorkspaceLoadError(nextError);
       if (!options.silent) {
-        setMessage(data.error ?? 'Не удалось загрузить данные клуба.');
+        setMessage(nextError);
       }
       return false;
     }
 
+    setWorkspaceLoadError('');
     setWorkspace(data.workspace);
     setActiveUserId(data.activeUserId);
     return true;
-  }, []);
+  }, [getAccessToken]);
 
   const refreshRemoteWorkspace = useCallback(async (reason: string, minIntervalMs = 10_000): Promise<void> => {
     if (isLocalMode || remoteRefreshInFlightRef.current) return;
@@ -773,23 +800,31 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function runRemoteActionData<T>(payload: Record<string, unknown>): Promise<T | null> {
-    const supabase = getSupabaseClient();
-    const sessionResult = await supabase.auth.getSession();
-    const token = sessionResult.data.session?.access_token;
+    const token = await getAccessToken();
     if (!token) {
       window.location.href = '/login';
       return null;
     }
 
     const start = performance.now();
-    const response = await fetch('/api/workspace/actions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    const requestAction = (accessToken: string): Promise<Response> =>
+      fetch('/api/workspace/actions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    let response = await requestAction(token);
+
+    if (response.status === 401) {
+      const refreshedToken = await getAccessToken(true);
+      if (refreshedToken) {
+        response = await requestAction(refreshedToken);
+      }
+    }
+
     const data = (await response.json()) as T & { error?: string };
     console.info('[performance] action', `runRemoteAction ${Math.round(performance.now() - start)}ms`, payload.action ?? 'unknown');
 
@@ -2340,7 +2375,26 @@ export function DashboardApp(): React.ReactElement {
   };
 
   if (!workspace || !activeUser) {
-    return <main className="app-shell">Загружаем клуб...</main>;
+    return (
+      <main className="app-shell loading-state">
+        <section className="loading-card">
+          <strong>Загружаем клуб...</strong>
+          {workspaceLoadError ? (
+            <>
+              <p>{workspaceLoadError}</p>
+              <div>
+                <button className="primary-button" type="button" onClick={() => void refreshRemoteWorkspace('manual', 0)}>
+                  Повторить
+                </button>
+                <button className="ghost-button" type="button" onClick={() => { window.location.href = '/login'; }}>
+                  Войти заново
+                </button>
+              </div>
+            </>
+          ) : null}
+        </section>
+      </main>
+    );
   }
 
   return (
