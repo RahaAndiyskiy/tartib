@@ -268,6 +268,7 @@ export function DashboardApp(): React.ReactElement {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
+  const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [paymentView, setPaymentView] = useState<PaymentView>('all');
@@ -427,7 +428,13 @@ export function DashboardApp(): React.ReactElement {
 
   const isPendingAction = (key: string): boolean => pendingAction === key;
   const buttonLabel = (key: string, defaultLabel: string): string =>
-    isPendingAction(key) ? (defaultLabel.toLowerCase().includes('удал') ? 'Удаляем...' : 'Сохраняем...') : defaultLabel;
+    isPendingAction(key)
+      ? key.startsWith('create-invite:')
+        ? 'Готовим ссылку...'
+        : defaultLabel.toLowerCase().includes('удал')
+          ? 'Удаляем...'
+          : 'Сохраняем...'
+      : defaultLabel;
 
   const runRemoteActionWithPending = async <T,>(
     payload: Record<string, unknown>,
@@ -792,12 +799,22 @@ export function DashboardApp(): React.ReactElement {
     const selectedGroup = workspace?.groups.find((group) => group.id === groupId);
     if (!workspace || !selectedGroup) return;
 
+    const cachedInvite = memberInvitesByGroup[groupId];
+    if (cachedInvite) {
+      setMemberInvite(cachedInvite);
+      setLastCreatedGroupId('');
+      setMessage('');
+      return;
+    }
+
     if (isLocalMode) {
-      setMemberInvite({
+      const localInvite = {
         inviteUrl: `${window.location.origin}/join/local-${selectedGroup.id}`,
         expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
         groupName: selectedGroup.activity
-      });
+      };
+      setMemberInvite(localInvite);
+      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: localInvite }));
       setLastCreatedGroupId('');
       setMessage('В локальном режиме ссылка показана для проверки интерфейса.');
       return;
@@ -812,11 +829,13 @@ export function DashboardApp(): React.ReactElement {
     );
 
     if (result) {
-      setMemberInvite({
+      const nextInvite = {
         inviteUrl: result.inviteUrl,
         expiresAt: result.expiresAt,
         groupName: selectedGroup.activity
-      });
+      };
+      setMemberInvite(nextInvite);
+      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: nextInvite }));
       setLastCreatedGroupId('');
       setMessage('');
     }
