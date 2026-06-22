@@ -1,7 +1,7 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -280,6 +280,8 @@ export function DashboardApp(): React.ReactElement {
   const [paymentEditOpen, setPaymentEditOpen] = useState(false);
   const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
   const [paymentActionGroupsOpen, setPaymentActionGroupsOpen] = useState<Record<string, boolean>>({});
+  const remoteRefreshInFlightRef = useRef(false);
+  const lastRemoteRefreshAtRef = useRef(0);
 
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -296,6 +298,63 @@ export function DashboardApp(): React.ReactElement {
       };
     });
   };
+
+  const loadRemoteWorkspace = useCallback(async (options: { silent?: boolean } = {}): Promise<boolean> => {
+    const supabase = getSupabaseClient();
+    const sessionResult = await supabase.auth.getSession();
+    const token = sessionResult.data.session?.access_token;
+
+    if (!token) {
+      window.location.href = '/login';
+      return false;
+    }
+
+    const start = performance.now();
+    const response = await fetch('/api/workspace', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store'
+    });
+    const data = (await response.json()) as {
+      workspace?: LocalWorkspace;
+      activeUserId?: string;
+      error?: string;
+    };
+    console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
+
+    if (!response.ok || !data.workspace || !data.activeUserId) {
+      if (!options.silent) {
+        setMessage(data.error ?? 'Не удалось загрузить данные клуба.');
+      }
+      return false;
+    }
+
+    setWorkspace(data.workspace);
+    setActiveUserId(data.activeUserId);
+    return true;
+  }, []);
+
+  const refreshRemoteWorkspace = useCallback(async (reason: string, minIntervalMs = 10_000): Promise<void> => {
+    if (isLocalMode || remoteRefreshInFlightRef.current) return;
+
+    const now = Date.now();
+    if (minIntervalMs > 0 && now - lastRemoteRefreshAtRef.current < minIntervalMs) {
+      return;
+    }
+
+    remoteRefreshInFlightRef.current = true;
+    lastRemoteRefreshAtRef.current = now;
+
+    try {
+      const loaded = await loadRemoteWorkspace({ silent: reason !== 'initial' });
+      if (loaded) {
+        console.info('[workspace] refreshed', reason);
+      }
+    } catch (error) {
+      console.warn('[workspace] refresh failed', reason, error);
+    } finally {
+      remoteRefreshInFlightRef.current = false;
+    }
+  }, [isLocalMode, loadRemoteWorkspace]);
 
   useEffect(() => {
     function syncWorkspace(): void {
@@ -315,7 +374,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      void loadRemoteWorkspace();
+      void refreshRemoteWorkspace('initial', 0);
       const supabase = getSupabaseClient();
       const { data: listener } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'SIGNED_OUT') {
@@ -336,7 +395,42 @@ export function DashboardApp(): React.ReactElement {
       window.removeEventListener('storage', syncWorkspace);
       window.removeEventListener('tartib-workspace-change', syncWorkspace);
     };
-  }, [isLocalMode]);
+  }, [isLocalMode, refreshRemoteWorkspace]);
+
+  useEffect(() => {
+    if (isLocalMode) return;
+
+    const refreshWhenVisible = (): void => {
+      if (document.visibilityState === 'visible') {
+        void refreshRemoteWorkspace('visible', 5_000);
+      }
+    };
+    const refreshOnFocus = (): void => {
+      void refreshRemoteWorkspace('focus', 8_000);
+    };
+    const refreshOnPageShow = (): void => {
+      void refreshRemoteWorkspace('pageshow', 0);
+    };
+
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshOnFocus);
+    window.addEventListener('pageshow', refreshOnPageShow);
+    const remoteRefreshTimer = window.setInterval(() => {
+      void refreshRemoteWorkspace('interval', 60_000);
+    }, 60_000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshOnFocus);
+      window.removeEventListener('pageshow', refreshOnPageShow);
+      window.clearInterval(remoteRefreshTimer);
+    };
+  }, [isLocalMode, refreshRemoteWorkspace]);
+
+  useEffect(() => {
+    if (isLocalMode) return;
+    void refreshRemoteWorkspace(`section:${activeSection}`, 4_000);
+  }, [activeSection, isLocalMode, refreshRemoteWorkspace]);
 
   const activeUser = useMemo(
     () => workspace?.users.find((user) => user.id === activeUserId) ?? null,
@@ -634,37 +728,6 @@ export function DashboardApp(): React.ReactElement {
     const reconciledWorkspace = reconcileWorkspace(nextWorkspace);
     writeWorkspace(reconciledWorkspace);
     setWorkspace(reconciledWorkspace);
-  }
-
-  async function loadRemoteWorkspace(): Promise<void> {
-    const supabase = getSupabaseClient();
-    const sessionResult = await supabase.auth.getSession();
-    const token = sessionResult.data.session?.access_token;
-
-    if (!token) {
-      window.location.href = '/login';
-      return;
-    }
-
-    const start = performance.now();
-    const response = await fetch('/api/workspace', {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store'
-    });
-    const data = (await response.json()) as {
-      workspace?: LocalWorkspace;
-      activeUserId?: string;
-      error?: string;
-    };
-    console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
-
-    if (!response.ok || !data.workspace || !data.activeUserId) {
-      setMessage(data.error ?? 'Не удалось загрузить данные клуба.');
-      return;
-    }
-
-    setWorkspace(data.workspace);
-    setActiveUserId(data.activeUserId);
   }
 
   async function runRemoteAction(payload: Record<string, unknown>): Promise<boolean> {
