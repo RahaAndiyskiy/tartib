@@ -15,6 +15,12 @@ export function getSupabaseClient(): SupabaseClient<Database> {
     throw new Error('Missing Supabase environment variables. See .env.example');
   }
 
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      persistSession: true
+    }
+  });
   return browserClient;
 }

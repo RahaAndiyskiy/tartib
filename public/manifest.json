@@ -3,7 +3,7 @@
   "short_name": "Tartib",
   "description": "Tartib helps clubs manage groups, members and payments.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

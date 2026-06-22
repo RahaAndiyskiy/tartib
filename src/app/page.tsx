@@ -1,7 +1,32 @@
-import Link from 'next/link';
+'use client';
 
-export default function HomePage() {
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { getSupabaseClient } from '@shared/lib/supabaseClient';
+
+export default function HomePage(): ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLocalMode) return;
+
+    let mounted = true;
+    void getSupabaseClient()
+      .auth
+      .getSession()
+      .then((sessionResult) => {
+        if (mounted && sessionResult.data.session) {
+          router.replace('/dashboard');
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isLocalMode, router]);
 
   return (
     <main className="home-screen">
