@@ -2442,17 +2442,44 @@ export function DashboardApp(): React.ReactElement {
               </section>
             ) : (
               <section className="metric-grid">
-                <Metric label="Получено" value={formatMoney(paidAmount)} />
-                <Metric label="Активные оплаты" value={currentPayments.length} />
-                <Metric label="Просрочено" value={overduePayments.length} />
                 <Metric
+                  hint="История оплат"
+                  label="Получено"
+                  value={formatMoney(paidAmount)}
+                  onClick={() => openPaymentsView('paid')}
+                />
+                <Metric
+                  hint="Открыть список"
+                  label="Активные оплаты"
+                  value={currentPayments.length}
+                  onClick={() => openPaymentsView('all')}
+                />
+                <Metric
+                  hint="Требует оплаты"
+                  label="Просрочено"
+                  value={overduePayments.length}
+                  onClick={() => openPaymentsView('overdue')}
+                />
+                <Metric
+                  hint="ждёт / одобрено"
                   label="Отсрочки"
-                  value={`${delayRequestedPayments.length} ждёт / ${delayedPayments.length} одобрено`}
+                  value={`${delayRequestedPayments.length} / ${delayedPayments.length}`}
+                  onClick={() => openPaymentsView('actions')}
                 />
                 {hasRole(activeUser, 'owner') ? (
-                  <Metric label="Тренеры" value={trainers.length} />
+                  <Metric
+                    hint="Открыть команду"
+                    label="Тренеры"
+                    value={trainers.length}
+                    onClick={() => openSection('people')}
+                  />
                 ) : (
-                  <Metric label="Ближайшие оплаты" value={upcomingPayments.length} />
+                  <Metric
+                    hint="До 3 дней"
+                    label="Ближайшие оплаты"
+                    value={upcomingPayments.length}
+                    onClick={() => openPaymentsView('all')}
+                  />
                 )}
               </section>
             )}
@@ -2483,39 +2510,6 @@ export function DashboardApp(): React.ReactElement {
             </section>
             ) : null}
 
-            {!hasRole(activeUser, 'member') ? (
-            <section className="crm-overview-grid overview-attention-grid">
-              <div className="crm-panel">
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>Требуют внимания</h2>
-                    <p>Короткий путь к задачам на сегодня</p>
-                  </div>
-                  <button className="text-button" type="button" onClick={() => openPaymentsView('all')}>
-                    Все оплаты
-                  </button>
-                </div>
-                <div className="overview-attention-list">
-                  <button type="button" onClick={() => openPaymentsView('actions')}>
-                    <span>Подтвердить оплаты</span>
-                    <strong>{confirmationPayments.length}</strong>
-                  </button>
-                  <button type="button" onClick={() => openPaymentsView('actions')}>
-                    <span>Запросы отсрочки</span>
-                    <strong>{delayRequestedPayments.length}</strong>
-                  </button>
-                  <button type="button" onClick={() => openPaymentsView('overdue')}>
-                    <span>Просрочено</span>
-                    <strong>{overduePayments.length}</strong>
-                  </button>
-                  <button type="button" onClick={() => openPaymentsView('all')}>
-                    <span>Ближайшие оплаты</span>
-                    <strong>{upcomingPayments.length}</strong>
-                  </button>
-                </div>
-              </div>
-            </section>
-            ) : null}
           </>
         ) : null}
 
@@ -4028,13 +4022,34 @@ export function DashboardApp(): React.ReactElement {
   );
 }
 
-function Metric({ label, value }: { label: string; value: React.ReactNode }): React.ReactElement {
-  return (
-    <article className="metric-card">
+function Metric({
+  hint,
+  label,
+  onClick,
+  value
+}: {
+  hint?: string;
+  label: string;
+  onClick?: () => void;
+  value: React.ReactNode;
+}): React.ReactElement {
+  const content = (
+    <>
       <span>{label}</span>
       <strong>{value}</strong>
-    </article>
+      {hint ? <small>{hint}</small> : null}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button className="metric-card metric-card-button" type="button" onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+
+  return <article className="metric-card">{content}</article>;
 }
 
 function NavButton({
