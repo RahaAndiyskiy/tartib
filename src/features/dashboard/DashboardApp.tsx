@@ -437,6 +437,43 @@ export function DashboardApp(): React.ReactElement {
     [activeUserId, workspace]
   );
 
+  useEffect(() => {
+    if (isLocalMode || !workspace?.organization.id || !activeUserId) return;
+
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`workspace-live:${workspace.organization.id}:${activeUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_requests',
+          filter: `organization_id=eq.${workspace.organization.id}`
+        },
+        () => {
+          void refreshRemoteWorkspace('realtime:payments', 1_000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${activeUserId}`
+        },
+        () => {
+          void refreshRemoteWorkspace('realtime:notifications', 1_000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeUserId, isLocalMode, refreshRemoteWorkspace, workspace?.organization.id]);
+
   const trainers = useMemo(
     () => workspace?.users.filter((user) => hasRole(user, 'trainer')) ?? [],
     [workspace]
