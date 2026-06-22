@@ -155,6 +155,32 @@ async function profileName(userId: string): Promise<string> {
   return result.data ? `${result.data.first_name} ${result.data.last_name}` : 'Ученик';
 }
 
+async function isTrainerInOrganization(trainerId: string, organizationId: string): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  const result = await admin
+    .from('users')
+    .select('id,user_roles!inner(role)')
+    .eq('id', trainerId)
+    .eq('organization_id', organizationId)
+    .eq('user_roles.role', 'trainer')
+    .maybeSingle();
+
+  return Boolean(result.data);
+}
+
+async function isMemberInOrganization(memberId: string, organizationId: string): Promise<boolean> {
+  const admin = getSupabaseAdmin();
+  const result = await admin
+    .from('users')
+    .select('id')
+    .eq('id', memberId)
+    .eq('organization_id', organizationId)
+    .eq('role', 'member')
+    .maybeSingle();
+
+  return Boolean(result.data);
+}
+
 async function createNotification(
   organizationId: string,
   userId: string,
@@ -445,6 +471,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const trainerId = hasServerRole(identity, 'owner')
       ? body.trainerId || identity.profile.id
       : identity.profile.id;
+    if (!(await isTrainerInOrganization(trainerId, organizationId))) {
+      return NextResponse.json({ error: 'Тренер недоступен.' }, { status: 403 });
+    }
     if (!body.activity.trim() || !body.days.trim() || !body.time) {
       return NextResponse.json({ error: 'Укажите направление, дни и время.' }, { status: 400 });
     }
@@ -515,8 +544,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (!group.data || !canManageTrainer(identity, group.data.trainer_id)) {
       return NextResponse.json({ error: 'Группа недоступна.' }, { status: 403 });
     }
-    await admin.from('group_members').delete().eq('member_id', body.memberId);
-    await admin.from('trainer_members').delete().eq('member_id', body.memberId);
+    if (!(await isMemberInOrganization(body.memberId, organizationId))) {
+      return NextResponse.json({ error: 'Ученик недоступен.' }, { status: 403 });
+    }
+    await admin.from('group_members').delete().eq('member_id', body.memberId).eq('organization_id', organizationId);
+    await admin.from('trainer_members').delete().eq('member_id', body.memberId).eq('organization_id', organizationId);
     const [groupResult, trainerResult] = await Promise.all([
       admin
         .from('group_members')
@@ -957,49 +989,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     }
 
-    const plan = payment.plan_id
-      ? await admin.from('billing_plans').select('*').eq('id', payment.plan_id).maybeSingle()
-      : null;
-    const shouldAdvance = plan?.data?.active && plan.data.type === 'monthly' && payment.is_current;
-    const updatedPaymentResult = await admin
-      .from('payment_requests')
-      .update({
-        status: 'paid',
-        paid_at: new Date().toISOString(),
-        is_current: shouldAdvance ? false : payment.is_current
-      })
-      .eq('id', payment.id)
-      .select('*')
-      .single();
-    if (updatedPaymentResult.error || !updatedPaymentResult.data) {
-      return NextResponse.json({ error: updatedPaymentResult.error?.message ?? 'Не удалось подтвердить оплату.' }, { status: 400 });
-    }
-
-    let nextPayment: PaymentRequest | null = null;
-    if (shouldAdvance && plan?.data) {
-      const coverageMonths = Math.max(1, Math.trunc(Number(payment.coverage_months ?? 1)));
-      const nextDueDate = addMonthsDate(payment.due_date, plan.data.billing_day, coverageMonths);
-      const nextPaymentResult = await admin
-        .from('payment_requests')
-        .insert({
-          organization_id: organizationId,
-          member_id: payment.member_id,
-          trainer_id: payment.trainer_id,
-          amount: Number(plan.data.base_amount),
-          due_date: nextDueDate,
-          status: 'active',
-          plan_id: plan.data.id,
-          period_label: periodLabel(nextDueDate),
-          is_current: true,
-          coverage_months: 1,
-          paid_at: null
-        })
-        .select('*')
-        .single();
-      if (nextPaymentResult.error || !nextPaymentResult.data) {
-        return NextResponse.json({ error: nextPaymentResult.error?.message ?? 'Не удалось создать следующий счёт.' }, { status: 400 });
-      }
-      nextPayment = nextPaymentResult.data as PaymentRequest;
+    const confirmationResult = await admin.rpc('confirm_payment_and_advance', {
+      p_payment_id: payment.id,
+      p_organization_id: organizationId
+    });
+    const confirmationRow = Array.isArray(confirmationResult.data)
+      ? confirmationResult.data[0]
+      : confirmationResult.data;
+    const confirmedPayment = confirmationRow?.payment as PaymentRequest | undefined;
+    const nextPayment = (confirmationRow?.next_payment ?? null) as PaymentRequest | null;
+    if (confirmationResult.error || !confirmedPayment) {
+      return NextResponse.json({ error: confirmationResult.error?.message ?? 'Не удалось подтвердить оплату.' }, { status: 400 });
     }
 
     const notification = await createNotification(
@@ -1013,7 +1013,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json({
-      payment: toLocalPayment(updatedPaymentResult.data as PaymentRequest),
+      payment: toLocalPayment(confirmedPayment),
       nextPayment: nextPayment ? toLocalPayment(nextPayment) : null,
       notification
     });
