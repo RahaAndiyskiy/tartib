@@ -88,6 +88,7 @@ type MemberInviteRow = {
   first_name: string | null;
   last_name: string | null;
   token_hash: string;
+  public_token: string | null;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
   expires_at: string;
   accepted_user_id: string | null;

@@ -475,7 +475,7 @@ button:disabled {
 }
 
 .group-form-actions.editing {
-  grid-template-columns: minmax(0, 1.45fr) minmax(112px, 0.55fr);
+  grid-template-columns: 1fr;
 }
 
 .group-form-actions.editing .full-width-button {
@@ -483,6 +483,7 @@ button:disabled {
 }
 
 .group-cancel-button {
+  width: 100%;
   min-height: var(--control-height);
   color: var(--color-primary-strong);
 }
@@ -620,6 +621,37 @@ button:disabled {
 .invite-result > div:first-child {
   display: grid;
   gap: 3px;
+}
+
+.invite-result-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.invite-result-header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.invite-result-header button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-muted);
+}
+
+.invite-result-header button:hover {
+  border-color: rgba(127, 88, 255, 0.32);
+  color: var(--color-primary-strong);
 }
 
 .invite-result span {

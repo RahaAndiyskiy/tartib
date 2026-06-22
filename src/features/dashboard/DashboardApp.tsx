@@ -773,12 +773,14 @@ export function DashboardApp(): React.ReactElement {
     setMobileFormOpen(true);
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
+    setMessage('');
   }
 
   function openInviteFlow(groupId?: string): void {
     setActiveSection(groupId ? 'groups' : 'people');
     setMobileFormOpen(true);
     setMemberInvite(null);
+    setMessage('');
     setPersonDraft((current) => ({
       ...current,
       role: 'member',
@@ -816,8 +818,13 @@ export function DashboardApp(): React.ReactElement {
         groupName: selectedGroup.activity
       });
       setLastCreatedGroupId('');
-      setMessage('Ссылка для набора создана.');
+      setMessage('');
     }
+  }
+
+  function closeMemberInvite(): void {
+    setMemberInvite(null);
+    setMessage('');
   }
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -1062,6 +1069,7 @@ export function DashboardApp(): React.ReactElement {
 
     setEditingGroupId(group.id);
     setLastCreatedGroupId('');
+    setMemberInvite(null);
     setGroupDraft({
       activity: group.activity,
       days: group.days,
@@ -1075,6 +1083,7 @@ export function DashboardApp(): React.ReactElement {
   function cancelGroupEdit(): void {
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
+    setMessage('');
   }
 
   async function deleteGroup(groupId: string): Promise<void> {
@@ -2868,11 +2877,16 @@ export function DashboardApp(): React.ReactElement {
                 ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
                   personDraft.role === 'member') ? (
                   <div className="invite-result">
-                    <div>
-                      <strong>Ссылка для группы {memberInvite.groupName}</strong>
-                      <span>
-                        Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
-                      </span>
+                    <div className="invite-result-header">
+                      <div>
+                        <strong>Ссылка для группы {memberInvite.groupName}</strong>
+                        <span>
+                          Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                      <button aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
+                        <X size={17} />
+                      </button>
                     </div>
                     <input aria-label="Ссылка-приглашение" readOnly value={memberInvite.inviteUrl} />
                     <div className="invite-result-actions">
@@ -3656,11 +3670,16 @@ export function DashboardApp(): React.ReactElement {
               ) : null}
               {memberInvite ? (
                 <div className="invite-result group-invite-result">
-                  <div>
-                    <strong>Ссылка для группы {memberInvite.groupName}</strong>
-                    <span>
-                      Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
-                    </span>
+                  <div className="invite-result-header">
+                    <div>
+                      <strong>Ссылка для группы {memberInvite.groupName}</strong>
+                      <span>
+                        Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
+                    <button aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
+                      <X size={17} />
+                    </button>
                   </div>
                   <input aria-label="Ссылка для набора" readOnly value={memberInvite.inviteUrl} />
                   <div className="invite-result-actions">
