@@ -1,12 +1,22 @@
 {
   "name": "Tartib",
   "short_name": "Tartib",
+  "description": "Tartib helps clubs manage groups, members and payments.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
-  "description": "Tartib application foundation",
+  "orientation": "portrait",
+  "background_color": "#f6f2ff",
+  "theme_color": "#7f58ff",
+  "categories": ["business", "productivity", "sports"],
   "icons": [
+    {
+      "src": "/icons/icon-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
@@ -15,7 +25,28 @@
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Оплаты",
+      "short_name": "Оплаты",
+      "url": "/dashboard",
+      "description": "Открыть рабочий кабинет Tartib"
+    },
+    {
+      "name": "Создать клуб",
+      "short_name": "Клуб",
+      "url": "/onboarding",
+      "description": "Создать новую организацию"
     }
   ]
 }
