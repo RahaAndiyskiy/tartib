@@ -3726,7 +3726,7 @@ export function DashboardApp(): React.ReactElement {
                     {weekDays.map((day) => {
                       const selected = groupDraft.days.split(', ').includes(day);
                       return (
-                        <label key={day} className="weekday-checkbox">
+                        <label key={day} className={selected ? 'weekday-checkbox selected' : 'weekday-checkbox'}>
                           <input
                             type="checkbox"
                             checked={selected}
