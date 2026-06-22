@@ -2271,13 +2271,6 @@ export function DashboardApp(): React.ReactElement {
               onClick={() => openSection('groups')}
             />
           )}
-          <NavButton
-            active={activeSection === 'notifications'}
-            count={unreadNotifications.length}
-            icon={<Bell size={18} />}
-            label="Уведомления"
-            onClick={() => openSection('notifications')}
-          />
         </nav>
 
         <div className="crm-sidebar-footer">
@@ -2320,52 +2313,67 @@ export function DashboardApp(): React.ReactElement {
               <span>{roleLabel(activeUser)}</span>
             </div>
           </div>
-          {!isLocalMode ? (
-            <button aria-label="Выйти" className="mobile-icon-button" type="button" onClick={() => void signOut()}>
-              <LogOut size={20} />
+          <div className="mobile-topbar-actions">
+            <button
+              aria-label="Уведомления"
+              className={activeSection === 'notifications' ? 'header-notification-button active' : 'header-notification-button'}
+              type="button"
+              onClick={() => openSection('notifications')}
+            >
+              <Bell size={19} />
+              {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
             </button>
-          ) : null}
+            {!isLocalMode ? (
+              <button aria-label="Выйти" className="mobile-icon-button" type="button" onClick={() => void signOut()}>
+                <LogOut size={20} />
+              </button>
+            ) : null}
+          </div>
         </div>
         <header className="crm-header">
           <div>
             <h1>{sectionMeta[activeSection].title}</h1>
             <p>{sectionMeta[activeSection].description}</p>
           </div>
-          {!hasRole(activeUser, 'member') &&
-          (activeSection === 'people' || activeSection === 'groups') ? (
+          <div className="crm-header-actions">
             <button
-              className="mobile-create-button"
+              aria-label="Уведомления"
+              className={
+                activeSection === 'notifications'
+                  ? 'header-notification-button desktop-notification-button active'
+                  : 'header-notification-button desktop-notification-button'
+              }
               type="button"
-              onClick={() => setMobileFormOpen((current) => !current)}
+              onClick={() => openSection('notifications')}
             >
-              {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
-              {mobileFormOpen
-                ? 'Закрыть'
-                : activeSection === 'groups'
-                  ? 'Новая группа'
-                  : hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-                    ? 'Новый ученик'
-                    : 'Добавить'}
+              <Bell size={19} />
+              {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
             </button>
-          ) : null}
-          <div className="crm-user-badge">
-            <span>{roleLabel(activeUser)}</span>
-            <strong>{activeUser.first_name} {activeUser.last_name}</strong>
+            {!hasRole(activeUser, 'member') &&
+            (activeSection === 'people' || activeSection === 'groups') ? (
+              <button
+                className="mobile-create-button"
+                type="button"
+                onClick={() => setMobileFormOpen((current) => !current)}
+              >
+                {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
+                {mobileFormOpen
+                  ? 'Закрыть'
+                  : activeSection === 'groups'
+                    ? 'Новая группа'
+                    : hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
+                      ? 'Новый ученик'
+                      : 'Добавить'}
+              </button>
+            ) : null}
+            <div className="crm-user-badge">
+              <span>{roleLabel(activeUser)}</span>
+              <strong>{activeUser.first_name} {activeUser.last_name}</strong>
+            </div>
           </div>
         </header>
 
         {message ? <p className="notice success">{message}</p> : null}
-
-        {unreadNotifications.length > 0 && activeSection !== 'notifications' ? (
-          <button
-            className="crm-alert"
-            type="button"
-            onClick={() => openSection('notifications')}
-          >
-            <Bell size={18} />
-            <span>Новых уведомлений: {unreadNotifications.length}</span>
-          </button>
-        ) : null}
 
         {activeSection === 'overview' ? (
           <>
