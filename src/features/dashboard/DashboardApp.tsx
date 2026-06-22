@@ -3,6 +3,7 @@
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   ChevronRight,
   Copy,
@@ -16,7 +17,9 @@ import {
   Search,
   Share2,
   CalendarDays,
+  Clock3,
   Layers3,
+  Wallet,
   Users,
   X
 } from 'lucide-react';
@@ -554,13 +557,33 @@ export function DashboardApp(): React.ReactElement {
   const selectedPaymentHistoryOpen = selectedPaymentMember
     ? historyOpenByMember[selectedPaymentMember.id] ?? false
     : false;
-  const upcomingPayments = currentPayments.filter((payment) => {
-    if (!['active', 'delayed'].includes(payment.status)) return false;
-    const difference = Math.round(
-      (dateAtNoon(payment.due_date) - dateAtNoon(todayString())) / 86_400_000
-    );
-    return difference >= 0 && difference <= 3;
-  });
+  const todayTasks = [
+    {
+      id: 'confirmations',
+      count: confirmationPayments.length,
+      label: confirmationPayments.length === 1 ? 'оплата ждёт подтверждения' : 'оплаты ждут подтверждения',
+      onClick: () => openPaymentsView('actions')
+    },
+    {
+      id: 'delays',
+      count: delayRequestedPayments.length,
+      label: delayRequestedPayments.length === 1 ? 'запрос отсрочки' : 'запроса отсрочки',
+      onClick: () => openPaymentsView('actions')
+    },
+    {
+      id: 'overdue',
+      count: overduePayments.length,
+      label: overduePayments.length === 1 ? 'просроченный счёт' : 'просроченных счёта',
+      onClick: () => openPaymentsView('overdue')
+    }
+  ].filter((task) => task.count > 0);
+  const todayTaskCount = todayTasks.reduce((sum, task) => sum + task.count, 0);
+  const todayTaskHeadline =
+    todayTaskCount === 1
+      ? '1 задача требует внимания'
+      : todayTaskCount > 1 && todayTaskCount < 5
+        ? `${todayTaskCount} задачи требуют внимания`
+        : `${todayTaskCount} задач требуют внимания`;
   const activeMemberPayment =
     activeUser?.role === 'member'
       ? currentPayments.find((payment) => payment.member_id === activeUser.id) ?? null
@@ -2441,47 +2464,74 @@ export function DashboardApp(): React.ReactElement {
                 </div>
               </section>
             ) : (
+              <>
+              <section className="today-card">
+                <div className="today-card-heading">
+                  <span className="today-card-icon"><CalendarDays size={20} /></span>
+                  <strong>Сегодня</strong>
+                </div>
+                <h2>
+                  {todayTaskCount > 0 ? todayTaskHeadline : 'Сегодня всё спокойно'}
+                </h2>
+                {todayTasks.length > 0 ? (
+                  <div className="today-task-list">
+                    {todayTasks.map((task) => (
+                      <button key={task.id} type="button" onClick={task.onClick}>
+                        <span>
+                          <strong>{task.count}</strong>
+                          <small>{task.label}</small>
+                        </span>
+                        <span className="today-task-action">
+                          Открыть <ChevronRight size={18} />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="today-calm">
+                    <span>Новых подтверждений, отсрочек и просрочек нет.</span>
+                    <button type="button" onClick={() => openPaymentsView('all')}>
+                      Все оплаты
+                    </button>
+                  </div>
+                )}
+              </section>
+
               <section className="metric-grid">
                 <Metric
                   hint="История оплат"
+                  icon={<Wallet size={18} />}
                   label="Получено"
+                  tone="violet"
                   value={formatMoney(paidAmount)}
                   onClick={() => openPaymentsView('paid')}
                 />
                 <Metric
                   hint="Открыть список"
+                  icon={<CreditCard size={18} />}
                   label="Активные оплаты"
+                  tone="violet"
                   value={currentPayments.length}
                   onClick={() => openPaymentsView('all')}
                 />
                 <Metric
                   hint="Требует оплаты"
+                  icon={<AlertTriangle size={18} />}
                   label="Просрочено"
+                  tone="danger"
                   value={overduePayments.length}
                   onClick={() => openPaymentsView('overdue')}
                 />
                 <Metric
                   hint="ждёт / одобрено"
+                  icon={<Clock3 size={18} />}
                   label="Отсрочки"
+                  tone="violet"
                   value={`${delayRequestedPayments.length} / ${delayedPayments.length}`}
                   onClick={() => openPaymentsView('actions')}
                 />
-                {hasRole(activeUser, 'owner') ? (
-                  <Metric
-                    hint="Открыть команду"
-                    label="Тренеры"
-                    value={trainers.length}
-                    onClick={() => openSection('people')}
-                  />
-                ) : (
-                  <Metric
-                    hint="До 3 дней"
-                    label="Ближайшие оплаты"
-                    value={upcomingPayments.length}
-                    onClick={() => openPaymentsView('all')}
-                  />
-                )}
               </section>
+              </>
             )}
 
             {!hasRole(activeUser, 'member') ? (
@@ -4024,32 +4074,38 @@ export function DashboardApp(): React.ReactElement {
 
 function Metric({
   hint,
+  icon,
   label,
   onClick,
+  tone = 'violet',
   value
 }: {
   hint?: string;
+  icon?: React.ReactNode;
   label: string;
   onClick?: () => void;
+  tone?: 'violet' | 'danger';
   value: React.ReactNode;
 }): React.ReactElement {
   const content = (
     <>
+      {icon ? <span className="metric-icon">{icon}</span> : null}
       <span>{label}</span>
       <strong>{value}</strong>
       {hint ? <small>{hint}</small> : null}
+      <span className="metric-sparkline" aria-hidden="true" />
     </>
   );
 
   if (onClick) {
     return (
-      <button className="metric-card metric-card-button" type="button" onClick={onClick}>
+      <button className={`metric-card metric-card-button ${tone}`} type="button" onClick={onClick}>
         {content}
       </button>
     );
   }
 
-  return <article className="metric-card">{content}</article>;
+  return <article className={`metric-card ${tone}`}>{content}</article>;
 }
 
 function NavButton({
