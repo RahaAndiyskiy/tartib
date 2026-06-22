@@ -2921,6 +2921,7 @@ button:disabled {
 
   .crm-nav-button {
     position: relative;
+    isolation: isolate;
     min-width: 0;
     min-height: var(--mobile-nav-height);
     display: flex;
@@ -2931,6 +2932,7 @@ button:disabled {
     color: var(--color-muted);
     padding: 6px 2px;
     text-align: center;
+    overflow: visible;
   }
 
   .crm-nav-button:hover {
@@ -2948,10 +2950,38 @@ button:disabled {
     content: '';
     position: absolute;
     top: 0;
-    width: 28px;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    background: var(--color-primary);
+    left: 50%;
+    width: 32px;
+    height: 4px;
+    border-radius: 0 0 999px 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+      0 0 14px rgba(255, 255, 255, 0.92),
+      0 9px 28px rgba(127, 88, 255, 0.56),
+      0 22px 38px rgba(127, 88, 255, 0.24);
+    transform: translateX(-50%);
+  }
+
+  .crm-nav-button.active::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    z-index: -1;
+    width: 58px;
+    height: 42px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(127, 88, 255, 0.26) 0%, rgba(127, 88, 255, 0.12) 46%, transparent 72%);
+    filter: blur(8px);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .crm-nav-button svg,
+  .crm-nav-button span,
+  .crm-nav-button strong {
+    position: relative;
+    z-index: 1;
   }
 
   .crm-nav-button span {
@@ -4103,7 +4133,7 @@ select:focus {
   }
 
   .crm-nav-button.active::before {
-    background: var(--color-primary);
+    background: rgba(255, 255, 255, 0.96);
   }
 
   .mobile-topbar {
