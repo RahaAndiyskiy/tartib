@@ -2884,14 +2884,14 @@ export function DashboardApp(): React.ReactElement {
                           Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
                         </span>
                       </div>
-                      <button aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
-                        <X size={17} />
-                      </button>
                     </div>
                     <input aria-label="Ссылка-приглашение" readOnly value={memberInvite.inviteUrl} />
                     <div className="invite-result-actions">
                       <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
                         <Copy size={17} /> Копировать
+                      </button>
+                      <button className="invite-close-button" aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
+                        <X size={18} />
                       </button>
                       <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
                         <Share2 size={17} /> Поделиться
@@ -3677,14 +3677,14 @@ export function DashboardApp(): React.ReactElement {
                         Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
                       </span>
                     </div>
-                    <button aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
-                      <X size={17} />
-                    </button>
                   </div>
                   <input aria-label="Ссылка для набора" readOnly value={memberInvite.inviteUrl} />
                   <div className="invite-result-actions">
                     <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
                       <Copy size={17} /> Копировать
+                    </button>
+                    <button className="invite-close-button" aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
+                      <X size={18} />
                     </button>
                     <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
                       <Share2 size={17} /> Поделиться
