@@ -142,7 +142,7 @@ Production migration и deploy выполняются только после у
 - [ai-context.md](./ai-context.md) — текущее состояние и решения.
 # UI style source of truth
 
-Before large UI changes, read [ui-style.md](./ui-style.md).
+Before large UI changes, read [ui-style.md](./ui-style.md) and [design-system.md](./design-system.md).
 
 Tartib UI direction is **clean CRM + soft violet glass layer**:
 
@@ -151,4 +151,5 @@ Tartib UI direction is **clean CRM + soft violet glass layer**:
 - Do not use glass for dense payment rows, long financial tables, status pills or destructive actions.
 - Green is not a Tartib brand accent; use violet/purple tokens for primary UI.
 - Use design tokens from `src/app/globals.css`; do not hard-code new shared colors, shadows or radii.
-- New UI must reuse existing classes such as `crm-panel`, `crm-table`, `crm-list-row`, `primary-button`, `ghost-button`, `small-button`, `segmented-control` and `status-pill`.
+- New UI must use primitives from `src/shared/ui` when possible: `Button`, `Panel`, `TextField`, `SelectField`, `Badge`, `EmptyState`, `SegmentedControl`.
+- Existing dashboard UI may keep compatible classes such as `crm-panel`, `crm-table`, `crm-list-row`, `primary-button`, `ghost-button`, `small-button`, `segmented-control` and `status-pill` while it is migrated gradually.

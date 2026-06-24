@@ -7,6 +7,7 @@ Related docs:
 - [features.md](./features.md)
 - [rules.md](./rules.md)
 - [ui-style.md](./ui-style.md)
+- [design-system.md](./design-system.md)
 
 ## Tech Stack
 
@@ -41,6 +42,7 @@ src/
   shared/
     constants/
     lib/
+    ui/
     types/
 supabase/
   migrations/
@@ -94,11 +96,26 @@ Reads Bearer token, validates it with Supabase Admin, then loads the app profile
 
 Local development mode for UI experiments. Production must use Supabase.
 
+`src/shared/ui`
+
+Shared UI primitives for new interface work and Figma-to-code migration:
+
+- `Button`
+- `Panel`
+- `TextField`
+- `SelectField`
+- `Badge`
+- `EmptyState`
+- `SegmentedControl`
+
+Existing dashboard markup may still use compatible CSS classes while it is migrated gradually.
+
 ## Code Organization Principles
 
 - `app/` owns routes and HTTP boundaries.
 - `features/` owns user-facing flows.
 - `shared/` owns reusable types, constants and infrastructure helpers.
+- `shared/ui` owns generic visual primitives; product widgets stay in feature modules.
 - Production data mutations go through server routes or database RPC.
 - Client components must not use service-role access.
 - SQL changes must be added as new migrations.

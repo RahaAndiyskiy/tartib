@@ -4,6 +4,8 @@ Tartib uses a **clean CRM base with a soft violet glass layer**.
 
 The product must feel modern, calm and operational. It should not feel like a decorative landing page, a finance spreadsheet, or a futuristic concept mockup.
 
+For reusable UI primitives, Figma mapping and migration rules, read [design-system.md](./design-system.md).
+
 ## Product Feel
 
 - Clean CRM first: readable tables, lists, forms and statuses.
@@ -95,7 +97,17 @@ Do not use glass for:
 
 ## Components
 
-Prefer existing classes:
+Prefer shared primitives from `src/shared/ui` for new UI:
+
+- `Button`
+- `Panel`
+- `TextField`
+- `SelectField`
+- `Badge`
+- `EmptyState`
+- `SegmentedControl`
+
+Existing screens may still use compatible classes:
 
 - `crm-shell`
 - `crm-sidebar`

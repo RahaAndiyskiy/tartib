@@ -46,9 +46,11 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 - `src/shared/lib/serverAuth.ts` - server identity from Bearer token.
 - `src/shared/lib/supabaseClient.ts` - browser Supabase client.
 - `src/shared/lib/localWorkspace.ts` - local development workspace.
+- `src/shared/ui` - shared UI primitives for new screens and gradual dashboard migration.
 - `supabase/migrations/` - database schema and RPC history.
 - `docs/current-state.md` - latest product/technical snapshot.
 - `docs/ui-style.md` - current UI direction.
+- `docs/design-system.md` - UI tokens, primitives, Figma mapping and migration rules.
 
 ## Important Decisions
 
@@ -81,7 +83,8 @@ Current preferred direction:
 - Follow [rules.md](./rules.md).
 - Follow [database.md](./database.md) for schema concepts.
 - Read [current-state.md](./current-state.md) before product work.
-- Read [ui-style.md](./ui-style.md) before UI work.
+- Read [ui-style.md](./ui-style.md) and [design-system.md](./design-system.md) before UI work.
+- Use `src/shared/ui` primitives for new UI when possible.
 - For schema changes, create a new migration; never edit old applied migrations.
 - Keep service-role access in server-only files.
 - Never trust role, organization or ownership from client payloads.

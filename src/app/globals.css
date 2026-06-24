@@ -4365,3 +4365,212 @@ select:focus {
   box-shadow: none;
   outline: 0;
 }
+
+/* Tartib UI System v1.
+   This is the shared primitive layer for Figma-to-code work.
+   Keep new shared UI on these tokens/classes before adding page-specific styles. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.86rem;
+  --font-size-md: 0.95rem;
+  --font-size-lg: 1.08rem;
+  --font-size-xl: 1.35rem;
+  --font-weight-control: 800;
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --focus-ring: 0 0 0 4px rgba(124, 92, 255, 0.14);
+  --surface-glass-border: rgba(255, 255, 255, 0.68);
+}
+
+.ui-panel,
+.crm-panel {
+  border: 1px solid rgba(139, 127, 171, 0.18);
+  border-radius: var(--radius-panel);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(249, 247, 255, 0.72));
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.ui-button,
+.primary-button,
+.ghost-button,
+.small-button,
+.text-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  border-radius: var(--radius-control);
+  font-weight: var(--font-weight-control);
+  line-height: 1.15;
+  text-align: center;
+  transition:
+    border-color var(--duration-fast) var(--ease-ui),
+    background var(--duration-fast) var(--ease-ui),
+    box-shadow var(--duration-fast) var(--ease-ui),
+    color var(--duration-fast) var(--ease-ui),
+    transform var(--duration-fast) var(--ease-ui);
+}
+
+.ui-button > span:not(.ui-button-icon),
+.primary-button > span:not(.ui-button-icon),
+.ghost-button > span:not(.ui-button-icon),
+.small-button > span:not(.ui-button-icon) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-button-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.ui-button:not(:disabled):hover,
+.primary-button:not(:disabled):hover,
+.ghost-button:not(:disabled):hover,
+.small-button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.ui-button:focus-visible,
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+.small-button:focus-visible,
+.text-button:focus-visible {
+  outline: 0;
+  box-shadow: var(--focus-ring), 0 14px 28px rgba(124, 92, 255, 0.14);
+}
+
+.text-button {
+  min-height: auto;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-strong);
+  padding: 0;
+}
+
+.text-button.danger {
+  color: var(--color-danger);
+}
+
+.ui-field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.ui-field-label {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ui-field-hint {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.ui-input,
+.ui-select,
+input,
+select {
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--color-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  transition:
+    border-color var(--duration-fast) var(--ease-ui),
+    box-shadow var(--duration-fast) var(--ease-ui),
+    background var(--duration-fast) var(--ease-ui);
+}
+
+.ui-input:focus,
+.ui-select:focus,
+input:focus,
+select:focus {
+  border-color: rgba(124, 92, 255, 0.58);
+  box-shadow: var(--focus-ring), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  outline: 0;
+}
+
+.ui-segmented-control,
+.segmented-control {
+  border: 1px solid var(--surface-glass-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(63, 53, 101, 0.06);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.ui-segmented-control button,
+.segmented-control button {
+  transition:
+    background var(--duration-fast) var(--ease-ui),
+    box-shadow var(--duration-fast) var(--ease-ui),
+    color var(--duration-fast) var(--ease-ui),
+    transform var(--duration-fast) var(--ease-ui);
+}
+
+.ui-segmented-control button.active,
+.segmented-control button.active {
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-primary-strong);
+  box-shadow: 0 10px 22px rgba(63, 53, 101, 0.1);
+}
+
+.ui-badge,
+.status-pill {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 850;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.ui-empty-state,
+.empty-state {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.ui-empty-state strong {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+
+.ui-empty-state p {
+  margin: 0;
+}
+
+.ui-empty-state-action {
+  margin-top: var(--space-2);
+}

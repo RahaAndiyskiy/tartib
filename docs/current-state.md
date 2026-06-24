@@ -10,6 +10,7 @@ This document is the practical snapshot of the project after the MVP core stabil
 - [features.md](./features.md)
 - [rules.md](./rules.md)
 - [ui-style.md](./ui-style.md)
+- [design-system.md](./design-system.md)
 
 ## Product State
 
@@ -103,6 +104,7 @@ Important modules:
 - `src/shared/lib/serverAuth.ts` validates Bearer tokens and server identity.
 - `src/shared/lib/supabaseClient.ts` creates the browser Supabase client with persistent session.
 - `src/shared/lib/localWorkspace.ts` supports local development mode.
+- `src/shared/ui` contains shared UI primitives for gradual design-system migration.
 
 Do not rewrite `DashboardApp.tsx` in one large step. Extract only when a specific feature is being touched and behavior is covered by checks.
 
@@ -167,6 +169,8 @@ Direction:
 - no green as a main brand accent.
 
 The UI works for testing, but final polish should happen through a Figma pass or a focused UI iteration.
+
+Reusable UI primitives and Figma mapping are documented in [design-system.md](./design-system.md).
 
 ## Technical Debt
 
