@@ -9,7 +9,7 @@ import { loginToAuthEmail, normalizeUsername } from '@shared/lib/authUsername';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
-export function AuthPanel() {
+export function AuthPanel(): React.ReactElement {
   if (process.env.NEXT_PUBLIC_DATA_MODE === 'local') {
     return <LocalAuthPanel />;
   }
@@ -43,7 +43,7 @@ function SupabaseAuthPanel(): React.ReactElement {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function submitAuth(event: FormEvent<HTMLFormElement>) {
+  async function submitAuth(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setIsSubmitting(true);
     setMessage('');

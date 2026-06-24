@@ -1,104 +1,110 @@
-# UI Direction
+# AI Context
 
-Tartib UI direction is **clean CRM + soft violet glass layer**.
+Start here before changing Tartib.
 
-All AI agents must read [ui-style.md](./ui-style.md) before large UI changes. Use tokens from `src/app/globals.css`. Keep glass for navigation, toolbars, filters, modals and quick actions. Keep tables, payment rows and financial data plain, readable and high contrast. Green is not a Tartib brand accent; primary UI should use violet/purple tokens.
+## Project Overview
 
-# Project Overview
+Tartib is a lightweight CRM/PWA for clubs, trainers and students. The current production core manages:
 
-Tartib — role-based CRM для спортивных клубов, школ единоборств, танцевальных студий и образовательных центров. Production работает на Next.js + Supabase. Ядро: organization, users/roles, groups, member invitations, billing plans, payment requests, delays и notifications.
+- organizations;
+- roles;
+- groups;
+- invite links;
+- members;
+- billing plans;
+- payment requests;
+- payment confirmation;
+- delay requests;
+- internal notifications.
 
-Перед работой прочитать:
+Read the current project snapshot first: [current-state.md](./current-state.md).
 
-1. [vision.md](./vision.md)
-2. [architecture.md](./architecture.md)
-3. [database.md](./database.md)
-4. [rules.md](./rules.md)
-5. [features.md](./features.md)
+## Current State
 
-# Current State
+Production is deployed on Vercel and uses Supabase as the source of truth.
 
-- Production развернут на Vercel.
-- Supabase является source of truth.
-- Login/password работает через внутренний технический email.
-- Owner получает роли owner + trainer.
-- Trainer создаёт groups и invite links.
-- Member самостоятельно создаёт account по invite.
-- Полный payment lifecycle работает и проверяется сквозным тестом.
-- Daily cron создаёт reminders и overdue.
-- Workspace загружается одним PostgreSQL RPC.
-- Mutations обновляют client state из action response без полного reload.
-- Desktop и mobile CRM интерфейсы реализованы.
-- LocalStorage mode сохранён для разработки.
-- Expenses и legacy schedules существуют только как local prototypes.
-- Storage не используется.
+The main working flow is:
 
-# Active Tasks
+1. Owner creates a club.
+2. Owner also receives trainer permissions.
+3. Trainer creates a group.
+4. Trainer gives a group invite link.
+5. Member registers through the link.
+6. Trainer assigns payment.
+7. Member confirms payment or requests delay.
+8. Trainer approves/rejects.
+9. Paid monthly payment creates the next payment through a database RPC.
 
-Текущий приоритет — стабилизация ядра, а не новые крупные модули:
+PWA, mobile navigation and persistent Supabase browser sessions are already implemented.
 
-1. Security audit RLS и cross-organization isolation.
-2. Ротация ранее раскрытого Supabase service-role key.
-3. Rate limiting для auth и mutation API.
-4. Формализация спорных payment rules.
-5. CI для typecheck, lint, build и core flow.
-6. Постепенное разделение `DashboardApp.tsx`.
-7. Очистка local-only expenses/schedules.
-8. Реальные performance measurements и monitoring.
+## Important Files
 
-Подробности: [roadmap.md](./roadmap.md) и [TECH_DEBT.md](../TECH_DEBT.md).
+- `src/features/dashboard/DashboardApp.tsx` - main CRM UI and client state.
+- `src/app/api/workspace/route.ts` - role-based workspace load.
+- `src/app/api/workspace/actions/route.ts` - protected production mutations.
+- `src/app/api/invitations/[token]/route.ts` - public invite registration.
+- `src/shared/lib/serverAuth.ts` - server identity from Bearer token.
+- `src/shared/lib/supabaseClient.ts` - browser Supabase client.
+- `src/shared/lib/localWorkspace.ts` - local development workspace.
+- `supabase/migrations/` - database schema and RPC history.
+- `docs/current-state.md` - latest product/technical snapshot.
+- `docs/ui-style.md` - current UI direction.
 
-# Important Decisions
+## Important Decisions
 
-- MVP сфокусирован на группах, учениках и оплатах.
-- Раздел «Оплаты» использует компактный реестр и контекстную панель деталей вместо постоянно открытых форм в каждой строке. В интерфейсе нужно явно разделять «Условия оплаты» (`billing_plans`) и «Текущий счёт» (`payment_requests`).
-- Member не должен видеть команду и лишнюю аналитику.
-- Trainer dashboard показывает действия; owner dashboard — контроль.
-- Group определяет activity, days и time.
-- Member создаёт login/password сам по invite.
-- Email не обязателен для текущей authentication.
-- Один user может иметь несколько roles.
-- Один member сейчас принадлежит одной group.
-- Monthly и one-time payments используют общий billing core.
-- Individual training — формат плана, а не умножение стоимости на занятия.
-- Paid history не удаляется.
-- Неоплаченный invoice можно удалить с уведомлением member.
-- Production state не обновляется через local `saveWorkspace()`.
-- API actions возвращают клиентские DTO и не инициируют полный workspace reload.
-- Supabase RLS и server authorization используются одновременно.
+- Login/password is used now; real verified email is postponed.
+- The login is internally converted to an email under `auth.tartib.local`.
+- Supabase service role is server-only.
+- Owner can also be trainer.
+- Member currently belongs to one group.
+- Group recruitment links are reusable.
+- Payment conditions live in `billing_plans`.
+- Current and historical invoices live in `payment_requests`.
+- Paid history must not be deleted.
+- Monthly payment approval is atomic through `confirm_payment_and_advance`.
+- Expenses and schedules are not production core yet.
+- Do not add attendance, chat, analytics, finance or push notifications unless explicitly requested.
 
-# AI Instructions
+## Active Tasks
 
-## Обязательные действия
+Current preferred direction:
 
-- Сначала читать документацию и существующий код.
-- Соблюдать [rules.md](./rules.md).
-- Сохранять текущую архитектуру и role visibility.
-- Переиспользовать существующие components, styles и helpers.
-- Сверяться со схемой в [database.md](./database.md).
-- Для schema changes создавать новую migration.
-- Обновлять документацию после крупных изменений.
-- Проверять typecheck, lint и build.
-- Core changes покрывать production-flow script.
+1. Stabilize and document the core.
+2. Keep code changes small and behavior-preserving unless the user asks for product changes.
+3. Close security and reliability debt before adding bigger modules.
+4. Use Figma or focused UI passes for visual redesign instead of random component-by-component styling.
 
-## Запреты
+## AI Instructions
 
-- Не переносить service role на клиент.
-- Не доверять role, organizationId или ownership из request body.
-- Не делать новую полную загрузку workspace после обычной mutation.
-- Не считать local-only expenses production feature.
-- Не добавлять attendance, chat, analytics или expenses без явного запроса.
-- Не переписывать DashboardApp целиком ради небольшого изменения.
-- Не менять applied migrations задним числом.
-- Не удалять paid financial history.
-- Не ослаблять RLS ради удобства.
-- Не делать deploy или production migration без явного поручения.
+- Do not break existing architecture.
+- Reuse existing components, helpers and style tokens.
+- Follow [rules.md](./rules.md).
+- Follow [database.md](./database.md) for schema concepts.
+- Read [current-state.md](./current-state.md) before product work.
+- Read [ui-style.md](./ui-style.md) before UI work.
+- For schema changes, create a new migration; never edit old applied migrations.
+- Keep service-role access in server-only files.
+- Never trust role, organization or ownership from client payloads.
+- Validate role and ownership in server routes even when RLS also exists.
+- Keep production mutations in API routes or database RPC.
+- Return small DTOs from actions and update client state from those DTOs.
+- Do not rewrite `DashboardApp.tsx` wholesale.
+- Update documentation after major product, database or architecture changes.
 
-## Перед завершением задачи
+## Verification
 
-1. Проверить, не нарушена ли видимость owner/trainer/member.
-2. Проверить client DTO против DB row naming.
-3. Проверить optimistic state update.
-4. Проверить mobile layout для UI-изменений.
-5. Обновить соответствующие docs.
-6. Сообщить, какие проверки не удалось выполнить.
+For normal code changes:
+
+```bash
+npm.cmd run typecheck
+npm.cmd run build
+git diff --check
+```
+
+For core flow changes, also run or update:
+
+```bash
+node scripts/verify-production-flow.mjs
+```
+
+For UI changes, manually verify mobile and desktop layouts.

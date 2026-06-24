@@ -1,6 +1,7 @@
 import { AuthPanel } from '@features/auth/AuthPanel';
+import type { ReactElement } from 'react';
 
-export default function LoginPage() {
+export default function LoginPage(): ReactElement {
   return (
     <main className="auth-screen">
       <section className="auth-copy">
