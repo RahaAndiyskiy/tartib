@@ -46,10 +46,12 @@ export async function requireIdentity(request: Request): Promise<ServerIdentity 
   const start = performance.now();
   const client = createSupabaseClientForToken(token);
   const result = await client.rpc('get_current_identity');
-  console.info(
-    '[performance] identity',
-    `requireIdentity ${Math.round(performance.now() - start)}ms`
-  );
+  if (process.env.TARTIB_DEBUG_PERFORMANCE === 'true') {
+    console.info(
+      '[performance] identity',
+      `requireIdentity ${Math.round(performance.now() - start)}ms`
+    );
+  }
 
   const row = Array.isArray(result.data) ? result.data[0] : result.data;
   const data = row as

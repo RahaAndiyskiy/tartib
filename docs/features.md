@@ -97,6 +97,12 @@ Related docs:
 - Pages: all user-facing pages
 - Tables: not applicable
 
+### Basic Production Hardening
+
+- Description: owner registration is closed by default in production, critical mutation endpoints have basic rate limiting, CI runs typecheck/lint/build.
+- Pages: `/login`, API routes
+- Tables: `payment_requests`
+
 ### Local Development Mode
 
 - Description: localStorage workspace for UI experiments without Supabase.
@@ -113,7 +119,7 @@ Related docs:
 
 ### Security Hardening
 
-- Description: rotate service-role key, add rate limiting, continue RLS/server authorization review.
+- Description: rotate service-role key, replace in-memory rate limiting with durable shared limiting if needed, continue RLS/server authorization review.
 - Pages: API routes
 - Tables: all core tables
 

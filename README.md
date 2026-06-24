@@ -22,7 +22,13 @@ npm install
 
 2. Создать `.env.local` по примеру `.env.example`.
 
-3. Применить миграции из `supabase/migrations` по порядку.
+3. Применить миграции из `supabase/migrations` по порядку:
+
+```bash
+node scripts/apply-migration.mjs supabase/migrations/011_unique_current_payment.sql
+```
+
+Для новой базы нужно применить все миграции с `001` по последнюю.
 
 4. Запустить приложение:
 
@@ -36,6 +42,21 @@ npm run dev
 
 Пользователи входят по логину и паролю. Реальный адрес электронной почты пока не требуется. Внутренний технический email создаётся автоматически и не показывается пользователю.
 
+## Production-настройки
+
+Регистрация новых клубов в production по умолчанию закрыта.
+
+- `NEXT_PUBLIC_OWNER_REGISTRATION_ENABLED=false` скрывает регистрацию в UI.
+- `TARTIB_OWNER_REGISTRATION_ENABLED=false` закрывает публичный API регистрации.
+- `TARTIB_OWNER_REGISTRATION_SECRET` позволяет создать клуб через API/скрипт с заголовком `x-tartib-setup-secret`.
+
+Для временного публичного открытия регистрации нужно выставить оба флага в `true`.
+
+Performance-логи выключены по умолчанию:
+
+- `NEXT_PUBLIC_DEBUG_PERFORMANCE=false`
+- `TARTIB_DEBUG_PERFORMANCE=false`
+
 ## Проверка
 
 ```bash
@@ -44,5 +65,15 @@ npm run lint
 npm run build
 node scripts/verify-production-flow.mjs
 ```
+
+Для проверки production-flow на закрытой регистрации добавьте `TARTIB_OWNER_REGISTRATION_SECRET` в `.env.local` или переменные окружения.
+
+## CI
+
+GitHub Actions запускает:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
 
 Список известных ограничений находится в [TECH_DEBT.md](./TECH_DEBT.md).

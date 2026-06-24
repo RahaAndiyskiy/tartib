@@ -15,7 +15,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   const start = performance.now();
   const client = createSupabaseClientForToken(token);
   const result = await client.rpc('get_workspace');
-  console.info('[performance] workspace', `get_workspace ${Math.round(performance.now() - start)}ms`);
+  if (process.env.TARTIB_DEBUG_PERFORMANCE === 'true') {
+    console.info('[performance] workspace', `get_workspace ${Math.round(performance.now() - start)}ms`);
+  }
 
   const row = Array.isArray(result.data) ? result.data[0] : result.data;
   const data = row as { workspace?: unknown; active_user_id?: string } | null;

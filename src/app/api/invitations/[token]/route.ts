@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
+import { rateLimit } from '@shared/lib/rateLimit';
 import type { Database } from '@shared/types/database';
 
 type RouteContext = {
@@ -68,6 +69,9 @@ export async function GET(_request: Request, context: RouteContext): Promise<Nex
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
+  const limited = rateLimit(request, 'claim-invitation', { limit: 10, windowMs: 10 * 60 * 1000 });
+  if (limited) return limited;
+
   const { token } = await context.params;
   const body = (await request.json()) as {
     firstName?: string;

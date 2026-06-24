@@ -254,6 +254,7 @@ function paymentLockedText(payment: PaymentRequest): string | null {
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
+  const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
   const [workspace, setWorkspace] = useState<LocalWorkspace | null>(null);
   const [activeUserId, setActiveUserId] = useState('');
   const [personDraft, setPersonDraft] = useState<PersonDraft>(emptyPersonDraft);
@@ -343,7 +344,9 @@ export function DashboardApp(): React.ReactElement {
       activeUserId?: string;
       error?: string;
     };
-    console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
+    if (debugPerformance) {
+      console.info('[performance] client workspace load', `loadRemoteWorkspace ${Math.round(performance.now() - start)}ms`);
+    }
 
     if (!response.ok || !data.workspace || !data.activeUserId) {
       const nextError = data.error ?? 'Не удалось загрузить данные клуба.';
@@ -358,7 +361,7 @@ export function DashboardApp(): React.ReactElement {
     setWorkspace(data.workspace);
     setActiveUserId(data.activeUserId);
     return true;
-  }, [getAccessToken]);
+  }, [debugPerformance, getAccessToken]);
 
   const refreshRemoteWorkspace = useCallback(async (reason: string, minIntervalMs = 10_000): Promise<void> => {
     if (isLocalMode || remoteRefreshInFlightRef.current) return;
@@ -373,7 +376,7 @@ export function DashboardApp(): React.ReactElement {
 
     try {
       const loaded = await loadRemoteWorkspace({ silent: reason !== 'initial' });
-      if (loaded) {
+      if (loaded && debugPerformance) {
         console.info('[workspace] refreshed', reason);
       }
     } catch (error) {
@@ -381,7 +384,7 @@ export function DashboardApp(): React.ReactElement {
     } finally {
       remoteRefreshInFlightRef.current = false;
     }
-  }, [isLocalMode, loadRemoteWorkspace]);
+  }, [debugPerformance, isLocalMode, loadRemoteWorkspace]);
 
   useEffect(() => {
     function syncWorkspace(): void {
@@ -826,7 +829,9 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const data = (await response.json()) as T & { error?: string };
-    console.info('[performance] action', `runRemoteAction ${Math.round(performance.now() - start)}ms`, payload.action ?? 'unknown');
+    if (debugPerformance) {
+      console.info('[performance] action', `runRemoteAction ${Math.round(performance.now() - start)}ms`, payload.action ?? 'unknown');
+    }
 
     if (!response.ok) {
       setMessage(data.error ?? 'Не удалось выполнить действие.');

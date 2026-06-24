@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireIdentity } from '@shared/lib/serverAuth';
+import { rateLimit } from '@shared/lib/rateLimit';
 import { createMemberInviteAction } from './_lib/invites';
 import { createUserAction } from './_lib/users';
 import { deleteGroupAction, saveGroupAction } from './_lib/groups';
@@ -21,6 +22,9 @@ const paymentActions = new Set<ActionBody['action']>([
 ]);
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const limited = rateLimit(request, 'workspace-actions', { limit: 120, windowMs: 60 * 1000 });
+  if (limited) return limited;
+
   const identity = await requireIdentity(request);
   if (!identity) {
     return NextResponse.json({ error: 'Требуется вход.' }, { status: 401 });

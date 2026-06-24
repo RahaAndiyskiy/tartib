@@ -34,6 +34,7 @@ function LocalAuthPanel(): React.ReactElement {
 
 function SupabaseAuthPanel(): React.ReactElement {
   const router = useRouter();
+  const registrationEnabled = process.env.NEXT_PUBLIC_OWNER_REGISTRATION_ENABLED === 'true';
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +53,7 @@ function SupabaseAuthPanel(): React.ReactElement {
       const supabase = getSupabaseClient();
       const normalizedUsername = normalizeUsername(username);
 
-      if (mode === 'sign-up') {
+      if (mode === 'sign-up' && registrationEnabled) {
         const registrationResponse = await fetch('/api/auth/register-owner', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -108,17 +109,19 @@ function SupabaseAuthPanel(): React.ReactElement {
         >
           Вход
         </button>
-        <button
-          className={mode === 'sign-up' ? 'active' : ''}
-          type="button"
-          onClick={() => setMode('sign-up')}
-        >
-          Регистрация
-        </button>
+        {registrationEnabled ? (
+          <button
+            className={mode === 'sign-up' ? 'active' : ''}
+            type="button"
+            onClick={() => setMode('sign-up')}
+          >
+            Регистрация
+          </button>
+        ) : null}
       </div>
 
       <form className="form-stack" onSubmit={submitAuth}>
-        {mode === 'sign-up' ? (
+        {registrationEnabled && mode === 'sign-up' ? (
           <>
             <label>
               Название клуба

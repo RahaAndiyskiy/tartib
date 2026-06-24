@@ -34,7 +34,8 @@ Exit criteria:
 - no known cross-organization access bugs;
 - payment confirmation and next invoice creation are stable;
 - documentation reflects production reality;
-- basic CI/checks are in place.
+- basic CI/checks are in place;
+- public owner registration is closed by default.
 
 ## Version 1.0
 
@@ -43,7 +44,7 @@ Goal: make the product trustworthy for real small club usage.
 Planned work:
 
 - rotate exposed service-role key;
-- add rate limiting for auth and mutation endpoints;
+- replace basic in-memory rate limiting with durable shared rate limiting if traffic grows;
 - improve automated core-flow checks;
 - polish mobile UX;
 - finish Figma-led UI system pass;

@@ -16,10 +16,13 @@ const baseUrl = process.env.TEST_APP_URL ?? 'http://127.0.0.1:3000';
 const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+const ownerRegistrationSecret =
+  process.env.TARTIB_OWNER_REGISTRATION_SECRET ?? env.TARTIB_OWNER_REGISTRATION_SECRET;
 const suffix = Date.now().toString(36);
 const password = `Test-${suffix}-9`;
 const ownerUsername = `owner_${suffix}`;
 const trainerUsername = `trainer_${suffix}`;
+const otherTrainerUsername = `trainer_other_${suffix}`;
 const memberUsername = `member_${suffix}`;
 const authEmail = (username) => `${username}@auth.tartib.local`;
 const admin = createClient(supabaseUrl, serviceKey, {
@@ -30,9 +33,15 @@ async function api(path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, options);
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(`${path}: ${data.error ?? response.statusText}`);
+    throw new Error(`${path} ${response.status}: ${data.error ?? response.statusText}`);
   }
   return data;
+}
+
+function setupHeaders(extra = {}) {
+  return ownerRegistrationSecret
+    ? { ...extra, 'x-tartib-setup-secret': ownerRegistrationSecret }
+    : extra;
 }
 
 async function signIn(username) {
@@ -66,7 +75,7 @@ const authUserIds = [];
 try {
   await api('/api/auth/register-owner', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: setupHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       organizationName: `Тестовый клуб ${suffix}`,
       firstName: 'Тест',
@@ -87,7 +96,16 @@ try {
     username: trainerUsername,
     password
   });
+  await action(ownerToken, {
+    action: 'create_user',
+    role: 'trainer',
+    firstName: 'Другой',
+    lastName: 'Тренер',
+    username: otherTrainerUsername,
+    password
+  });
   const trainerToken = await signIn(trainerUsername);
+  const otherTrainerToken = await signIn(otherTrainerUsername);
 
   await action(trainerToken, {
     action: 'save_group',
@@ -144,6 +162,23 @@ try {
     dueDate: due,
     updateFuture: true
   });
+
+  try {
+    await action(otherTrainerToken, {
+      action: 'save_payment',
+      memberId: member.id,
+      type: 'monthly',
+      trainingFormat: 'group',
+      amount: 100,
+      dueDate: due,
+      updateFuture: true
+    });
+    throw new Error('Unassigned trainer was able to edit member payment');
+  } catch (error) {
+    if (!String(error).includes('403')) {
+      throw error;
+    }
+  }
 
   const memberToken = await signIn(memberUsername);
   let memberWorkspace = await workspace(memberToken);

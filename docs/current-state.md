@@ -31,6 +31,14 @@ The product is intentionally small right now. Attendance, chat, analytics, expen
 
 The production core is live on Vercel and uses Supabase as the source of truth.
 
+Production hardening currently includes:
+
+- closed owner registration by default;
+- basic in-memory rate limiting on critical API routes;
+- a database unique index that allows only one current payment per member;
+- GitHub CI for typecheck, lint and build;
+- performance logs behind debug env flags.
+
 Implemented flow:
 
 1. Owner creates a club account.
@@ -124,6 +132,7 @@ Important current rule:
 - Monthly payment confirmation is atomic in `confirm_payment_and_advance`.
 - Paid payment history is never deleted.
 - A member currently belongs to one group.
+- A member can have only one `is_current = true` payment.
 - A group invite link can be reused as the stable recruitment link for that group.
 
 ## Authentication
@@ -162,8 +171,8 @@ The UI works for testing, but final polish should happen through a Figma pass or
 High priority:
 
 - rotate Supabase service-role key;
-- add rate limiting to auth and mutation endpoints;
-- add CI for typecheck, lint, build and core flow;
+- replace in-memory rate limiting with durable shared rate limiting if traffic grows;
+- extend CI with production-flow checks when test secrets are available;
 - continue security review around organization/role boundaries;
 - decide and document disputed payment edge cases.
 

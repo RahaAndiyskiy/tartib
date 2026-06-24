@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 import { normalizeUsername, usernameToAuthEmail } from '@shared/lib/authUsername';
+import { rateLimit, setupSecretAllowed } from '@shared/lib/rateLimit';
 
 type RegisterOwnerBody = {
   organizationName?: string;
@@ -12,6 +13,16 @@ type RegisterOwnerBody = {
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const limited = rateLimit(request, 'register-owner', { limit: 5, windowMs: 10 * 60 * 1000 });
+    if (limited) return limited;
+
+    if (!setupSecretAllowed(request)) {
+      return NextResponse.json(
+        { error: 'Регистрация клуба временно доступна только по приглашению.' },
+        { status: 403 }
+      );
+    }
+
     const body = (await request.json()) as RegisterOwnerBody;
     const username = normalizeUsername(body.username ?? '');
     const password = body.password ?? '';
@@ -32,66 +43,69 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Этот логин уже занят.' }, { status: 409 });
     }
 
-  const authResult = await admin.auth.admin.createUser({
-    email: usernameToAuthEmail(username),
-    password,
-    email_confirm: true,
-    user_metadata: { username }
-  });
+    const authResult = await admin.auth.admin.createUser({
+      email: usernameToAuthEmail(username),
+      password,
+      email_confirm: true,
+      user_metadata: { username }
+    });
 
-  if (authResult.error || !authResult.data.user) {
-    return NextResponse.json(
-      { error: authResult.error?.message ?? 'Не удалось создать аккаунт.' },
-      { status: 400 }
-    );
-  }
+    if (authResult.error || !authResult.data.user) {
+      return NextResponse.json(
+        { error: authResult.error?.message ?? 'Не удалось создать аккаунт.' },
+        { status: 400 }
+      );
+    }
 
-  const organizationResult = await admin
-    .from('organizations')
-    .insert({ name: organizationName })
-    .select('*')
-    .single();
+    const organizationResult = await admin
+      .from('organizations')
+      .insert({ name: organizationName })
+      .select('*')
+      .single();
 
-  if (organizationResult.error || !organizationResult.data) {
-    await admin.auth.admin.deleteUser(authResult.data.user.id);
-    return NextResponse.json(
-      { error: organizationResult.error?.message ?? 'Не удалось создать организацию.' },
-      { status: 400 }
-    );
-  }
+    if (organizationResult.error || !organizationResult.data) {
+      await admin.auth.admin.deleteUser(authResult.data.user.id);
+      return NextResponse.json(
+        { error: organizationResult.error?.message ?? 'Не удалось создать организацию.' },
+        { status: 400 }
+      );
+    }
 
-  const profileResult = await admin
-    .from('users')
-    .insert({
-      auth_user_id: authResult.data.user.id,
-      organization_id: organizationResult.data.id,
-      role: 'owner',
-      username,
-      first_name: firstName,
-      last_name: lastName,
-      email: null,
-      phone: null
-    })
-    .select('*')
-    .single();
+    const profileResult = await admin
+      .from('users')
+      .insert({
+        auth_user_id: authResult.data.user.id,
+        organization_id: organizationResult.data.id,
+        role: 'owner',
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        email: null,
+        phone: null
+      })
+      .select('*')
+      .single();
 
-  if (profileResult.error || !profileResult.data) {
-    await admin.from('organizations').delete().eq('id', organizationResult.data.id);
-    await admin.auth.admin.deleteUser(authResult.data.user.id);
-    return NextResponse.json(
-      { error: profileResult.error?.message ?? 'Не удалось создать профиль.' },
-      { status: 400 }
-    );
-  }
+    if (profileResult.error || !profileResult.data) {
+      await admin.from('organizations').delete().eq('id', organizationResult.data.id);
+      await admin.auth.admin.deleteUser(authResult.data.user.id);
+      return NextResponse.json(
+        { error: profileResult.error?.message ?? 'Не удалось создать профиль.' },
+        { status: 400 }
+      );
+    }
 
-  const rolesResult = await admin.from('user_roles').insert([
-    { user_id: profileResult.data.id, role: 'owner' },
-    { user_id: profileResult.data.id, role: 'trainer' }
-  ]);
+    const rolesResult = await admin.from('user_roles').insert([
+      { user_id: profileResult.data.id, role: 'owner' },
+      { user_id: profileResult.data.id, role: 'trainer' }
+    ]);
 
-  if (rolesResult.error) {
-    return NextResponse.json({ error: rolesResult.error.message }, { status: 400 });
-  }
+    if (rolesResult.error) {
+      await admin.from('users').delete().eq('id', profileResult.data.id);
+      await admin.from('organizations').delete().eq('id', organizationResult.data.id);
+      await admin.auth.admin.deleteUser(authResult.data.user.id);
+      return NextResponse.json({ error: rolesResult.error.message }, { status: 400 });
+    }
 
     return NextResponse.json({ username }, { status: 201 });
   } catch (error) {

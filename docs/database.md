@@ -23,6 +23,7 @@ Current migration sequence:
 9. `008_static_group_invite_links.sql`
 10. `009_realtime_payments_notifications.sql`
 11. `010_atomic_payment_confirmation.sql`
+12. `011_unique_current_payment.sql`
 
 Never edit old applied migrations. Add a new migration.
 
@@ -101,6 +102,7 @@ Concrete invoice/current payment.
 - FK: organization, member, trainer
 - FK: `plan_id -> billing_plans.id`
 - Fields: `amount`, `due_date`, `status`, `period_label`, `is_current`, `coverage_months`, `paid_at`, delay fields
+- Constraint: partial unique index `payment_requests_one_current_per_member_idx` allows only one `is_current = true` payment per member.
 
 Statuses used by the app:
 
