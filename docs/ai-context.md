@@ -51,6 +51,8 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 - `docs/current-state.md` - latest product/technical snapshot.
 - `docs/ui-style.md` - current UI direction.
 - `docs/design-system.md` - UI tokens, primitives, Figma mapping and migration rules.
+- `docs/release-checklist.md` - release and smoke-test checklist.
+- `docs/dependency-audit.md` - npm audit findings and dependency risk notes.
 
 ## Important Decisions
 
@@ -93,6 +95,8 @@ Current preferred direction:
 - Return small DTOs from actions and update client state from those DTOs.
 - Do not rewrite `DashboardApp.tsx` wholesale.
 - Update documentation after major product, database or architecture changes.
+- Use [release-checklist.md](./release-checklist.md) before production releases.
+- Do not run `npm audit fix --force` without reviewing [dependency-audit.md](./dependency-audit.md).
 
 ## Verification
 

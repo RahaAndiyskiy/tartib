@@ -11,6 +11,8 @@ This document is the practical snapshot of the project after the MVP core stabil
 - [rules.md](./rules.md)
 - [ui-style.md](./ui-style.md)
 - [design-system.md](./design-system.md)
+- [release-checklist.md](./release-checklist.md)
+- [dependency-audit.md](./dependency-audit.md)
 
 ## Product State
 
@@ -106,6 +108,7 @@ Important modules:
 - `src/shared/lib/supabaseClient.ts` creates the browser Supabase client with persistent session.
 - `src/shared/lib/localWorkspace.ts` supports local development mode.
 - `src/shared/ui` contains shared UI primitives for gradual design-system migration.
+- `/api/health` exposes non-secret readiness checks for production smoke testing.
 
 Do not rewrite `DashboardApp.tsx` in one large step. Extract only when a specific feature is being touched and behavior is covered by checks.
 
@@ -182,6 +185,7 @@ High priority:
 - rotate Supabase service-role key;
 - replace in-memory rate limiting with durable shared rate limiting if traffic grows;
 - extend CI with production-flow checks when test secrets are available;
+- resolve dependency audit items when safe upgrades exist;
 - continue security review around organization/role boundaries;
 - decide and document disputed payment edge cases.
 

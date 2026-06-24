@@ -774,6 +774,16 @@ button:disabled {
   backdrop-filter: blur(var(--blur-glass));
 }
 
+.dashboard-error-card {
+  width: min(560px, 100%);
+}
+
+.dashboard-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .loading-card strong {
   font-size: 1.1rem;
 }
