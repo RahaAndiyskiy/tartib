@@ -91,6 +91,12 @@ Related docs:
 - Pages: `/dashboard`
 - Tables: `notifications`, `payment_requests`
 
+### Web Push Notifications
+
+- Description: user can enable browser/PWA push notifications; payment and delay events send push through the same internal notification layer.
+- Pages: `/dashboard`
+- Tables: `push_subscriptions`, `notifications`, `payment_requests`
+
 ### PWA / Mobile Shell
 
 - Description: manifest, service worker, mobile layout and bottom navigation.
@@ -137,11 +143,11 @@ Related docs:
 
 ## Planned
 
-### Push Notifications
+### Scheduled Push Reminders
 
-- Description: web push for payment reminders and trainer actions.
+- Description: push delivery for scheduled reminders before due date/on overdue, after the reminder cadence is finalized.
 - Pages: notifications/settings
-- Tables: future push subscription tables
+- Tables: `push_subscriptions`, `notifications`, `payment_requests`
 
 ### Password Recovery / Real Email
 

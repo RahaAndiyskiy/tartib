@@ -55,7 +55,7 @@ Planned work:
 
 Potential 1.0 feature:
 
-- Web push notifications, only after in-app notifications and core flow are stable.
+- Scheduled push reminders, after event-based push and reminder cadence are stable.
 
 ## Version 2.0
 
@@ -88,4 +88,4 @@ Do not add large modules immediately. The next best steps are:
 1. finish stabilization and documentation;
 2. do focused UI/Figma pass;
 3. add rate limiting and security polish;
-4. then decide between push notifications and attendance.
+4. then decide between scheduled push reminders and attendance.

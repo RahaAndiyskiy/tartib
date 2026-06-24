@@ -57,6 +57,14 @@ Performance-логи выключены по умолчанию:
 - `NEXT_PUBLIC_DEBUG_PERFORMANCE=false`
 - `TARTIB_DEBUG_PERFORMANCE=false`
 
+Web Push нужен для push-уведомлений в PWA/браузере:
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT`
+
+Без этих переменных кнопка включения push покажет, что сервер ещё не настроен.
+
 ## Проверка
 
 ```bash

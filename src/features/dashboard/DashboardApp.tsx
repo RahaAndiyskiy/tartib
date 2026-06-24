@@ -40,6 +40,12 @@ import {
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import { getSupabaseClient } from '@shared/lib/supabaseClient';
+import {
+  enablePushNotifications,
+  pushPermissionState,
+  pushSupported,
+  type PushAvailability
+} from '@shared/lib/pushClient';
 import { formatMoney } from '@shared/constants/app';
 import type {
   AppUser,
@@ -266,6 +272,7 @@ export function DashboardApp(): React.ReactElement {
   const [prepaymentMonths, setPrepaymentMonths] = useState<Record<string, number>>({});
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
+  const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
   const [workspaceLoadError, setWorkspaceLoadError] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
@@ -426,6 +433,15 @@ export function DashboardApp(): React.ReactElement {
       window.removeEventListener('tartib-workspace-change', syncWorkspace);
     };
   }, [isLocalMode, refreshRemoteWorkspace]);
+
+  useEffect(() => {
+    if (isLocalMode) {
+      setPushStatus('disabled');
+      return;
+    }
+
+    setPushStatus(pushPermissionState());
+  }, [isLocalMode]);
 
   useEffect(() => {
     if (isLocalMode) return;
@@ -2224,6 +2240,31 @@ export function DashboardApp(): React.ReactElement {
         notification.userId === activeUserId ? { ...notification, read: true } : notification
       )
     });
+  }
+
+  async function enablePush(): Promise<void> {
+    if (!pushSupported()) {
+      setPushStatus('unsupported');
+      setMessage('Push-уведомления не поддерживаются этим браузером.');
+      return;
+    }
+
+    try {
+      const nextStatus = await enablePushNotifications();
+      setPushStatus(nextStatus);
+      setMessage(
+        nextStatus === 'granted'
+          ? 'Push-уведомления включены.'
+          : nextStatus === 'disabled'
+            ? 'Push-уведомления пока не настроены на сервере.'
+            : nextStatus === 'blocked'
+              ? 'Push-уведомления заблокированы в настройках браузера.'
+              : 'Push-уведомления не включены.'
+      );
+    } catch (error) {
+      console.warn('[push] enable failed', error);
+      setMessage(error instanceof Error ? error.message : 'Не удалось включить push-уведомления.');
+    }
   }
 
   function handleReset(): void {
@@ -4198,7 +4239,16 @@ export function DashboardApp(): React.ReactElement {
                 <h2>Уведомления</h2>
                 <p>События и действия, которые можно обработать сразу</p>
               </div>
-              {unreadNotifications.length > 0 ? <button className="small-button secondary" type="button" onClick={markNotificationsRead}>Отметить прочитанными</button> : null}
+              <div className="notification-header-actions">
+                {pushStatus === 'granted' ? (
+                  <span className="status-pill active">Push включены</span>
+                ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
+                  <button className="small-button secondary" type="button" onClick={() => void enablePush()}>
+                    Включить push
+                  </button>
+                ) : null}
+                {unreadNotifications.length > 0 ? <button className="small-button secondary" type="button" onClick={markNotificationsRead}>Отметить прочитанными</button> : null}
+              </div>
             </div>
             <div className="notification-list">
               {[...userNotifications].reverse().map((notification) => {

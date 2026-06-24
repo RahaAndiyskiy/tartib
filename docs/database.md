@@ -24,6 +24,8 @@ Current migration sequence:
 10. `009_realtime_payments_notifications.sql`
 11. `010_atomic_payment_confirmation.sql`
 12. `011_unique_current_payment.sql`
+13. `012_lock_payment_confirmation_rpc.sql`
+14. `013_push_subscriptions.sql`
 
 Never edit old applied migrations. Add a new migration.
 
@@ -134,6 +136,16 @@ Invite link for students.
 - Fields include `token_hash`, optional `public_token`, `status`, `expires_at`
 - Group recruitment links are reusable and long-lived.
 
+### `push_subscriptions`
+
+Browser/PWA web push subscriptions.
+
+- PK: `id`
+- FK: organization, user
+- Unique: `endpoint`
+- Fields: `endpoint`, `p256dh`, `auth`, `user_agent`, timestamps
+- Used only by server routes and Web Push delivery.
+
 ## Relationships
 
 ```mermaid
@@ -153,6 +165,7 @@ erDiagram
   PAYMENT_REQUESTS ||--o{ NOTIFICATIONS : relates
   USERS ||--o{ NOTIFICATIONS : receives
   GROUPS ||--o{ MEMBER_INVITES : target
+  USERS ||--o{ PUSH_SUBSCRIPTIONS : owns
 ```
 
 ## Important RPC / Functions
@@ -199,6 +212,20 @@ Realtime is enabled for:
 - `notifications`
 
 The client refreshes workspace on relevant events.
+
+## Push Notifications
+
+Push subscriptions are stored in `push_subscriptions`.
+
+Required environment variables:
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT`
+
+Push delivery is event-based: when the app creates an internal notification, the server also attempts to send web push to the same user.
+
+Scheduled reminder push is not a separate cron flow yet; reminders still originate from the existing database reminder function and internal notifications.
 
 ## Auth Structure
 

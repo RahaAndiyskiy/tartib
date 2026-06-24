@@ -24,6 +24,7 @@ Tartib is a lightweight CRM for clubs, trainers and students. The current produc
 - payment confirmation;
 - delay requests;
 - internal notifications;
+- event-based web push notifications;
 - mobile/PWA use.
 
 The product is intentionally small right now. Attendance, chat, analytics, expenses, salaries and complex finance are not part of the current production core.
@@ -122,6 +123,7 @@ Core tables:
 - `payment_requests`
 - `notifications`
 - `member_invites`
+- `push_subscriptions`
 
 Important RPC/functions:
 
@@ -166,6 +168,7 @@ Direction:
 - compact mobile-first screens;
 - bottom navigation on mobile;
 - notifications moved to the top area;
+- push can be enabled from the notifications screen;
 - no green as a main brand accent.
 
 The UI works for testing, but final polish should happen through a Figma pass or a focused UI iteration.
@@ -191,7 +194,7 @@ Medium priority:
 
 Later:
 
-- push notifications;
+- scheduled push reminders;
 - email recovery;
 - attendance;
 - expenses/finance;

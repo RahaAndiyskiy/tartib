@@ -96,6 +96,18 @@ type MemberInviteRow = {
   created_at: string;
 };
 
+type PushSubscriptionRow = {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type TrainerMemberInsert = {
   id?: string;
   organization_id: string;
@@ -195,6 +207,16 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<MemberInviteRow>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionRow;
+        Insert: Omit<PushSubscriptionRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<PushSubscriptionRow>;
         Relationships: [];
       };
       trainer_members: {
