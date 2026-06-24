@@ -110,6 +110,10 @@ export async function savePaymentAction(
   });
 }
 
+function logNotificationFailure(context: string, paymentId: string, userId: string): void {
+  console.warn('[workspace-action] notification failed', { context, paymentId, userId });
+}
+
 export async function deletePaymentAction(
   identity: ServerIdentity,
   body: Extract<ActionBody, { action: 'delete_payment' }>
@@ -159,7 +163,7 @@ export async function deletePaymentAction(
     `Счёт отменён: ${formatMoney(payment.amount)}.`
   );
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('delete_payment', payment.id, payment.member_id);
   }
 
   return NextResponse.json({
@@ -235,7 +239,7 @@ async function submitPaymentAction(identity: ServerIdentity, payment: PaymentReq
     return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось отправить подтверждение.' }, { status: 400 });
   }
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('submit_payment', payment.id, payment.trainer_id);
   }
   return NextResponse.json({
     payment: toLocalPayment(paymentResult.data as PaymentRequest),
@@ -290,7 +294,7 @@ async function submitPrepaymentAction(
     payment.id
   );
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('submit_prepayment', payment.id, payment.trainer_id);
   }
 
   return NextResponse.json({
@@ -338,7 +342,7 @@ async function requestDelayAction(
     return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось запросить отсрочку.' }, { status: 400 });
   }
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('request_delay', payment.id, payment.trainer_id);
   }
   return NextResponse.json({
     payment: toLocalPayment(paymentResult.data as PaymentRequest),
@@ -392,7 +396,7 @@ async function decideDelayAction(
     return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось обработать отсрочку.' }, { status: 400 });
   }
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('decide_delay', payment.id, payment.member_id);
   }
   return NextResponse.json({
     payment: toLocalPayment(paymentResult.data as PaymentRequest),
@@ -436,7 +440,7 @@ async function rejectPaymentAction(identity: ServerIdentity, payment: PaymentReq
     payment.id
   );
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('reject_payment', payment.id, payment.member_id);
   }
 
   return NextResponse.json({
@@ -469,7 +473,7 @@ async function approvePaymentAction(identity: ServerIdentity, payment: PaymentRe
     payment.id
   );
   if (!notification) {
-    return NextResponse.json({ error: 'Не удалось создать уведомление.' }, { status: 400 });
+    logNotificationFailure('approve_payment', payment.id, payment.member_id);
   }
 
   return NextResponse.json({

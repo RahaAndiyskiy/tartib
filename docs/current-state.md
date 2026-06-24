@@ -36,6 +36,7 @@ Production hardening currently includes:
 - closed owner registration by default;
 - basic in-memory rate limiting on critical API routes;
 - a database unique index that allows only one current payment per member;
+- payment confirmation RPC is executable only by the server service-role client;
 - GitHub CI for typecheck, lint and build;
 - performance logs behind debug env flags.
 
@@ -130,6 +131,7 @@ Important RPC/functions:
 Important current rule:
 
 - Monthly payment confirmation is atomic in `confirm_payment_and_advance`.
+- Direct browser/client execution of `confirm_payment_and_advance` is revoked; use the protected workspace action route.
 - Paid payment history is never deleted.
 - A member currently belongs to one group.
 - A member can have only one `is_current = true` payment.

@@ -69,7 +69,12 @@ export async function createUserAction(
   }
 
   const user = profileResult.data;
-  await admin.from('user_roles').insert({ user_id: user.id, role: body.role });
+  const roleResult = await admin.from('user_roles').insert({ user_id: user.id, role: body.role });
+  if (roleResult.error) {
+    await admin.from('users').delete().eq('id', user.id);
+    await admin.auth.admin.deleteUser(authResult.data.user.id);
+    return NextResponse.json({ error: roleResult.error.message }, { status: 400 });
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }
