@@ -97,6 +97,12 @@ Related docs:
 - Pages: `/dashboard`
 - Tables: `push_subscriptions`, `notifications`, `payment_requests`
 
+### Account Settings
+
+- Description: user can update first name, last name and phone; owner can update organization name; push can be enabled from settings.
+- Pages: `/dashboard`
+- Tables: `users`, `organizations`, `push_subscriptions`
+
 ### PWA / Mobile Shell
 
 - Description: manifest, service worker, mobile layout and bottom navigation.
@@ -122,6 +128,12 @@ Related docs:
 - Description: gradually split `DashboardApp.tsx` and reduce local-only prototype surface.
 - Pages: `/dashboard`
 - Tables: not applicable
+
+### Profile Avatar Upload
+
+- Description: avatar UI placeholder exists, but real photo upload needs Supabase Storage bucket and access policies.
+- Pages: `/dashboard`
+- Tables: `users`
 
 ### Security Hardening
 

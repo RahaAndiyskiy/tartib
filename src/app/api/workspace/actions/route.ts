@@ -11,6 +11,7 @@ import {
   savePaymentAction
 } from './_lib/payments';
 import { markNotificationsReadAction } from './_lib/notifications';
+import { updateOrganizationAction, updateProfileAction } from './_lib/settings';
 import type { ActionBody, PaymentActionBody } from './_lib/types';
 
 const paymentActions = new Set<ActionBody['action']>([
@@ -45,6 +46,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       return assignMemberGroupAction(identity, body);
     case 'delete_member':
       return deleteMemberAction(identity, body);
+    case 'update_profile':
+      return updateProfileAction(identity, body);
+    case 'update_organization':
+      return updateOrganizationAction(identity, body);
     case 'save_payment':
       return savePaymentAction(identity, body);
     case 'delete_payment':

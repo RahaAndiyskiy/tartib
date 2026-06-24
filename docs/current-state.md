@@ -27,6 +27,7 @@ Tartib is a lightweight CRM for clubs, trainers and students. The current produc
 - delay requests;
 - internal notifications;
 - event-based web push notifications;
+- account/profile settings;
 - mobile/PWA use.
 
 The product is intentionally small right now. Attendance, chat, analytics, expenses, salaries and complex finance are not part of the current production core.
@@ -57,6 +58,7 @@ Implemented flow:
 9. Trainer approves/rejects the payment or delay.
 10. Paid monthly payment atomically creates the next current payment.
 11. Owner/trainer/member see role-appropriate payment state.
+12. User can update basic profile data from settings.
 
 ## Roles
 
@@ -171,7 +173,7 @@ Direction:
 - compact mobile-first screens;
 - bottom navigation on mobile;
 - notifications moved to the top area;
-- push can be enabled from the notifications screen;
+- settings section contains profile fields, club name for owners and push enablement;
 - no green as a main brand accent.
 
 The UI works for testing, but final polish should happen through a Figma pass or a focused UI iteration.
@@ -188,6 +190,7 @@ High priority:
 - resolve dependency audit items when safe upgrades exist;
 - continue security review around organization/role boundaries;
 - decide and document disputed payment edge cases.
+- implement profile avatar upload with Supabase Storage bucket and policies.
 
 Medium priority:
 

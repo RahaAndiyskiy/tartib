@@ -15,6 +15,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Settings,
   Share2,
   CalendarDays,
   Clock3,
@@ -111,6 +112,13 @@ type DelayDraft = {
   comment: string;
 };
 
+type SettingsDraft = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  organizationName: string;
+};
+
 type DashboardSection =
   | 'overview'
   | 'people'
@@ -118,7 +126,8 @@ type DashboardSection =
   | 'groups'
   | 'schedule'
   | 'expenses'
-  | 'notifications';
+  | 'notifications'
+  | 'settings';
 
 type PaymentView = 'actions' | 'all' | 'overdue' | 'paid';
 
@@ -268,6 +277,12 @@ export function DashboardApp(): React.ReactElement {
   const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(emptyExpenseDraft);
   const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
+  const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    organizationName: ''
+  });
   const [delayDrafts, setDelayDrafts] = useState<Record<string, DelayDraft>>({});
   const [prepaymentMonths, setPrepaymentMonths] = useState<Record<string, number>>({});
   const [editingGroupId, setEditingGroupId] = useState('');
@@ -482,6 +497,17 @@ export function DashboardApp(): React.ReactElement {
     () => workspace?.users.find((user) => user.id === activeUserId) ?? null,
     [activeUserId, workspace]
   );
+
+  useEffect(() => {
+    if (!activeUser || !workspace) return;
+
+    setSettingsDraft({
+      firstName: activeUser.first_name,
+      lastName: activeUser.last_name,
+      phone: activeUser.phone ?? '',
+      organizationName: workspace.organization.name
+    });
+  }, [activeUser, workspace]);
 
   useEffect(() => {
     if (isLocalMode || !workspace?.organization.id || !activeUserId) return;
@@ -2267,6 +2293,111 @@ export function DashboardApp(): React.ReactElement {
     }
   }
 
+  async function saveProfileSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (!workspace || !activeUser) return;
+
+    const firstName = settingsDraft.firstName.trim();
+    const lastName = settingsDraft.lastName.trim();
+    const phone = settingsDraft.phone.trim();
+    if (!firstName || !lastName) {
+      setMessage('Укажите имя и фамилию.');
+      return;
+    }
+
+    if (!isLocalMode) {
+      setPendingAction('update-profile');
+      try {
+        const data = await runRemoteActionData<{ user: AppUser }>({
+          action: 'update_profile',
+          firstName,
+          lastName,
+          phone
+        });
+        if (data?.user) {
+          setWorkspace((current) =>
+            current
+              ? {
+                  ...current,
+                  users: current.users.map((user) =>
+                    user.id === data.user.id
+                      ? {
+                          ...data.user,
+                          roles: user.roles
+                        }
+                      : user
+                  )
+                }
+              : current
+          );
+          setMessage('Профиль сохранён.');
+        }
+      } finally {
+        setPendingAction(null);
+      }
+      return;
+    }
+
+    saveWorkspace({
+      ...workspace,
+      users: workspace.users.map((user) =>
+        user.id === activeUser.id
+          ? {
+              ...user,
+              first_name: firstName,
+              last_name: lastName,
+              phone: phone || null
+            }
+          : user
+      )
+    });
+    setMessage('Профиль сохранён.');
+  }
+
+  async function saveOrganizationSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (!workspace || !activeUser || !hasRole(activeUser, 'owner')) return;
+
+    const name = settingsDraft.organizationName.trim();
+    if (!name) {
+      setMessage('Укажите название клуба.');
+      return;
+    }
+
+    if (!isLocalMode) {
+      setPendingAction('update-organization');
+      try {
+        const data = await runRemoteActionData<{ organization: LocalWorkspace['organization'] }>({
+          action: 'update_organization',
+          name
+        });
+        if (data?.organization) {
+          setWorkspace((current) =>
+            current
+              ? {
+                  ...current,
+                  organization: data.organization
+                }
+              : current
+          );
+          setMessage('Настройки клуба сохранены.');
+        }
+      } finally {
+        setPendingAction(null);
+      }
+      return;
+    }
+
+    saveWorkspace({
+      ...workspace,
+      organization: {
+        ...workspace.organization,
+        name
+      }
+    });
+    setMessage('Настройки клуба сохранены.');
+  }
+
   function handleReset(): void {
     const nextWorkspace = resetWorkspace();
     const owner = nextWorkspace.users[0];
@@ -2417,6 +2548,10 @@ export function DashboardApp(): React.ReactElement {
     notifications: {
       title: 'Уведомления',
       description: 'История решений и важных изменений'
+    },
+    settings: {
+      title: 'Настройки',
+      description: 'Профиль, уведомления и параметры клуба'
     }
   };
 
@@ -2499,6 +2634,12 @@ export function DashboardApp(): React.ReactElement {
               onClick={() => openSection('groups')}
             />
           )}
+          <NavButton
+            active={activeSection === 'settings'}
+            icon={<Settings size={18} />}
+            label="Настройки"
+            onClick={() => openSection('settings')}
+          />
         </nav>
 
         <div className="crm-sidebar-footer">
@@ -4229,6 +4370,162 @@ export function DashboardApp(): React.ReactElement {
                 Добавить расход
               </button>
             </form>
+          </section>
+        ) : null}
+
+        {activeSection === 'settings' ? (
+          <section className="settings-grid">
+            <form className="crm-panel settings-card form-stack" onSubmit={saveProfileSettings}>
+              <div className="crm-panel-header">
+                <div>
+                  <h2>Профиль</h2>
+                  <p>Имя, контакт и данные для входа</p>
+                </div>
+                <Settings size={20} />
+              </div>
+              <div className="settings-card-body">
+                <div className="settings-avatar-preview">
+                  <span aria-hidden="true">
+                    {activeUser.first_name.slice(0, 1)}
+                    {activeUser.last_name.slice(0, 1)}
+                  </span>
+                  <div>
+                    <strong>Фото профиля</strong>
+                    <p>Загрузку аватара добавим после подключения Storage и правил доступа.</p>
+                  </div>
+                </div>
+                <div className="split-fields">
+                  <label>
+                    Имя
+                    <input
+                      required
+                      value={settingsDraft.firstName}
+                      onChange={(event) =>
+                        setSettingsDraft((current) => ({ ...current, firstName: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Фамилия
+                    <input
+                      required
+                      value={settingsDraft.lastName}
+                      onChange={(event) =>
+                        setSettingsDraft((current) => ({ ...current, lastName: event.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
+                <label>
+                  Телефон
+                  <input
+                    inputMode="tel"
+                    placeholder="Номер для связи"
+                    value={settingsDraft.phone}
+                    onChange={(event) =>
+                      setSettingsDraft((current) => ({ ...current, phone: event.target.value }))
+                    }
+                  />
+                </label>
+                <div className="settings-readonly-list">
+                  <div>
+                    <span>Логин</span>
+                    <strong>{activeUser.username ?? 'Не указан'}</strong>
+                  </div>
+                  <div>
+                    <span>Email</span>
+                    <strong>{activeUser.email ?? 'Не используется'}</strong>
+                  </div>
+                  <div>
+                    <span>Роль</span>
+                    <strong>{roleLabel(activeUser)}</strong>
+                  </div>
+                </div>
+                <button className="primary-button" type="submit" disabled={isPendingAction('update-profile')}>
+                  {isPendingAction('update-profile') ? 'Сохраняем...' : 'Сохранить профиль'}
+                </button>
+              </div>
+            </form>
+
+            <div className="settings-side-stack">
+              {hasRole(activeUser, 'owner') ? (
+                <form className="crm-panel settings-card form-stack" onSubmit={saveOrganizationSettings}>
+                  <div className="crm-panel-header">
+                    <div>
+                      <h2>Клуб</h2>
+                      <p>Название, которое видят тренеры и ученики</p>
+                    </div>
+                  </div>
+                  <div className="settings-card-body">
+                    <label>
+                      Название клуба
+                      <input
+                        required
+                        value={settingsDraft.organizationName}
+                        onChange={(event) =>
+                          setSettingsDraft((current) => ({ ...current, organizationName: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <button
+                      className="primary-button"
+                      type="submit"
+                      disabled={isPendingAction('update-organization')}
+                    >
+                      {isPendingAction('update-organization') ? 'Сохраняем...' : 'Сохранить клуб'}
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              <section className="crm-panel settings-card">
+                <div className="crm-panel-header">
+                  <div>
+                    <h2>Уведомления</h2>
+                    <p>Push для важных оплат и запросов</p>
+                  </div>
+                  <Bell size={20} />
+                </div>
+                <div className="settings-card-body">
+                  <div className="settings-status-row">
+                    <span>Статус</span>
+                    <strong>
+                      {pushStatus === 'granted'
+                        ? 'Включены'
+                        : pushStatus === 'blocked'
+                          ? 'Заблокированы'
+                          : pushStatus === 'disabled'
+                            ? 'Не настроены'
+                            : pushStatus === 'unsupported'
+                              ? 'Не поддерживаются'
+                              : 'Выключены'}
+                    </strong>
+                  </div>
+                  {pushStatus === 'granted' ? (
+                    <p className="inline-note">Вы будете получать важные события по оплатам, когда браузер разрешает push.</p>
+                  ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
+                    <button className="primary-button" type="button" onClick={() => void enablePush()}>
+                      Включить push
+                    </button>
+                  ) : (
+                    <p className="inline-note">
+                      Проверьте разрешения браузера или откройте приложение как PWA, если push недоступен.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              {!isLocalMode ? (
+                <section className="crm-panel settings-card">
+                  <div className="settings-card-body">
+                    <button className="small-button secondary settings-logout-button" type="button" onClick={() => void signOut()}>
+                      <LogOut size={16} />
+                      Выйти из аккаунта
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+            </div>
           </section>
         ) : null}
 

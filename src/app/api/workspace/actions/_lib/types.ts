@@ -38,6 +38,16 @@ export type ActionBody =
   | { action: 'assign_member_group'; memberId: string; groupId: string }
   | { action: 'delete_member'; memberId: string }
   | {
+      action: 'update_profile';
+      firstName: string;
+      lastName: string;
+      phone?: string;
+    }
+  | {
+      action: 'update_organization';
+      name: string;
+    }
+  | {
       action: 'save_payment';
       memberId: string;
       type: BillingPlanType;

@@ -15,7 +15,8 @@ Tartib is a lightweight CRM/PWA for clubs, trainers and students. The current pr
 - payment requests;
 - payment confirmation;
 - delay requests;
-- internal notifications.
+- internal notifications;
+- account/profile settings.
 
 Read the current project snapshot first: [current-state.md](./current-state.md).
 
@@ -66,8 +67,9 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 - Current and historical invoices live in `payment_requests`.
 - Paid history must not be deleted.
 - Monthly payment approval is atomic through `confirm_payment_and_advance`.
+- Basic profile and owner organization settings are edited through workspace actions.
 - Expenses and schedules are not production core yet.
-- Do not add attendance, chat, analytics, finance or push notifications unless explicitly requested.
+- Do not add attendance, chat, analytics, finance or scheduled push reminders unless explicitly requested.
 
 ## Active Tasks
 

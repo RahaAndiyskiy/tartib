@@ -72,6 +72,7 @@ Handles protected mutations:
 - payments;
 - delays;
 - notifications.
+- profile and organization settings.
 
 The route file is only a dispatcher. Domain handlers live in `src/app/api/workspace/actions/_lib/`:
 
@@ -81,6 +82,7 @@ The route file is only a dispatcher. Domain handlers live in `src/app/api/worksp
 - `members.ts`
 - `payments.ts`
 - `notifications.ts`
+- `settings.ts`
 - `utils.ts`
 - `types.ts`
 
