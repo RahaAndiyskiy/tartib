@@ -88,7 +88,8 @@ Important modules:
 
 - `src/features/dashboard/DashboardApp.tsx` is still the main CRM shell and is large.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
-- `src/app/api/workspace/actions/route.ts` handles protected mutations.
+- `src/app/api/workspace/actions/route.ts` dispatches protected mutations.
+- `src/app/api/workspace/actions/_lib/` contains domain action handlers.
 - `src/app/api/invitations/[token]/route.ts` handles public invite registration.
 - `src/shared/lib/serverAuth.ts` validates Bearer tokens and server identity.
 - `src/shared/lib/supabaseClient.ts` creates the browser Supabase client with persistent session.

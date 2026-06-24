@@ -71,6 +71,17 @@ Handles protected mutations:
 - delays;
 - notifications.
 
+The route file is only a dispatcher. Domain handlers live in `src/app/api/workspace/actions/_lib/`:
+
+- `users.ts`
+- `invites.ts`
+- `groups.ts`
+- `members.ts`
+- `payments.ts`
+- `notifications.ts`
+- `utils.ts`
+- `types.ts`
+
 `/api/invitations/[token]`
 
 Public invite read/claim endpoint. Creates member profile, role, trainer assignment and group membership.
