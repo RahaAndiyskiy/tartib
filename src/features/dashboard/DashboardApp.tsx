@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Clock3,
   Layers3,
+  UserRound,
   Wallet,
   Users,
   X
@@ -291,6 +292,7 @@ export function DashboardApp(): React.ReactElement {
   const [workspaceLoadError, setWorkspaceLoadError] = useState('');
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
@@ -901,11 +903,13 @@ export function DashboardApp(): React.ReactElement {
     }
     setMessage('');
     setMobileFormOpen(false);
+    setMobileAccountOpen(false);
   }
 
   function openSection(section: DashboardSection): void {
     setActiveSection(section);
     setMobileFormOpen(false);
+    setMobileAccountOpen(false);
     if (section === 'notifications' && unreadNotifications.length > 0) {
       void markNotificationsRead();
     }
@@ -917,6 +921,7 @@ export function DashboardApp(): React.ReactElement {
     setSelectedPaymentMemberId('');
     setPaymentEditOpen(false);
     setMobileFormOpen(false);
+    setMobileAccountOpen(false);
   }
 
   function openNotificationPayment(paymentId?: string | null): void {
@@ -929,6 +934,7 @@ export function DashboardApp(): React.ReactElement {
     setSelectedPaymentMemberId(payment.member_id);
     setPaymentEditOpen(false);
     setMobileFormOpen(false);
+    setMobileAccountOpen(false);
   }
 
   function notificationPayment(notification: LocalNotification): PaymentRequest | null {
@@ -2638,6 +2644,7 @@ export function DashboardApp(): React.ReactElement {
             active={activeSection === 'settings'}
             icon={<Settings size={18} />}
             label="Настройки"
+            mobileHidden
             onClick={() => openSection('settings')}
           />
         </nav>
@@ -2674,30 +2681,63 @@ export function DashboardApp(): React.ReactElement {
       </aside>
 
       <main className="crm-main">
-        <div className="mobile-topbar">
-          <div className="mobile-brand">
-            <span className="crm-brand-mark">T</span>
-            <div>
-              <strong>{workspace.organization.name}</strong>
-              <span>{roleLabel(activeUser)}</span>
-            </div>
-          </div>
-          <div className="mobile-topbar-actions">
+        <div className={mobileAccountOpen ? 'mobile-topbar account-open' : 'mobile-topbar'}>
+          <div className="mobile-account-cluster">
             <button
-              aria-label="Уведомления"
-              className={activeSection === 'notifications' ? 'header-notification-button active' : 'header-notification-button'}
+              aria-expanded={mobileAccountOpen}
+              aria-label="Меню аккаунта"
+              className="mobile-avatar-button"
               type="button"
-              onClick={() => openSection('notifications')}
+              onClick={() => setMobileAccountOpen((current) => !current)}
             >
-              <Bell size={19} />
-              {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
+              <span>
+                {activeUser.first_name.slice(0, 1)}
+                {activeUser.last_name.slice(0, 1)}
+              </span>
+            </button>
+            <button
+              aria-label="Аккаунт"
+              className="mobile-account-action action-account"
+              type="button"
+              tabIndex={mobileAccountOpen ? 0 : -1}
+              onClick={() => openSection('settings')}
+            >
+              <UserRound size={18} />
+            </button>
+            <button
+              aria-label="Настройки"
+              className="mobile-account-action action-settings"
+              type="button"
+              tabIndex={mobileAccountOpen ? 0 : -1}
+              onClick={() => openSection('settings')}
+            >
+              <Settings size={18} />
             </button>
             {!isLocalMode ? (
-              <button aria-label="Выйти" className="mobile-icon-button" type="button" onClick={() => void signOut()}>
-                <LogOut size={20} />
+              <button
+                aria-label="Выйти"
+                className="mobile-account-action action-logout"
+                type="button"
+                tabIndex={mobileAccountOpen ? 0 : -1}
+                onClick={() => void signOut()}
+              >
+                <LogOut size={18} />
               </button>
             ) : null}
           </div>
+          <div className="mobile-title">
+            <strong>{workspace.organization.name}</strong>
+            <span>{roleLabel(activeUser)}</span>
+          </div>
+          <button
+            aria-label="Уведомления"
+            className={activeSection === 'notifications' ? 'mobile-notification-button active' : 'mobile-notification-button'}
+            type="button"
+            onClick={() => openSection('notifications')}
+          >
+            <Bell size={18} />
+            {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
+          </button>
         </div>
         <header className="crm-header">
           <div>
@@ -4661,16 +4701,22 @@ function NavButton({
   count,
   icon,
   label,
+  mobileHidden,
   onClick
 }: {
   active: boolean;
   count?: number;
   icon: React.ReactNode;
   label: string;
+  mobileHidden?: boolean;
   onClick: () => void;
 }): React.ReactElement {
   return (
-    <button className={active ? 'crm-nav-button active' : 'crm-nav-button'} type="button" onClick={onClick}>
+    <button
+      className={`${active ? 'crm-nav-button active' : 'crm-nav-button'}${mobileHidden ? ' mobile-hidden' : ''}`}
+      type="button"
+      onClick={onClick}
+    >
       {icon}
       <span>{label}</span>
       {count ? <strong>{count}</strong> : null}
