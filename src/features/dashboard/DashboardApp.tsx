@@ -293,6 +293,7 @@ export function DashboardApp(): React.ReactElement {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
@@ -2719,7 +2720,10 @@ export function DashboardApp(): React.ReactElement {
                 className="mobile-account-action action-logout"
                 type="button"
                 tabIndex={mobileAccountOpen ? 0 : -1}
-                onClick={() => void signOut()}
+                onClick={() => {
+                  setMobileAccountOpen(false);
+                  setLogoutConfirmOpen(true);
+                }}
               >
                 <LogOut size={18} />
               </button>
@@ -2783,6 +2787,31 @@ export function DashboardApp(): React.ReactElement {
         </header>
 
         {message ? <p className="notice success">{message}</p> : null}
+
+        {logoutConfirmOpen ? (
+          <div className="modal-backdrop" role="presentation" onClick={() => setLogoutConfirmOpen(false)}>
+            <section
+              aria-labelledby="logout-confirm-title"
+              aria-modal="true"
+              className="confirm-modal"
+              role="dialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div>
+                <h2 id="logout-confirm-title">Выйти из аккаунта?</h2>
+                <p>После выхода нужно будет снова ввести логин и пароль.</p>
+              </div>
+              <div className="confirm-modal-actions">
+                <button className="primary-button danger-soft" type="button" onClick={() => void signOut()}>
+                  Выйти
+                </button>
+                <button className="small-button secondary" type="button" onClick={() => setLogoutConfirmOpen(false)}>
+                  Отмена
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         {activeSection === 'overview' ? (
           <>

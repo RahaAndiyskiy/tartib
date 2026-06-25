@@ -1722,6 +1722,51 @@ button:disabled {
   gap: 8px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  background: rgba(36, 28, 55, 0.24);
+  padding: 20px;
+  backdrop-filter: blur(12px);
+}
+
+.confirm-modal {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 26px 70px rgba(38, 28, 76, 0.22);
+  padding: 22px;
+}
+
+.confirm-modal h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.15rem;
+}
+
+.confirm-modal p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.confirm-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.primary-button.danger-soft {
+  background: linear-gradient(135deg, #ef7f92, #d85a70);
+  box-shadow: 0 16px 36px rgba(216, 90, 112, 0.24);
+}
+
 .text-button {
   border: 0;
   background: transparent;
@@ -3356,22 +3401,6 @@ button:disabled {
     }
   }
 
-  .mobile-topbar {
-    min-height: 62px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 0 -12px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    border-top: 0;
-    border-radius: 0 0 var(--radius-panel) var(--radius-panel);
-    background: rgba(255, 255, 255, 0.76);
-    padding: 8px 14px;
-    box-shadow: 0 14px 30px rgba(25, 43, 34, 0.08);
-    backdrop-filter: blur(var(--blur-glass));
-  }
-
   .mobile-topbar-actions {
     display: flex;
     flex: 0 0 auto;
@@ -3441,16 +3470,16 @@ button:disabled {
   .mobile-topbar {
     position: relative;
     z-index: 20;
-    min-height: 72px;
+    min-height: 70px;
     display: grid;
-    grid-template-columns: 74px minmax(0, 1fr) 74px;
+    grid-template-columns: 64px minmax(0, 1fr) 64px;
     align-items: center;
     gap: 8px;
     margin: 0 0 18px;
     border: 0;
     border-radius: 0;
-    background: transparent;
-    padding: 10px 8px 8px;
+    background: none;
+    padding: 12px 0 8px;
     box-shadow: none;
     backdrop-filter: none;
     overflow: visible;
@@ -3460,6 +3489,9 @@ button:disabled {
     position: relative;
     width: 54px;
     height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: visible;
   }
 
@@ -3566,7 +3598,9 @@ button:disabled {
   .mobile-notification-button {
     position: relative;
     justify-self: end;
-    background: #b9b9bc;
+    width: 54px;
+    height: 54px;
+    background: #c8c8cc;
     color: rgba(255, 255, 255, 0.9);
     transition:
       background 180ms ease,
@@ -3576,7 +3610,7 @@ button:disabled {
 
   .mobile-notification-button.active,
   .mobile-notification-button:hover {
-    background: #9f93c9;
+    background: #b8b2ca;
     color: #ffffff;
   }
 
@@ -4112,8 +4146,8 @@ button:disabled {
   }
 
   .mobile-topbar {
-    margin-right: -9px;
-    margin-left: -9px;
+    margin-right: 0;
+    margin-left: 0;
   }
 
   .crm-nav-button span {
@@ -4637,13 +4671,6 @@ select:focus {
 
   .crm-nav-button.active::before {
     background: linear-gradient(90deg, rgba(154, 125, 255, 0.55), rgba(127, 88, 255, 0.98), rgba(154, 125, 255, 0.55));
-  }
-
-  .mobile-topbar {
-    border-color: rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.68);
-    box-shadow: 0 16px 38px rgba(63, 53, 101, 0.12);
-    backdrop-filter: blur(var(--blur-glass));
   }
 
   .crm-header {
