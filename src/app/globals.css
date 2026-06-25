@@ -3551,17 +3551,17 @@ button:disabled {
   }
 
   .mobile-topbar.account-open .action-account {
-    transform: translate(46px, -4px) scale(0.82);
+    transform: translate(58px, -8px) scale(0.82);
     transition-delay: 30ms;
   }
 
   .mobile-topbar.account-open .action-settings {
-    transform: translate(42px, 37px) scale(0.82);
+    transform: translate(54px, 47px) scale(0.82);
     transition-delay: 80ms;
   }
 
   .mobile-topbar.account-open .action-logout {
-    transform: translate(0, 45px) scale(0.82);
+    transform: translate(-3px, 58px) scale(0.82);
     transition-delay: 130ms;
   }
 
@@ -3598,8 +3598,8 @@ button:disabled {
   .mobile-notification-button {
     position: relative;
     justify-self: end;
-    width: 54px;
-    height: 54px;
+    width: 44px;
+    height: 44px;
     background: #c8c8cc;
     color: rgba(255, 255, 255, 0.9);
     transition:
