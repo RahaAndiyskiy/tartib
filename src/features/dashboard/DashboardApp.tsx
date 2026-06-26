@@ -2819,18 +2819,18 @@ export function DashboardApp(): React.ReactElement {
             {!hasRole(activeUser, 'member') &&
             (activeSection === 'people' || activeSection === 'groups') ? (
               <button
+                aria-expanded={mobileFormOpen}
+                aria-label={mobileFormOpen ? 'Закрыть форму' : 'Добавить'}
                 className="mobile-create-button"
                 type="button"
                 onClick={() => setMobileFormOpen((current) => !current)}
               >
                 {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
                 {mobileFormOpen
-                  ? 'Закрыть'
+                  ? null
                   : activeSection === 'groups'
                     ? 'Новая группа'
-                    : hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-                      ? 'Новый ученик'
-                      : 'Добавить'}
+                    : 'Добавить'}
               </button>
             ) : null}
             <div className="crm-user-badge">
