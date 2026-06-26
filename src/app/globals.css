@@ -45,8 +45,8 @@
 .people-toolbar {
   min-height: 0;
   display: grid;
-  justify-content: end;
-  border-bottom: 1px solid rgba(139, 127, 171, 0.16);
+  justify-content: stretch;
+  border-bottom: 0;
   background: rgba(255, 255, 255, 0.5);
   padding: 0 18px 16px;
   backdrop-filter: blur(var(--blur-glass));
@@ -56,8 +56,11 @@
   align-items: center;
 }
 
-.people-group-filter,
 .people-search {
+  width: 100%;
+}
+
+.people-group-filter {
   width: min(100%, 260px);
 }
 
@@ -3933,7 +3936,6 @@ button:disabled {
     color: currentColor;
   }
 
-  .mobile-create-button:has(svg:first-child:last-child),
   .mobile-create-button[aria-expanded="true"] {
     min-width: 38px;
     width: 38px;
@@ -3984,14 +3986,18 @@ button:disabled {
   }
 
   .people-toolbar {
-    justify-content: end;
+    justify-content: stretch;
     padding: 0 14px 14px;
   }
 
-  .people-group-filter,
-  .people-search {
+  .people-group-filter {
     width: clamp(174px, 52vw, 230px);
     justify-self: end;
+  }
+
+  .people-search {
+    width: 100%;
+    justify-self: stretch;
   }
 
   .crm-panel-header p {
