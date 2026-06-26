@@ -2825,13 +2825,12 @@ export function DashboardApp(): React.ReactElement {
                 type="button"
                 onClick={() => setMobileFormOpen((current) => !current)}
               >
-                <span className="mobile-create-button-surface" aria-hidden="true">
-                  <span className="mobile-create-plus"><Plus size={18} /></span>
-                  <span className="mobile-create-close"><X size={18} /></span>
-                  <span className="mobile-create-label">
-                    {activeSection === 'groups' ? 'Новая группа' : 'Добавить'}
-                  </span>
-                </span>
+                {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
+                {mobileFormOpen
+                  ? null
+                  : activeSection === 'groups'
+                    ? 'Новая группа'
+                    : 'Добавить'}
               </button>
             ) : null}
             <div className="crm-user-badge">
