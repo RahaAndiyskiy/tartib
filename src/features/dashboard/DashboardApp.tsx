@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Clock3,
   Layers3,
+  Trash2,
   UserRound,
   Wallet,
   Users,
@@ -3327,7 +3328,7 @@ export function DashboardApp(): React.ReactElement {
                             <div className="person-detail-actions">
                               {visibleGroups.length > 0 ? (
                                 <button
-                                  className="small-button secondary compact-action"
+                                  className="small-button secondary compact-action change-group-action"
                                   type="button"
                                   onClick={() =>
                                     setGroupEditorOpenByMember((current) => ({
@@ -3340,12 +3341,13 @@ export function DashboardApp(): React.ReactElement {
                                 </button>
                               ) : null}
                               <button
-                                className="small-button danger compact-action"
+                                aria-label="Удалить ученика"
+                                className="small-button danger compact-action delete-person-action"
                                 type="button"
                                 disabled={isPendingAction(`delete-member:${user.id}`)}
                                 onClick={() => void deleteMember(user.id)}
                               >
-                                {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           ) : null}
