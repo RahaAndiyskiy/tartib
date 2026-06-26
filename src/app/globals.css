@@ -3312,7 +3312,7 @@ button:disabled {
   }
 
   .crm-nav-button:active {
-    transform: translateY(1px) scale(0.98);
+    transform: none;
   }
 
   .crm-nav-button.active::before {

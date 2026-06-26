@@ -4748,11 +4748,31 @@ function NavButton({
   mobileHidden?: boolean;
   onClick: () => void;
 }): React.ReactElement {
+  const ignoreNextClickRef = useRef(false);
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+    ignoreNextClickRef.current = true;
+    onClick();
+    window.setTimeout(() => {
+      ignoreNextClickRef.current = false;
+    }, 350);
+  }
+
+  function handleClick(): void {
+    if (ignoreNextClickRef.current) {
+      ignoreNextClickRef.current = false;
+      return;
+    }
+    onClick();
+  }
+
   return (
     <button
       className={`${active ? 'crm-nav-button active' : 'crm-nav-button'}${mobileHidden ? ' mobile-hidden' : ''}`}
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
+      onTouchEnd={handleTouchEnd}
     >
       {icon}
       <span>{label}</span>
