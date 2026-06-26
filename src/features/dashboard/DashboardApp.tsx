@@ -2722,6 +2722,14 @@ export function DashboardApp(): React.ReactElement {
             onClick={() => setMobileAccountOpen(false)}
           />
         ) : null}
+        {mobileFormOpen ? (
+          <button
+            aria-label="Закрыть форму добавления"
+            className="mobile-form-backdrop"
+            type="button"
+            onClick={() => setMobileFormOpen(false)}
+          />
+        ) : null}
         <div className={mobileAccountOpen ? 'mobile-topbar account-open' : 'mobile-topbar'}>
           <div className="mobile-account-cluster">
             <button

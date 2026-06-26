@@ -3201,6 +3201,7 @@ button:disabled {
 
 .mobile-topbar,
 .mobile-account-dismiss,
+.mobile-form-backdrop,
 .mobile-create-button,
 .mobile-field-label {
   display: none;
@@ -3681,6 +3682,18 @@ button:disabled {
     border: 0;
     background: transparent;
     padding: 0;
+  }
+
+  .mobile-form-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 74;
+    display: block;
+    border: 0;
+    background: rgba(36, 28, 55, 0.14);
+    padding: 0;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 
   .mobile-account-cluster {
@@ -4259,11 +4272,33 @@ button:disabled {
     min-height: 38px;
   }
 
+  @keyframes mobileSheetIn {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   .crm-side-form {
     display: none;
-    position: static;
-    order: -1;
-    padding: 0 14px 16px;
+    position: fixed;
+    z-index: 75;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    max-height: min(82dvh, 720px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    order: initial;
+    border-radius: 28px;
+    padding: 0 14px 22px;
+    box-shadow: 0 28px 90px rgba(63, 53, 101, 0.22);
+    animation: mobileSheetIn 260ms cubic-bezier(0.2, 0.9, 0.22, 1);
   }
 
   .crm-side-form.mobile-form-open {
