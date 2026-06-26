@@ -3290,21 +3290,21 @@ button:disabled {
     left: 0;
     height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 42px);
     pointer-events: none;
-    background: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     mask-image: linear-gradient(
       to top,
       black 0%,
-      black 44%,
-      rgba(0, 0, 0, 0.68) 72%,
+      black 34%,
+      rgba(0, 0, 0, 0.44) 66%,
       transparent 100%
     );
     -webkit-mask-image: linear-gradient(
       to top,
       black 0%,
-      black 44%,
-      rgba(0, 0, 0, 0.68) 72%,
+      black 34%,
+      rgba(0, 0, 0, 0.44) 66%,
       transparent 100%
     );
   }
@@ -3593,21 +3593,21 @@ button:disabled {
     left: -12px;
     z-index: 0;
     pointer-events: none;
-    background: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     mask-image: linear-gradient(
       to bottom,
       black 0%,
-      black 42%,
-      rgba(0, 0, 0, 0.66) 72%,
+      black 34%,
+      rgba(0, 0, 0, 0.44) 66%,
       transparent 100%
     );
     -webkit-mask-image: linear-gradient(
       to bottom,
       black 0%,
-      black 42%,
-      rgba(0, 0, 0, 0.66) 72%,
+      black 34%,
+      rgba(0, 0, 0, 0.44) 66%,
       transparent 100%
     );
   }
