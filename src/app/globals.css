@@ -3311,9 +3311,9 @@ button:disabled {
     align-items: center;
     justify-content: center;
     gap: 0;
-    border: 1px solid rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.32);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--color-muted);
     padding: 0;
     text-align: center;
@@ -3321,8 +3321,8 @@ button:disabled {
     box-shadow:
       0 14px 28px rgba(45, 38, 74, 0.16),
       0 5px 12px rgba(45, 38, 74, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.46);
-    backdrop-filter: blur(28px);
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+    backdrop-filter: blur(16px);
     pointer-events: auto;
     touch-action: manipulation;
     user-select: none;
@@ -3343,7 +3343,7 @@ button:disabled {
   }
 
   .crm-nav-button:hover {
-    background: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.18);
     color: var(--color-primary);
   }
 
@@ -3537,8 +3537,9 @@ button:disabled {
   }
 
   .mobile-topbar {
-    position: relative;
-    z-index: 20;
+    position: sticky;
+    top: env(safe-area-inset-top);
+    z-index: 45;
     min-height: 70px;
     display: grid;
     grid-template-columns: 64px minmax(0, 1fr) 64px;
