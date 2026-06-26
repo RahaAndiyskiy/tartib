@@ -2682,6 +2682,14 @@ export function DashboardApp(): React.ReactElement {
       </aside>
 
       <main className="crm-main">
+        {mobileAccountOpen ? (
+          <button
+            aria-label="Закрыть меню аккаунта"
+            className="mobile-account-dismiss"
+            type="button"
+            onClick={() => setMobileAccountOpen(false)}
+          />
+        ) : null}
         <div className={mobileAccountOpen ? 'mobile-topbar account-open' : 'mobile-topbar'}>
           <div className="mobile-account-cluster">
             <button
