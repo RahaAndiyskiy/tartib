@@ -3219,23 +3219,14 @@ export function DashboardApp(): React.ReactElement {
         {activeSection === 'people' ? (
           <section className="crm-content-grid">
             <div className="crm-panel">
-              <div className="crm-panel-header">
+              <div className="crm-panel-header people-panel-header">
                 <div>
                   <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Мои ученики' : 'Состав клуба'}</h2>
                   <p>{filteredPeopleForView.length} / {peopleForView.length}</p>
                 </div>
-              </div>
-              <div className="people-toolbar">
-                <label className="people-search">
-                  <Search size={17} />
-                  <input
-                    placeholder="Найти человека"
-                    value={peopleSearch}
-                    onChange={(event) => setPeopleSearch(event.target.value)}
-                  />
-                </label>
                 <select
                   aria-label="Фильтр по группе"
+                  className="people-group-filter"
                   value={peopleGroupFilter}
                   onChange={(event) => setPeopleGroupFilter(event.target.value)}
                 >
@@ -3247,6 +3238,16 @@ export function DashboardApp(): React.ReactElement {
                   ))}
                   <option value="no-group">Без группы</option>
                 </select>
+              </div>
+              <div className="people-toolbar">
+                <label className="people-search">
+                  <Search size={17} />
+                  <input
+                    placeholder="Найти человека"
+                    value={peopleSearch}
+                    onChange={(event) => setPeopleSearch(event.target.value)}
+                  />
+                </label>
               </div>
               <div className="people-accordion">
                 {filteredPeopleForView.map((user) => {
