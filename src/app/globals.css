@@ -3985,6 +3985,7 @@ button:disabled {
     display: grid;
     grid-template-columns: minmax(0, 1fr) clamp(174px, 52vw, 230px);
     gap: 10px;
+    border-bottom: 0;
   }
 
   .people-toolbar {
@@ -4782,6 +4783,10 @@ select:focus {
 .payment-plan-options-body,
 .prepay-total {
   border-color: rgba(139, 127, 171, 0.16);
+}
+
+.people-panel-header {
+  border-bottom: 0;
 }
 
 .crm-table-head,
