@@ -455,6 +455,16 @@ export function DashboardApp(): React.ReactElement {
   }, [isLocalMode, refreshRemoteWorkspace]);
 
   useEffect(() => {
+    if (!message) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setMessage('');
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [message]);
+
+  useEffect(() => {
     if (isLocalMode) {
       setPushStatus('disabled');
       return;

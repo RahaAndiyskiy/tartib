@@ -558,6 +558,7 @@ button:disabled {
 .form-message,
 .notice {
   margin: 14px 0 0;
+  border-radius: var(--radius-panel);
   color: #9a3f2f;
   line-height: 1.5;
 }
@@ -3999,7 +4000,6 @@ button:disabled {
 
   .notice {
     margin-bottom: 12px;
-    border-radius: 7px;
   }
 
   .metric-grid {
