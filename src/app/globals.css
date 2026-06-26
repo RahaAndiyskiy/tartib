@@ -4223,12 +4223,14 @@ button:disabled {
   .payment-drawer {
     width: 100%;
     left: 0;
+    top: calc(88px + env(safe-area-inset-top));
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
     box-shadow: none;
   }
 
   .payment-drawer-header {
-    min-height: 88px;
-    padding: max(15px, env(safe-area-inset-top)) 16px 14px;
+    min-height: auto;
+    padding: 14px 16px 12px;
   }
 
   .payment-drawer-header h2 {
@@ -4237,7 +4239,7 @@ button:disabled {
 
   .payment-drawer-body {
     gap: 16px;
-    padding: 16px 14px calc(28px + env(safe-area-inset-bottom));
+    padding: 16px 14px 28px;
   }
 
   .payment-current-card,
