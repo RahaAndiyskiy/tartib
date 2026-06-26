@@ -3282,6 +3282,33 @@ button:disabled {
     pointer-events: none;
   }
 
+  .crm-sidebar::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 42px);
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    mask-image: linear-gradient(
+      to top,
+      black 0%,
+      black 44%,
+      rgba(0, 0, 0, 0.68) 72%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to top,
+      black 0%,
+      black 44%,
+      rgba(0, 0, 0, 0.68) 72%,
+      transparent 100%
+    );
+  }
+
   .crm-brand,
   .crm-organization,
   .crm-sidebar-footer {
@@ -3289,6 +3316,8 @@ button:disabled {
   }
 
   .crm-nav {
+    position: relative;
+    z-index: 2;
     height: var(--mobile-nav-height);
     display: flex;
     align-items: end;
@@ -3555,6 +3584,34 @@ button:disabled {
     overflow: visible;
   }
 
+  .mobile-topbar::before {
+    content: "";
+    position: absolute;
+    top: calc(-1 * env(safe-area-inset-top));
+    right: -12px;
+    bottom: -30px;
+    left: -12px;
+    z-index: 0;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 42%,
+      rgba(0, 0, 0, 0.66) 72%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 42%,
+      rgba(0, 0, 0, 0.66) 72%,
+      transparent 100%
+    );
+  }
+
   .mobile-account-dismiss {
     position: fixed;
     inset: 0;
@@ -3567,6 +3624,7 @@ button:disabled {
 
   .mobile-account-cluster {
     position: relative;
+    z-index: 2;
     width: 54px;
     height: 54px;
     display: flex;
@@ -3674,6 +3732,8 @@ button:disabled {
   }
 
   .mobile-title {
+    position: relative;
+    z-index: 2;
     min-width: 0;
     display: grid;
     justify-items: center;
@@ -3705,6 +3765,7 @@ button:disabled {
 
   .mobile-notification-button {
     position: relative;
+    z-index: 2;
     justify-self: end;
     width: 44px;
     height: 44px;
