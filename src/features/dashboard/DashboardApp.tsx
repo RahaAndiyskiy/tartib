@@ -304,6 +304,7 @@ export function DashboardApp(): React.ReactElement {
   const [peopleSearch, setPeopleSearch] = useState('');
   const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
   const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
+  const [groupEditorOpenByMember, setGroupEditorOpenByMember] = useState<Record<string, boolean>>({});
   const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
   const [paymentEditOpen, setPaymentEditOpen] = useState(false);
   const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
@@ -3256,8 +3257,8 @@ export function DashboardApp(): React.ReactElement {
               <div className="people-accordion">
                 {filteredPeopleForView.map((user) => {
                   const group = user.role === 'member' ? groupFor(user.id) : null;
-                  const payment = user.role === 'member' ? currentPaymentByMemberId.get(user.id) : null;
                   const isOpen = expandedPeople[user.id] ?? false;
+                  const groupEditorOpen = groupEditorOpenByMember[user.id] ?? false;
                   const contact = user.email ?? user.phone ?? 'Не указан';
                   return (
                     <article className={`person-accordion-row ${isOpen ? 'open' : ''}`} key={user.id}>
@@ -3275,20 +3276,6 @@ export function DashboardApp(): React.ReactElement {
                           <strong>{user.first_name} {user.last_name}</strong>
                           <small>{roleLabel(user)}</small>
                         </span>
-                        <span className="person-summary-meta">
-                          <span className="person-group-chip">
-                            {user.role === 'member'
-                              ? group
-                                ? `${group.activity} · ${group.days} ${group.time}`
-                                : 'Без группы'
-                              : 'Команда клуба'}
-                          </span>
-                          {user.role === 'member' ? (
-                            <span className={`status-pill compact ${payment?.status ?? 'not-set'}`}>
-                              {statusLabels[payment?.status ?? 'not-set']}
-                            </span>
-                          ) : null}
-                        </span>
                         <ChevronRight className={isOpen ? 'open' : ''} size={18} />
                       </button>
                       {isOpen ? (
@@ -3298,33 +3285,59 @@ export function DashboardApp(): React.ReactElement {
                             <strong>{contact}</strong>
                           </div>
                           {user.role === 'member' ? (
-                            <label>
-                              Группа
-                              <select
-                                value={group?.id ?? ''}
-                                disabled={isPendingAction(`assign-member-group:${user.id}`)}
-                                onChange={(event) =>
-                                  assignMemberToGroup(user.id, event.target.value)
-                                }
-                              >
-                                <option value="">Без группы</option>
-                                {visibleGroups.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.activity} · {item.days} {item.time}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
+                            <div className="person-group-detail">
+                              <span>Группа</span>
+                              <strong>
+                                {group ? `${group.activity} · ${group.days} ${group.time}` : 'Без группы'}
+                              </strong>
+                              {groupEditorOpen ? (
+                                <select
+                                  aria-label="Выберите группу"
+                                  value={group?.id ?? ''}
+                                  disabled={isPendingAction(`assign-member-group:${user.id}`)}
+                                  onChange={(event) => {
+                                    void assignMemberToGroup(user.id, event.target.value);
+                                    setGroupEditorOpenByMember((current) => ({
+                                      ...current,
+                                      [user.id]: false
+                                    }));
+                                  }}
+                                >
+                                  <option value="">Без группы</option>
+                                  {visibleGroups.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {item.activity} · {item.days} {item.time}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : null}
+                            </div>
                           ) : null}
                           {user.role === 'member' ? (
-                            <button
-                              className="small-button danger"
-                              type="button"
-                              disabled={isPendingAction(`delete-member:${user.id}`)}
-                              onClick={() => void deleteMember(user.id)}
-                            >
-                              {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
-                            </button>
+                            <div className="person-detail-actions">
+                              {visibleGroups.length > 0 ? (
+                                <button
+                                  className="small-button secondary compact-action"
+                                  type="button"
+                                  onClick={() =>
+                                    setGroupEditorOpenByMember((current) => ({
+                                      ...current,
+                                      [user.id]: !groupEditorOpen
+                                    }))
+                                  }
+                                >
+                                  {groupEditorOpen ? 'Скрыть' : 'Сменить группу'}
+                                </button>
+                              ) : null}
+                              <button
+                                className="small-button danger compact-action"
+                                type="button"
+                                disabled={isPendingAction(`delete-member:${user.id}`)}
+                                onClick={() => void deleteMember(user.id)}
+                              >
+                                {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
+                              </button>
+                            </div>
                           ) : null}
                         </div>
                       ) : null}
