@@ -15,8 +15,8 @@
   --color-text: #181624;
   --color-muted: #706b82;
   --color-muted-strong: #4a445d;
-  --color-primary: #7c5cff;
-  --color-primary-strong: #4f35c8;
+  --color-primary: #8d70fe;
+  --color-primary-strong: #5f40e8;
   --color-primary-soft: #eeeaff;
   --color-primary-faint: #f6f3ff;
   --color-danger: #b4425d;
@@ -35,7 +35,7 @@
   --blur-glass: 22px;
   --sidebar-width: 264px;
   --control-height: 44px;
-  --mobile-nav-height: 68px;
+  --mobile-nav-height: 92px;
 }
 
 .legacy-people-table {
@@ -3229,11 +3229,12 @@ button:disabled {
     width: 100%;
     height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
     display: block;
-    border-top: 1px solid rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.78);
-    padding: 0 4px env(safe-area-inset-bottom);
-    box-shadow: 0 -16px 42px rgba(25, 43, 34, 0.14);
-    backdrop-filter: blur(var(--blur-glass));
+    border-top: 0;
+    background: transparent;
+    padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: none;
+    backdrop-filter: none;
+    pointer-events: none;
   }
 
   .crm-brand,
@@ -3244,28 +3245,44 @@ button:disabled {
 
   .crm-nav {
     height: var(--mobile-nav-height);
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 0;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 430px;
+    margin: 0 auto;
   }
 
   .crm-nav-button {
     position: relative;
     isolation: isolate;
-    min-width: 0;
-    min-height: var(--mobile-nav-height);
+    width: 62px;
+    min-width: 62px;
+    height: 62px;
+    min-height: 62px;
     display: flex;
+    flex: 0 0 62px;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 4px;
-    border-radius: 0;
+    gap: 0;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
     color: var(--color-muted);
-    padding: 6px 2px;
+    padding: 0;
     text-align: center;
     overflow: visible;
+    box-shadow:
+      0 14px 28px rgba(45, 38, 74, 0.16),
+      0 5px 12px rgba(45, 38, 74, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    pointer-events: auto;
     transition:
+      background 200ms ease,
       color 180ms ease,
+      box-shadow 220ms ease,
       transform 180ms ease;
   }
 
@@ -3274,14 +3291,18 @@ button:disabled {
   }
 
   .crm-nav-button:hover {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.92);
     color: var(--color-primary);
   }
 
   .crm-nav-button.active {
-    background: transparent;
-    color: var(--color-primary-strong);
-    box-shadow: none;
+    border-color: rgba(141, 112, 254, 0.58);
+    background: var(--color-primary);
+    color: #ffffff;
+    box-shadow:
+      0 18px 34px rgba(141, 112, 254, 0.34),
+      0 7px 14px rgba(63, 53, 101, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.36);
   }
 
   .crm-nav-button:active {
@@ -3289,40 +3310,11 @@ button:disabled {
   }
 
   .crm-nav-button.active::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 34px;
-    height: 4px;
-    border-radius: 0 0 999px 999px;
-    background: linear-gradient(90deg, rgba(154, 125, 255, 0.55), rgba(127, 88, 255, 0.98), rgba(154, 125, 255, 0.55));
-    box-shadow:
-      0 0 10px rgba(127, 88, 255, 0.82),
-      0 7px 22px rgba(127, 88, 255, 0.5),
-      0 20px 38px rgba(127, 88, 255, 0.2);
-    transform: translateX(-50%);
+    content: none;
   }
 
   .crm-nav-button.active::after {
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    z-index: -1;
-    width: 72px;
-    height: 54px;
-    background:
-      linear-gradient(
-        180deg,
-        rgba(127, 88, 255, 0.32) 0%,
-        rgba(127, 88, 255, 0.16) 45%,
-        rgba(127, 88, 255, 0) 100%
-      );
-    clip-path: polygon(36% 0, 64% 0, 100% 100%, 0 100%);
-    filter: blur(7px);
-    transform: translateX(-50%);
-    pointer-events: none;
+    content: none;
   }
 
   .crm-nav-button svg,
@@ -3341,24 +3333,21 @@ button:disabled {
   }
 
   .crm-nav-button.active svg {
-    filter: drop-shadow(0 8px 14px rgba(127, 88, 255, 0.28));
-    transform: translateY(-2px) scale(1.18);
+    filter: drop-shadow(0 8px 14px rgba(50, 34, 120, 0.16));
+    transform: scale(1.12);
   }
 
   .crm-nav-button span {
-    max-width: 100%;
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-overflow: ellipsis;
+    clip: rect(0 0 0 0);
     white-space: nowrap;
-    transition:
-      color 180ms ease,
-      transform 220ms cubic-bezier(0.2, 0.9, 0.25, 1.18);
   }
 
   .crm-nav-button.active span {
-    transform: translateY(1px) scale(1.03);
+    transform: none;
   }
 
   .crm-nav-button strong {
@@ -3511,10 +3500,14 @@ button:disabled {
   .mobile-avatar-button {
     position: relative;
     z-index: 4;
-    background: linear-gradient(135deg, #9b7cff, #7657ff);
+    background: var(--color-primary);
     color: #ffffff;
     font-weight: 850;
     text-transform: uppercase;
+    box-shadow:
+      0 14px 28px rgba(141, 112, 254, 0.28),
+      0 5px 12px rgba(63, 53, 101, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
     transform-origin: center;
     transition:
       transform 420ms cubic-bezier(0.2, 0.9, 0.22, 1.35),
@@ -3535,8 +3528,12 @@ button:disabled {
     top: 5px;
     left: 5px;
     z-index: 2;
-    background: #8b6cff;
+    background: var(--color-primary);
     color: #ffffff;
+    box-shadow:
+      0 12px 24px rgba(141, 112, 254, 0.24),
+      0 4px 10px rgba(63, 53, 101, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
     opacity: 0;
     pointer-events: none;
     transform: translate(0, 0) scale(0.48);
@@ -3615,8 +3612,14 @@ button:disabled {
     justify-self: end;
     width: 44px;
     height: 44px;
-    background: #c8c8cc;
-    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.9);
+    color: #9b96a9;
+    box-shadow:
+      0 14px 28px rgba(45, 38, 74, 0.14),
+      0 5px 12px rgba(45, 38, 74, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
     transition:
       background 180ms ease,
       color 180ms ease,
@@ -3625,8 +3628,8 @@ button:disabled {
 
   .mobile-notification-button.active,
   .mobile-notification-button:hover {
-    background: #b8b2ca;
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--color-primary);
   }
 
   .mobile-notification-button:active {
@@ -4667,10 +4670,10 @@ select:focus {
 
 @media (max-width: 720px) {
   .crm-sidebar {
-    border-top: 1px solid rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.68);
-    box-shadow: 0 -22px 52px rgba(63, 53, 101, 0.16);
-    backdrop-filter: blur(var(--blur-glass));
+    border-top: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .crm-nav-button {
@@ -4678,14 +4681,17 @@ select:focus {
   }
 
   .crm-nav-button.active {
-    border: 0;
-    background: transparent;
-    color: var(--color-primary-strong);
-    box-shadow: none;
+    border-color: rgba(141, 112, 254, 0.58);
+    background: var(--color-primary);
+    color: #ffffff;
+    box-shadow:
+      0 18px 34px rgba(141, 112, 254, 0.34),
+      0 7px 14px rgba(63, 53, 101, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.36);
   }
 
   .crm-nav-button.active::before {
-    background: linear-gradient(90deg, rgba(154, 125, 255, 0.55), rgba(127, 88, 255, 0.98), rgba(154, 125, 255, 0.55));
+    content: none;
   }
 
   .crm-header {
