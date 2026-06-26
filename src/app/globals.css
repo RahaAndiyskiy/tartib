@@ -2928,6 +2928,52 @@ button:disabled {
   gap: 8px;
 }
 
+.notification-modal-backdrop {
+  background: rgba(36, 28, 55, 0.16);
+}
+
+.notifications-modal {
+  width: min(680px, 100%);
+  max-height: min(720px, calc(100dvh - 40px));
+  gap: 14px;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.notifications-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notifications-modal-header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.18rem;
+}
+
+.notifications-modal-header p {
+  margin: 5px 0 0;
+  color: var(--color-muted);
+}
+
+.notifications-modal .notification-header-actions {
+  justify-content: flex-start;
+}
+
+.notifications-modal .notification-list {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid rgba(139, 127, 171, 0.16);
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.notifications-modal .notification-row:last-child {
+  border-bottom: 0;
+}
+
 .crm-panel .empty-state {
   padding: 18px;
 }
@@ -4115,6 +4161,32 @@ button:disabled {
   .notification-row {
     grid-template-columns: 24px minmax(0, 1fr);
     padding: 14px;
+  }
+
+  .notification-modal-backdrop {
+    align-items: end;
+    padding: 16px 12px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .notifications-modal {
+    width: 100%;
+    max-height: min(76dvh, 680px);
+    border-radius: 28px;
+    padding: 16px;
+  }
+
+  .notifications-modal-header {
+    align-items: center;
+  }
+
+  .notifications-modal .notification-header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .notifications-modal .notification-row {
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .notification-actions {
