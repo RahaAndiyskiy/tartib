@@ -1539,6 +1539,10 @@ button:disabled {
   margin-bottom: 16px;
 }
 
+.overview-invite-panel {
+  margin: -2px 0 16px;
+}
+
 .quick-actions-panel > div:first-child {
   display: grid;
   gap: 4px;
@@ -1561,6 +1565,10 @@ button:disabled {
   gap: 10px;
 }
 
+.quick-actions.single-action {
+  grid-template-columns: 1fr;
+}
+
 .quick-action-card {
   min-height: 52px;
   display: flex;
@@ -1578,6 +1586,48 @@ button:disabled {
 .quick-action-card:disabled {
   opacity: 0.48;
   cursor: not-allowed;
+}
+
+.invite-picker-modal input {
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text);
+  padding: 0 12px;
+}
+
+.invite-picker-modal .primary-button,
+.invite-picker-modal .small-button {
+  gap: 8px;
+}
+
+.invite-group-options {
+  display: grid;
+  gap: 10px;
+}
+
+.group-choice-button {
+  min-height: 66px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--color-text);
+  padding: 12px 14px;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(63, 53, 101, 0.06);
+}
+
+.group-choice-button span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.group-choice-button:disabled {
+  opacity: 0.58;
+  cursor: wait;
 }
 
 .crm-content-grid {

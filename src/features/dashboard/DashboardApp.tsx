@@ -294,6 +294,7 @@ export function DashboardApp(): React.ReactElement {
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [invitePickerOpen, setInvitePickerOpen] = useState(false);
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
@@ -905,12 +906,14 @@ export function DashboardApp(): React.ReactElement {
     setMessage('');
     setMobileFormOpen(false);
     setMobileAccountOpen(false);
+    setInvitePickerOpen(false);
   }
 
   function openSection(section: DashboardSection): void {
     setActiveSection(section);
     setMobileFormOpen(false);
     setMobileAccountOpen(false);
+    setInvitePickerOpen(false);
     if (section === 'notifications' && unreadNotifications.length > 0) {
       void markNotificationsRead();
     }
@@ -982,6 +985,28 @@ export function DashboardApp(): React.ReactElement {
       role: 'member',
       groupId: groupId ?? current.groupId
     }));
+  }
+
+  function openOverviewInviteFlow(): void {
+    if (visibleGroups.length === 0) {
+      setMessage('Сначала создайте группу, чтобы дать ссылку на вступление.');
+      return;
+    }
+
+    setMessage('');
+    setMemberInvite(null);
+    if (visibleGroups.length === 1) {
+      void createMemberInviteForGroup(visibleGroups[0].id);
+      return;
+    }
+
+    setInvitePickerOpen(true);
+  }
+
+  function closeOverviewInviteModal(): void {
+    setInvitePickerOpen(false);
+    setMemberInvite(null);
+    setMessage('');
   }
 
   async function createMemberInviteForGroup(groupId: string): Promise<void> {
@@ -2821,6 +2846,65 @@ export function DashboardApp(): React.ReactElement {
           </div>
         ) : null}
 
+        {invitePickerOpen || (activeSection === 'overview' && memberInvite) ? (
+          <div className="modal-backdrop" role="presentation" onClick={closeOverviewInviteModal}>
+            <section
+              aria-labelledby="overview-invite-title"
+              aria-modal="true"
+              className="confirm-modal invite-picker-modal"
+              role="dialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {memberInvite ? (
+                <>
+                  <div>
+                    <h2 id="overview-invite-title">Ссылка на вступление</h2>
+                    <p>Группа: {memberInvite.groupName}</p>
+                  </div>
+                  <input aria-label="Ссылка на вступление" readOnly value={memberInvite.inviteUrl} />
+                  <div className="confirm-modal-actions">
+                    <button className="primary-button" type="button" onClick={copyMemberInvite}>
+                      <Copy size={16} />
+                      Скопировать
+                    </button>
+                    <button className="small-button secondary" type="button" onClick={shareMemberInvite}>
+                      <Share2 size={16} />
+                      Поделиться
+                    </button>
+                    <button className="small-button secondary" type="button" onClick={closeOverviewInviteModal}>
+                      Закрыть
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <h2 id="overview-invite-title">Выберите группу</h2>
+                    <p>Для этой группы будет создана ссылка на вступление.</p>
+                  </div>
+                  <div className="invite-group-options">
+                    {visibleGroups.map((group) => (
+                      <button
+                        className="group-choice-button"
+                        disabled={isPendingAction(`create-invite:${group.id}`)}
+                        key={group.id}
+                        type="button"
+                        onClick={() => void createMemberInviteForGroup(group.id)}
+                      >
+                        <strong>{group.activity}</strong>
+                        <span>{group.days} · {group.time}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button className="small-button secondary" type="button" onClick={closeOverviewInviteModal}>
+                    Отмена
+                  </button>
+                </>
+              )}
+            </section>
+          </div>
+        ) : null}
+
         {activeSection === 'overview' ? (
           <>
             {hasRole(activeUser, 'member') ? (
@@ -2948,6 +3032,30 @@ export function DashboardApp(): React.ReactElement {
                 )}
               </section>
 
+              <section className="quick-actions-panel overview-invite-panel">
+                <div>
+                  <span>Основное действие</span>
+                  <strong>Ссылка на вступление</strong>
+                </div>
+                <div className="quick-actions single-action">
+                  <button
+                    className="quick-action-card"
+                    type="button"
+                    disabled={visibleGroups.length === 0 || (visibleGroups.length === 1 && isPendingAction(`create-invite:${visibleGroups[0].id}`))}
+                    onClick={openOverviewInviteFlow}
+                  >
+                    <Share2 size={18} />
+                    <span>
+                      {visibleGroups.length === 0
+                        ? 'Нет групп'
+                        : visibleGroups.length === 1 && isPendingAction(`create-invite:${visibleGroups[0].id}`)
+                          ? 'Готовим ссылку...'
+                          : 'Ссылка на вступление'}
+                    </span>
+                  </button>
+                </div>
+              </section>
+
               <section className="metric-grid">
                 <Metric
                   hint="История оплат"
@@ -2984,32 +3092,6 @@ export function DashboardApp(): React.ReactElement {
               </section>
               </>
             )}
-
-            {!hasRole(activeUser, 'member') ? (
-            <section className="quick-actions-panel">
-              <div>
-                <span>Основные действия</span>
-                <strong>Группа и набор учеников</strong>
-              </div>
-              <div className="quick-actions">
-                {hasRole(activeUser, 'trainer') ? (
-                  <button className="quick-action-card" type="button" onClick={openCreateGroup}>
-                    <Layers3 size={18} />
-                    <span>Создать группу</span>
-                  </button>
-                ) : null}
-                <button
-                  className="quick-action-card"
-                  type="button"
-                  disabled={visibleGroups.length === 0}
-                  onClick={() => openInviteFlow(visibleGroups[0]?.id)}
-                >
-                  <Share2 size={18} />
-                  <span>Дать ссылку</span>
-                </button>
-              </div>
-            </section>
-            ) : null}
 
           </>
         ) : null}
