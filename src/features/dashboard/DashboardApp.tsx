@@ -2828,17 +2828,13 @@ export function DashboardApp(): React.ReactElement {
             (activeSection === 'people' || activeSection === 'groups') ? (
               <button
                 aria-expanded={mobileFormOpen}
-                aria-label={mobileFormOpen ? 'Закрыть форму' : 'Добавить'}
+                aria-label="Добавить"
                 className="mobile-create-button"
                 type="button"
-                onClick={() => setMobileFormOpen((current) => !current)}
+                onClick={() => setMobileFormOpen(true)}
               >
-                {mobileFormOpen ? <X size={18} /> : <Plus size={18} />}
-                {mobileFormOpen
-                  ? null
-                  : activeSection === 'groups'
-                    ? 'Новая группа'
-                    : 'Добавить'}
+                <Plus size={18} />
+                {activeSection === 'groups' ? 'Новая группа' : 'Добавить'}
               </button>
             ) : null}
             <div className="crm-user-badge">
@@ -3409,7 +3405,9 @@ export function DashboardApp(): React.ReactElement {
                     <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Новый ученик' : 'Новый человек'}</h2>
                     <p>Добавление в клуб</p>
                   </div>
-                  <Plus size={20} />
+                  <button className="form-close-button" aria-label="Закрыть форму" type="button" onClick={() => setMobileFormOpen(false)}>
+                    <Plus size={20} />
+                  </button>
                 </div>
 
                 {hasRole(activeUser, 'owner') ? (
@@ -4349,7 +4347,9 @@ export function DashboardApp(): React.ReactElement {
                     <h2>Новая группа</h2>
                     <p>Одно направление и расписание</p>
                   </div>
-                  <Plus size={20} />
+                  <button className="form-close-button" aria-label="Закрыть форму" type="button" onClick={() => setMobileFormOpen(false)}>
+                    <Plus size={20} />
+                  </button>
                 </div>
                 {hasRole(activeUser, 'owner') ? (
                   <label>
