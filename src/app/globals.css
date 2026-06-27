@@ -4352,7 +4352,8 @@ button:disabled {
     overscroll-behavior: contain;
     order: initial;
     border-radius: 28px;
-    padding: 0 14px 22px;
+    gap: 12px;
+    padding: 0 14px 18px;
     box-shadow: 0 28px 90px rgba(63, 53, 101, 0.22);
     animation: mobileSheetIn 260ms cubic-bezier(0.2, 0.9, 0.22, 1);
   }
@@ -4371,7 +4372,74 @@ button:disabled {
 
   .crm-side-form > .crm-panel-header {
     margin-right: -14px;
+    margin-bottom: 4px;
     margin-left: -14px;
+  }
+
+  .crm-side-form > .segmented-control {
+    position: relative;
+    isolation: isolate;
+    height: 54px;
+    margin-bottom: 2px;
+    border-radius: 18px;
+    padding: 4px;
+    overflow: hidden;
+  }
+
+  .crm-side-form > .segmented-control::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 22px rgba(63, 53, 101, 0.1);
+    transform: translateX(0);
+    transition: transform 260ms cubic-bezier(0.2, 0.9, 0.22, 1);
+  }
+
+  .crm-side-form > .segmented-control:has(button:nth-child(2).active)::before {
+    transform: translateX(100%);
+  }
+
+  .crm-side-form > .segmented-control button {
+    position: relative;
+    z-index: 1;
+    min-height: 46px;
+    border-radius: 15px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .crm-side-form > .segmented-control button.active {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .crm-side-form label {
+    gap: 6px;
+    font-size: 0.84rem;
+  }
+
+  .crm-side-form input,
+  .crm-side-form select {
+    min-height: 44px;
+    border-radius: 16px;
+  }
+
+  .crm-side-form .invite-form-hint {
+    margin-top: 2px;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .crm-side-form > .primary-button {
+    min-height: 52px;
+    margin-top: 4px;
+    border-radius: 16px;
   }
 
   .crm-side-form .split-fields {
