@@ -44,6 +44,8 @@ create table if not exists public.groups (
   days text not null,
   time time not null,
   note text not null default '',
+  default_amount numeric(12, 2) check (default_amount is null or default_amount > 0),
+  default_billing_day smallint check (default_billing_day is null or default_billing_day between 1 and 31),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

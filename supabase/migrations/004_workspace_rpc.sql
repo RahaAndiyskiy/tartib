@@ -268,6 +268,8 @@ select
           'days', g.days,
           'time', to_char(g.time, 'HH24:MI'),
           'note', g.note,
+          'defaultAmount', g.default_amount::numeric,
+          'defaultBillingDay', g.default_billing_day,
           'createdAt', g.created_at,
           'updatedAt', g.updated_at
         ) order by g.created_at asc)

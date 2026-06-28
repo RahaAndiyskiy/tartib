@@ -107,6 +107,8 @@ type GroupDraft = {
   time: string;
   note: string;
   trainerId: string;
+  defaultAmount: string;
+  defaultBillingDay: string;
 };
 
 type DelayDraft = {
@@ -159,7 +161,9 @@ const emptyGroupDraft: GroupDraft = {
   days: '',
   time: '',
   note: '',
-  trainerId: ''
+  trainerId: '',
+  defaultAmount: '',
+  defaultBillingDay: '5'
 };
 
 const roleLabels = {
@@ -1251,6 +1255,17 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
+      const defaultAmount = Number(groupDraft.defaultAmount);
+      const defaultBillingDay = Number(groupDraft.defaultBillingDay);
+      const hasDefaultPayment = groupDraft.defaultAmount.trim() !== '';
+      if (
+        (hasDefaultPayment && defaultAmount <= 0) ||
+        (hasDefaultPayment && (defaultBillingDay < 1 || defaultBillingDay > 31))
+      ) {
+        setMessage('Укажите корректную сумму и день оплаты группы.');
+        return;
+      }
+
       const data = await runRemoteActionWithPending<
         | { group: LocalTrainingGroup }
         | null
@@ -1262,7 +1277,9 @@ export function DashboardApp(): React.ReactElement {
           activity: groupDraft.activity,
           days: groupDraft.days,
           time: groupDraft.time,
-          note: groupDraft.note
+          note: groupDraft.note,
+          defaultAmount: hasDefaultPayment ? defaultAmount : null,
+          defaultBillingDay: hasDefaultPayment ? defaultBillingDay : null
         },
         `save-group:${editingGroupId || 'new'}`
       );
@@ -1287,6 +1304,17 @@ export function DashboardApp(): React.ReactElement {
       return;
     }
 
+    const defaultAmount = Number(groupDraft.defaultAmount);
+    const defaultBillingDay = Number(groupDraft.defaultBillingDay);
+    const hasDefaultPayment = groupDraft.defaultAmount.trim() !== '';
+    if (
+      (hasDefaultPayment && defaultAmount <= 0) ||
+      (hasDefaultPayment && (defaultBillingDay < 1 || defaultBillingDay > 31))
+    ) {
+      setMessage('Укажите корректную сумму и день оплаты группы.');
+      return;
+    }
+
     const now = new Date().toISOString();
     const group: LocalTrainingGroup = {
       id: createId(),
@@ -1295,6 +1323,8 @@ export function DashboardApp(): React.ReactElement {
       days: groupDraft.days.trim(),
       time: groupDraft.time.trim(),
       note: groupDraft.note.trim(),
+      defaultAmount: hasDefaultPayment ? defaultAmount : null,
+      defaultBillingDay: hasDefaultPayment ? defaultBillingDay : null,
       createdAt: now,
       updatedAt: now
     };
@@ -1331,7 +1361,9 @@ export function DashboardApp(): React.ReactElement {
       days: group.days,
       time: group.time,
       note: group.note,
-      trainerId: group.trainerId
+      trainerId: group.trainerId,
+      defaultAmount: group.defaultAmount ? String(group.defaultAmount) : '',
+      defaultBillingDay: group.defaultBillingDay ? String(group.defaultBillingDay) : '5'
     });
     setMessage('Редактирование группы. Внесите изменения и сохраните.');
   }
@@ -4441,6 +4473,39 @@ export function DashboardApp(): React.ReactElement {
                     }
                   />
                 </label>
+                <div className="split-fields">
+                  <label>
+                    Сумма абонемента <span className="optional-label">необязательно</span>
+                    <input
+                      min="1"
+                      step="0.01"
+                      type="number"
+                      placeholder="2500"
+                      value={groupDraft.defaultAmount}
+                      onChange={(event) =>
+                        setGroupDraft((current) => ({
+                          ...current,
+                          defaultAmount: event.target.value
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    День оплаты
+                    <input
+                      max="31"
+                      min="1"
+                      type="number"
+                      value={groupDraft.defaultBillingDay}
+                      onChange={(event) =>
+                        setGroupDraft((current) => ({
+                          ...current,
+                          defaultBillingDay: event.target.value
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
                 <label>
                   Комментарий <span className="optional-label">необязательно</span>
                   <input

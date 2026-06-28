@@ -65,6 +65,8 @@ export type LocalTrainingGroup = {
   days: string;
   time: string;
   note: string;
+  defaultAmount?: number | null;
+  defaultBillingDay?: number | null;
   createdAt: string;
   updatedAt: string;
 };

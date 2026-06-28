@@ -24,6 +24,15 @@ export async function saveGroupAction(
     return NextResponse.json({ error: 'Укажите направление, дни и время.' }, { status: 400 });
   }
 
+  const defaultAmount = body.defaultAmount == null ? null : Number(body.defaultAmount);
+  const defaultBillingDay = body.defaultBillingDay == null ? null : Number(body.defaultBillingDay);
+  if (
+    (defaultAmount != null && defaultAmount <= 0) ||
+    (defaultBillingDay != null && (defaultBillingDay < 1 || defaultBillingDay > 31))
+  ) {
+    return NextResponse.json({ error: 'Некорректные условия оплаты группы.' }, { status: 400 });
+  }
+
   const groupValues = {
     organization_id: organizationId,
     trainer_id: trainerId,
@@ -31,6 +40,8 @@ export async function saveGroupAction(
     days: body.days.trim(),
     time: body.time,
     note: body.note?.trim() ?? '',
+    default_amount: defaultAmount,
+    default_billing_day: defaultAmount == null ? null : defaultBillingDay,
     updated_at: new Date().toISOString()
   };
 

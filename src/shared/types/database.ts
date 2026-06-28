@@ -42,6 +42,8 @@ type GroupRow = {
   days: string;
   time: string;
   note: string;
+  default_amount: number | null;
+  default_billing_day: number | null;
   created_at: string;
   updated_at: string;
 };

@@ -33,6 +33,8 @@ export type ActionBody =
       days: string;
       time: string;
       note?: string;
+      defaultAmount?: number | null;
+      defaultBillingDay?: number | null;
     }
   | { action: 'delete_group'; groupId: string }
   | { action: 'assign_member_group'; memberId: string; groupId: string }
@@ -82,11 +84,14 @@ export type NotificationRow = {
 
 export type GroupRow = {
   id: string;
+  organization_id: string;
   trainer_id: string;
   activity: string;
   days: string;
   time: string;
   note: string;
+  default_amount: number | null;
+  default_billing_day: number | null;
   created_at: string;
   updated_at: string;
 };

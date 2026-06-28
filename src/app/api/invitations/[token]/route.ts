@@ -15,6 +15,23 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+function dueDateForBillingDay(billingDay: number): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const targetMonth = now.getUTCDate() > billingDay ? month + 1 : month;
+  const lastDay = new Date(Date.UTC(year, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(billingDay, lastDay);
+  const target = new Date(Date.UTC(year, targetMonth, day));
+  return target.toISOString().slice(0, 10);
+}
+
+function periodLabel(date: string): string {
+  return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(
+    new Date(`${date}T12:00:00Z`)
+  );
+}
+
 async function findInvite(
   token: string
 ): Promise<{ data: MemberInvite | null; error: unknown }> {
@@ -178,6 +195,13 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   }
 
   const user = profileResult.data;
+  const groupDefaults = await admin
+    .from('groups')
+    .select('default_amount,default_billing_day')
+    .eq('id', activeInvite.group_id)
+    .eq('organization_id', activeInvite.organization_id)
+    .single();
+
   const [roleResult, trainerResult, groupResult] = await Promise.all([
     admin.from('user_roles').insert({ user_id: user.id, role: 'member' }),
     admin.from('trainer_members').insert({
@@ -201,6 +225,59 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
       { error: assignmentError.message || 'Не удалось добавить ученика в группу.' },
       { status: 400 }
     );
+  }
+
+  const defaultAmount = groupDefaults.data?.default_amount == null ? 0 : Number(groupDefaults.data.default_amount);
+  const defaultBillingDay = groupDefaults.data?.default_billing_day ?? null;
+  if (defaultAmount > 0 && defaultBillingDay) {
+    const dueDate = dueDateForBillingDay(defaultBillingDay);
+    const planResult = await admin
+      .from('billing_plans')
+      .insert({
+        organization_id: activeInvite.organization_id,
+        member_id: user.id,
+        trainer_id: activeInvite.trainer_id,
+        type: 'monthly',
+        training_format: 'group',
+        base_amount: defaultAmount,
+        billing_day: defaultBillingDay,
+        active: true
+      })
+      .select('id')
+      .single();
+
+    if (planResult.error || !planResult.data) {
+      await admin.from('users').delete().eq('id', user.id);
+      await admin.auth.admin.deleteUser(authUserId);
+      await releaseInvite();
+      return NextResponse.json(
+        { error: planResult.error?.message ?? 'Не удалось создать абонемент ученика.' },
+        { status: 400 }
+      );
+    }
+
+    const paymentResult = await admin.from('payment_requests').insert({
+      organization_id: activeInvite.organization_id,
+      member_id: user.id,
+      trainer_id: activeInvite.trainer_id,
+      amount: defaultAmount,
+      due_date: dueDate,
+      status: 'active',
+      plan_id: planResult.data.id,
+      period_label: periodLabel(dueDate),
+      is_current: true,
+      coverage_months: 1
+    });
+
+    if (paymentResult.error) {
+      await admin.from('users').delete().eq('id', user.id);
+      await admin.auth.admin.deleteUser(authUserId);
+      await releaseInvite();
+      return NextResponse.json(
+        { error: paymentResult.error.message || 'Не удалось создать счёт ученика.' },
+        { status: 400 }
+      );
+    }
   }
 
   await admin

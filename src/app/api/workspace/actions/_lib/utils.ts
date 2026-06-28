@@ -116,6 +116,8 @@ export function toLocalGroup(row: GroupRow): LocalTrainingGroup {
     days: row.days,
     time: row.time.slice(0, 5),
     note: row.note,
+    defaultAmount: row.default_amount == null ? null : Number(row.default_amount),
+    defaultBillingDay: row.default_billing_day,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
