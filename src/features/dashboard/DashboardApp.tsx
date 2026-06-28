@@ -244,6 +244,17 @@ function periodLabel(date: string): string {
   );
 }
 
+function dueDateForBillingDay(billingDay: number): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const targetMonth = now.getDate() > billingDay ? month + 1 : month;
+  const lastDay = new Date(year, targetMonth + 1, 0).getDate();
+  const day = Math.min(billingDay, lastDay);
+  const target = new Date(year, targetMonth, day);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
 function prepaymentPeriodLabel(date: string, months: number): string {
   const start = periodLabel(date);
   if (months <= 1) return `Предоплата: ${start}`;
@@ -1299,6 +1310,7 @@ export function DashboardApp(): React.ReactElement {
         setEditingGroupId('');
         setMobileFormOpen(false);
         setLastCreatedGroupId(wasEditingGroup ? '' : data.group.id);
+        void refreshRemoteWorkspace('group-save', 0);
         setMessage(wasEditingGroup ? 'Группа обновлена.' : 'Группа создана. Теперь можно создать ссылку для набора.');
       }
       return;
@@ -1330,11 +1342,94 @@ export function DashboardApp(): React.ReactElement {
     };
 
     if (editingGroupId) {
+      const memberIds = workspace.groupMembers
+        .filter((assignment) => assignment.groupId === editingGroupId)
+        .map((assignment) => assignment.memberId);
+      const dueDate = hasDefaultPayment ? dueDateForBillingDay(defaultBillingDay) : '';
+      const updatedPlans = hasDefaultPayment
+        ? workspace.billingPlans.map((plan) =>
+            memberIds.includes(plan.memberId) && plan.active
+              ? {
+                  ...plan,
+                  trainerId,
+                  type: 'monthly' as const,
+                  trainingFormat: 'group' as const,
+                  baseAmount: defaultAmount,
+                  billingDay: defaultBillingDay,
+                  updatedAt: now
+                }
+              : plan
+          )
+        : workspace.billingPlans;
+      const planMemberIds = new Set(updatedPlans.filter((plan) => plan.active).map((plan) => plan.memberId));
+      const nextPlans = hasDefaultPayment
+        ? [
+            ...updatedPlans,
+            ...memberIds
+              .filter((memberId) => !planMemberIds.has(memberId))
+              .map((memberId) => ({
+                id: createId(),
+                memberId,
+                trainerId,
+                type: 'monthly' as const,
+                trainingFormat: 'group' as const,
+                baseAmount: defaultAmount,
+                billingDay: defaultBillingDay,
+                active: true,
+                createdAt: now,
+                updatedAt: now
+              }))
+          ]
+        : workspace.billingPlans;
+      const currentPlanByMemberId = new Map(nextPlans.filter((plan) => plan.active).map((plan) => [plan.memberId, plan]));
+      const currentPaymentMemberIds = new Set(
+        workspace.payments.filter((payment) => payment.is_current).map((payment) => payment.member_id)
+      );
+      const nextPayments = hasDefaultPayment
+        ? [
+            ...workspace.payments.map((payment) => {
+              const plan = currentPlanByMemberId.get(payment.member_id);
+              if (!payment.is_current || !memberIds.includes(payment.member_id) || !plan) return payment;
+              return {
+                ...payment,
+                trainer_id: trainerId,
+                amount: defaultAmount,
+                due_date: dueDate,
+                status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
+                plan_id: plan.id,
+                period_label: periodLabel(dueDate),
+                coverage_months: 1
+              };
+            }),
+            ...memberIds
+              .filter((memberId) => !currentPaymentMemberIds.has(memberId))
+              .map((memberId) => {
+                const plan = currentPlanByMemberId.get(memberId);
+                return {
+                  id: createId(),
+                  organization_id: workspace.organization.id,
+                  member_id: memberId,
+                  trainer_id: trainerId,
+                  amount: defaultAmount,
+                  due_date: dueDate,
+                  status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
+                  created_at: now,
+                  plan_id: plan?.id,
+                  period_label: periodLabel(dueDate),
+                  is_current: true,
+                  coverage_months: 1,
+                  paid_at: null
+                };
+              })
+          ]
+        : workspace.payments;
       saveWorkspace({
         ...workspace,
         groups: workspace.groups.map((item) =>
           item.id === editingGroupId ? { ...item, ...group, id: editingGroupId, createdAt: item.createdAt } : item
-        )
+        ),
+        billingPlans: nextPlans,
+        payments: nextPayments
       });
       setMessage('Группа обновлена.');
     } else {
@@ -1365,12 +1460,14 @@ export function DashboardApp(): React.ReactElement {
       defaultAmount: group.defaultAmount ? String(group.defaultAmount) : '',
       defaultBillingDay: group.defaultBillingDay ? String(group.defaultBillingDay) : '5'
     });
+    setMobileFormOpen(true);
     setMessage('Редактирование группы. Внесите изменения и сохраните.');
   }
 
   function cancelGroupEdit(): void {
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
+    setMobileFormOpen(false);
     setMessage('');
   }
 
@@ -3462,7 +3559,12 @@ export function DashboardApp(): React.ReactElement {
                     <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Новый ученик' : 'Новый человек'}</h2>
                     <p>Добавление в клуб</p>
                   </div>
-                  <button className="form-close-button" aria-label="Закрыть форму" type="button" onClick={() => setMobileFormOpen(false)}>
+                  <button
+                    className="form-close-button"
+                    aria-label="Закрыть форму"
+                    type="button"
+                    onClick={() => setMobileFormOpen(false)}
+                  >
                     <Plus size={20} />
                   </button>
                 </div>
@@ -4404,7 +4506,12 @@ export function DashboardApp(): React.ReactElement {
                     <h2>Новая группа</h2>
                     <p>Одно направление и расписание</p>
                   </div>
-                  <button className="form-close-button" aria-label="Закрыть форму" type="button" onClick={() => setMobileFormOpen(false)}>
+                  <button
+                    className="form-close-button"
+                    aria-label="Закрыть форму"
+                    type="button"
+                    onClick={() => (editingGroupId ? cancelGroupEdit() : setMobileFormOpen(false))}
+                  >
                     <Plus size={20} />
                   </button>
                 </div>
