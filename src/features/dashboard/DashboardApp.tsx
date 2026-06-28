@@ -3157,6 +3157,11 @@ export function DashboardApp(): React.ReactElement {
                         onClick={() => void createMemberInviteForGroup(group.id)}
                       >
                         <strong>{group.activity}</strong>
+                        <span>
+                          {group.defaultAmount && group.defaultBillingDay
+                            ? `${formatMoney(group.defaultAmount)} · ${group.defaultBillingDay} число`
+                            : 'Оплата не задана'}
+                        </span>
                         <span>{group.days} · {group.time}</span>
                       </button>
                     ))}
@@ -4415,6 +4420,11 @@ export function DashboardApp(): React.ReactElement {
                   return (
                     <article className="group-row" key={group.id}>
                       <div className="group-activity">
+                        <span>
+                          {group.defaultAmount && group.defaultBillingDay
+                            ? `${formatMoney(group.defaultAmount)} · ${group.defaultBillingDay} число`
+                            : 'Оплата не задана'}
+                        </span>
                         <strong>{group.activity}</strong>
                         <span>{trainer ? `${trainer.first_name} ${trainer.last_name}` : 'Без тренера'}</span>
                       </div>

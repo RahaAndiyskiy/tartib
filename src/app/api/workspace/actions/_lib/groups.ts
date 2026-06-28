@@ -49,7 +49,7 @@ async function applyGroupPaymentDefaults(
   const dueDate = dueDateForBillingDay(billingDay);
   const status = (dateValue(dueDate) < dateValue(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus;
 
-  for (const member of members.data ?? []) {
+  const updateResults = await Promise.all((members.data ?? []).map(async (member): Promise<string | null> => {
     const existingPlan = await admin
       .from('billing_plans')
       .select('id')
@@ -100,7 +100,11 @@ async function applyGroupPaymentDefaults(
       ? await admin.from('payment_requests').update(paymentValues).eq('id', existingPayment.data.id)
       : await admin.from('payment_requests').insert(paymentValues);
     if (paymentResult.error) return paymentResult.error.message;
-  }
+    return null;
+  }));
+
+  const firstError = updateResults.find(Boolean);
+  if (firstError) return firstError;
 
   return null;
 }

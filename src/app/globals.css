@@ -3237,6 +3237,7 @@ button:disabled {
 }
 
 .group-activity strong {
+  order: -1;
   font-size: 1rem;
 }
 
@@ -4347,10 +4348,14 @@ button:disabled {
     right: 12px;
     bottom: calc(12px + env(safe-area-inset-bottom));
     left: 12px;
+    width: auto;
+    min-width: 0;
+    max-width: calc(100vw - 24px);
     height: min(82dvh, 720px);
     max-height: min(82dvh, 720px);
     grid-auto-rows: max-content;
     align-content: start;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     order: initial;
@@ -4369,6 +4374,7 @@ button:disabled {
   .crm-side-form > .split-fields,
   .crm-side-form > .segmented-control,
   .crm-side-form > button {
+    min-width: 0;
     margin-left: 0;
     margin-right: 0;
   }
@@ -4429,6 +4435,8 @@ button:disabled {
 
   .crm-side-form input,
   .crm-side-form select {
+    width: 100%;
+    min-width: 0;
     min-height: 44px;
     border-radius: 16px;
   }
