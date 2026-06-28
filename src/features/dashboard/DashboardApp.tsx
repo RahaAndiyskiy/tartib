@@ -2925,15 +2925,9 @@ export function DashboardApp(): React.ReactElement {
           <button
             aria-label="Уведомления"
             aria-expanded={notificationsOpen}
-            className={notificationsOpen ? 'mobile-notification-button active' : 'mobile-notification-button'}
+            className="mobile-notification-button"
             type="button"
-            onClick={() => {
-              if (notificationsOpen) {
-                setNotificationsOpen(false);
-              } else {
-                openNotifications();
-              }
-            }}
+            onClick={openNotifications}
           >
             <Bell size={18} />
             {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
@@ -2948,19 +2942,9 @@ export function DashboardApp(): React.ReactElement {
             <button
               aria-label="Уведомления"
               aria-expanded={notificationsOpen}
-              className={
-                notificationsOpen
-                  ? 'header-notification-button desktop-notification-button active'
-                  : 'header-notification-button desktop-notification-button'
-              }
+              className="header-notification-button desktop-notification-button"
               type="button"
-              onClick={() => {
-                if (notificationsOpen) {
-                  setNotificationsOpen(false);
-                } else {
-                  openNotifications();
-                }
-              }}
+              onClick={openNotifications}
             >
               <Bell size={19} />
               {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
