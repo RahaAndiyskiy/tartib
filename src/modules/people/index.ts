@@ -12,3 +12,7 @@ export {
   selectTrainers,
   selectVisibleMembers
 } from './model/selectors';
+export {
+  assignMemberToGroupAction,
+  deleteMemberAction
+} from './actions/peopleActions';

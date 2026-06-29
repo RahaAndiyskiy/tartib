@@ -21,7 +21,7 @@ Each module is considered migrated only when all layers are moved:
 
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `people` | done | partial | pending | done | partial | `PeoplePanel`, people selectors and people permissions are in `src/modules/people`; member mutations still live in `DashboardApp.tsx`. |
+| `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions and member assign/delete actions are in `src/modules/people`; invite/create member actions still live in `DashboardApp.tsx`. |
 | `groups` | pending | pending | pending | pending | pending | Groups should become the next full domain after people. |
 | `payments` | partial | pending | pending | pending | partial | Some row UI is extracted, but payment logic mostly remains in `DashboardApp.tsx`. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
@@ -35,6 +35,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/components/PeoplePanel.tsx` owns the team list UI.
 - `src/modules/people/model/selectors.ts` owns people view selectors and filtering.
 - `src/modules/people/permissions.ts` owns people permission helpers.
+- `src/modules/people/actions/peopleActions.ts` owns member group assignment and member deletion actions.
 - `src/modules/people/index.ts` exposes the current public people module API.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
@@ -43,10 +44,10 @@ Each module is considered migrated only when all layers are moved:
 1. Continue `people` model/selectors:
    - move any remaining people-specific mapping that is still in `DashboardApp.tsx`;
    - keep shared payment/group selectors out until those modules exist.
-2. Move `people` actions later:
-   - assign member to group;
-   - delete member;
-   - create trainer/member invite.
+2. Continue `people` actions:
+   - create trainer;
+   - create member invite;
+   - local member creation path.
 3. Start `groups` module only after the current `people` migration state is clear.
 
 ## Rule

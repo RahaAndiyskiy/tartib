@@ -113,6 +113,7 @@ Important modules:
 - Compact payment registry rows are extracted into `PaymentRegistryRow`.
 - Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
 - People view selectors and permissions are extracted into `src/modules/people`.
+- Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.
 - Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.

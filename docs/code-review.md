@@ -101,6 +101,7 @@ Recent progress:
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 - People view selectors and permissions were moved into `src/modules/people`.
+- Member group assignment and member deletion actions were moved into `src/modules/people/actions`.
 
 Risk:
 

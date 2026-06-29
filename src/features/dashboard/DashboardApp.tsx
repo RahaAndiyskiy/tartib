@@ -34,7 +34,6 @@ import {
   writeWorkspace,
   type LocalBillingPlan,
   type LocalExpense,
-  type LocalGroupMember,
   type LocalNotification,
   type LocalTrainingGroup,
   type LocalTrainingSchedule,
@@ -53,8 +52,7 @@ import type {
   BillingPlanType,
   PaymentRequest,
   PaymentRequestStatus,
-  TrainingFormat,
-  TrainerMember
+  TrainingFormat
 } from '@shared/types/domain';
 import {
   hasRole,
@@ -100,6 +98,8 @@ import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { PaymentRegistryRow } from './PaymentRegistryRow';
 import {
+  assignMemberToGroupAction,
+  deleteMemberAction,
   filterPeopleForView,
   mapAssignmentsByMemberId,
   mapGroupMembershipByMemberId,
@@ -1335,128 +1335,29 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function assignMemberToGroup(memberId: string, groupId: string): Promise<void> {
-    if (!workspace) return;
-
-    const group = groupsById.get(groupId);
-    if (!group) return;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        assignment: TrainerMember;
-        groupMember: LocalGroupMember;
-      }>(
-        { action: 'assign_member_group', memberId, groupId },
-        `assign-member-group:${memberId}`
-      );
-      if (data?.assignment && data?.groupMember) {
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                assignments: [
-                  ...current.assignments.filter((item) => item.member_id !== data.assignment.member_id),
-                  data.assignment
-                ],
-                groupMembers: [
-                  ...current.groupMembers.filter((item) => item.memberId !== data.groupMember.memberId),
-                  data.groupMember
-                ]
-              }
-            : current
-        );
-        setMessage('Ученик назначен в группу.');
-      }
-      return;
-    }
-
-    const existingGroupAssignment = workspace.groupMembers.find(
-      (assignment) => assignment.memberId === memberId
-    );
-    const existingTrainerAssignment = workspace.assignments.find(
-      (assignment) => assignment.member_id === memberId
-    );
-    const now = new Date().toISOString();
-    const groupAssignment: LocalGroupMember = {
-      id: existingGroupAssignment?.id ?? createId(),
-      groupId,
+    await assignMemberToGroupAction({
+      workspace,
+      group: groupsById.get(groupId) ?? null,
       memberId,
-      createdAt: existingGroupAssignment?.createdAt ?? now
-    };
-
-    saveWorkspace({
-      ...workspace,
-      groupMembers: existingGroupAssignment
-        ? workspace.groupMembers.map((assignment) =>
-            assignment.id === existingGroupAssignment.id ? groupAssignment : assignment
-          )
-        : [...workspace.groupMembers, groupAssignment],
-      assignments: existingTrainerAssignment
-        ? workspace.assignments.map((assignment) =>
-            assignment.id === existingTrainerAssignment.id
-              ? { ...assignment, trainer_id: group.trainerId }
-              : assignment
-          )
-        : [
-            ...workspace.assignments,
-            {
-              id: createId(),
-              organization_id: workspace.organization.id,
-              trainer_id: group.trainerId,
-              member_id: memberId,
-              created_at: now
-            }
-          ]
+      groupId,
+      isLocalMode,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage
     });
-    setMessage('Ученик назначен в группу.');
   }
 
   async function deleteMember(memberId: string): Promise<void> {
-    if (!workspace) return;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{ deletedMemberId: string }>(
-        { action: 'delete_member', memberId },
-        `delete-member:${memberId}`
-      );
-      if (data?.deletedMemberId) {
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                users: current.users.filter((user) => user.id !== data.deletedMemberId),
-                assignments: current.assignments.filter(
-                  (assignment) => assignment.member_id !== data.deletedMemberId
-                ),
-                groupMembers: current.groupMembers.filter(
-                  (assignment) => assignment.memberId !== data.deletedMemberId
-                ),
-                billingPlans: current.billingPlans.filter(
-                  (plan) => plan.memberId !== data.deletedMemberId
-                ),
-                payments: current.payments.filter(
-                  (payment) => payment.member_id !== data.deletedMemberId
-                ),
-                schedules: current.schedules.filter(
-                  (schedule) => schedule.memberId !== data.deletedMemberId
-                )
-              }
-            : current
-        );
-        setMessage('Ученик удалён.');
-      }
-      return;
-    }
-
-    saveWorkspace({
-      ...workspace,
-      users: workspace.users.filter((user) => user.id !== memberId),
-      assignments: workspace.assignments.filter((assignment) => assignment.member_id !== memberId),
-      groupMembers: workspace.groupMembers.filter((assignment) => assignment.memberId !== memberId),
-      billingPlans: workspace.billingPlans.filter((plan) => plan.memberId !== memberId),
-      payments: workspace.payments.filter((payment) => payment.member_id !== memberId),
-      schedules: workspace.schedules.filter((schedule) => schedule.memberId !== memberId)
+    await deleteMemberAction({
+      workspace,
+      memberId,
+      isLocalMode,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage
     });
-    setMessage('Ученик удалён.');
   }
 
   async function saveMemberPayment(memberId: string): Promise<void> {
