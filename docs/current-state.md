@@ -118,6 +118,7 @@ Important modules:
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.
+- Payment view selectors, overview counts, registry filtering and selected payment details are started in `src/modules/payments`.
 - Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.

@@ -89,7 +89,6 @@ import type {
   GroupDraft,
   MemberInviteResult,
   PaymentEdit,
-  PaymentView,
   PersonDraft,
   ScheduleEdit,
   SettingsDraft
@@ -127,6 +126,18 @@ import {
   selectTrainers,
   selectVisibleMembers
 } from '@/modules/people';
+import {
+  buildMemberPaymentDetails,
+  buildPaymentOverview,
+  buildPaymentRegistry,
+  buildPaymentTasks,
+  buildSelectedPaymentDetails,
+  mapActivePlansByMemberId,
+  mapCurrentPaymentsByMemberId,
+  paymentTaskHeadline,
+  selectVisiblePayments,
+  type PaymentView
+} from '@/modules/payments';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -438,15 +449,10 @@ export function DashboardApp(): React.ReactElement {
     [activeUser, allMembers, workspace?.assignments]
   );
 
-  const visiblePayments = useMemo(() => {
-    if (!workspace || !activeUser) return [];
-    if (hasRole(activeUser, 'owner')) return workspace.payments;
-    if (hasRole(activeUser, 'trainer')) {
-      return workspace.payments.filter((payment) => payment.trainer_id === activeUser.id);
-    }
-
-    return workspace.payments.filter((payment) => payment.member_id === activeUser.id);
-  }, [activeUser, workspace]);
+  const visiblePayments = useMemo(
+    () => selectVisiblePayments(workspace, activeUser),
+    [activeUser, workspace]
+  );
 
   const usersById = useMemo(() => {
     if (!workspace) return new Map<string, AppUser>();
@@ -465,19 +471,15 @@ export function DashboardApp(): React.ReactElement {
     [workspace?.groupMembers]
   );
 
-  const currentPaymentByMemberId = useMemo(() => {
-    if (!workspace) return new Map<string, PaymentRequest>();
-    return new Map(
-      workspace.payments
-        .filter((payment) => payment.is_current !== false)
-        .map((payment) => [payment.member_id, payment])
-    );
-  }, [workspace]);
+  const currentPaymentByMemberId = useMemo(
+    () => mapCurrentPaymentsByMemberId(workspace?.payments ?? []),
+    [workspace?.payments]
+  );
 
-  const activePlanByMemberId = useMemo(() => {
-    if (!workspace) return new Map<string, LocalBillingPlan>();
-    return new Map(workspace.billingPlans.filter((plan) => plan.active).map((plan) => [plan.memberId, plan]));
-  }, [workspace]);
+  const activePlanByMemberId = useMemo(
+    () => mapActivePlansByMemberId(workspace?.billingPlans ?? []),
+    [workspace?.billingPlans]
+  );
 
   const isPendingAction = (key: string): boolean => pendingAction === key;
   const buttonLabel = (key: string, defaultLabel: string): string =>
@@ -501,10 +503,24 @@ export function DashboardApp(): React.ReactElement {
     }
   };
 
-  const currentPayments = visiblePayments.filter((payment) => payment.is_current !== false);
-  const paidAmount = visiblePayments
-    .filter((payment) => payment.status === 'paid')
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const paymentOverview = useMemo(
+    () =>
+      buildPaymentOverview({
+        visiblePayments,
+        visibleMembers,
+        currentPaymentByMemberId
+      }),
+    [currentPaymentByMemberId, visibleMembers, visiblePayments]
+  );
+  const {
+    currentPayments,
+    paidAmount,
+    confirmationPayments,
+    delayRequestedPayments,
+    overduePayments,
+    delayedPayments,
+    paymentActionCount
+  } = paymentOverview;
   const currentExpenses = workspace?.expenses.filter((expense) => expense.isCurrent) ?? [];
   const paidExpenses = workspace?.expenses
     .filter((expense) => expense.status === 'paid')
@@ -512,152 +528,65 @@ export function DashboardApp(): React.ReactElement {
   const pendingExpenses = currentExpenses
     .filter((expense) => expense.status === 'pending')
     .reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const confirmationPayments = currentPayments.filter(
-    (payment) => payment.status === 'payment_confirmation'
-  );
-  const delayRequestedPayments = currentPayments.filter(
-    (payment) => payment.status === 'delay_requested'
-  );
-  const overduePayments = currentPayments.filter((payment) => payment.status === 'overdue');
-  const delayedPayments = currentPayments.filter((payment) => payment.status === 'delayed');
-  const paymentAttentionCount = confirmationPayments.length + delayRequestedPayments.length;
-  const membersWithoutPaymentCount = visibleMembers.filter(
-    (member) => !currentPaymentByMemberId.has(member.id)
-  ).length;
-  const paymentActionCount = paymentAttentionCount + overduePayments.length + membersWithoutPaymentCount;
-  const normalizedPaymentSearch = paymentSearch.trim().toLocaleLowerCase('ru-RU');
-  const memberMatchesPaymentSearch = (member: AppUser): boolean =>
-    !normalizedPaymentSearch ||
-    userName(member.id).toLocaleLowerCase('ru-RU').includes(normalizedPaymentSearch);
-  const filteredPaymentMembers = visibleMembers.filter((member) => {
-    const payment = currentPaymentByMemberId.get(member.id);
-
-    if (!memberMatchesPaymentSearch(member)) return false;
-    if (paymentView === 'actions') {
-      return (
-        !payment ||
-        payment.status === 'payment_confirmation' ||
-        payment.status === 'delay_requested' ||
-        payment.status === 'overdue'
-      );
-    }
-    if (paymentView === 'overdue') return payment?.status === 'overdue';
-    return true;
+  const paymentRegistry = buildPaymentRegistry({
+    visiblePayments,
+    visibleMembers,
+    currentPaymentByMemberId,
+    paymentView,
+    paymentSearch,
+    userName
   });
-  const paymentActionGroups = [
-    {
-      id: 'confirmations',
-      title: 'Ожидают подтверждения',
-      description: 'Ученики нажали «Я оплатил» или отправили предоплату.',
-      members: visibleMembers.filter(
-        (member) =>
-          memberMatchesPaymentSearch(member) &&
-          currentPaymentByMemberId.get(member.id)?.status === 'payment_confirmation'
-      )
-    },
-    {
-      id: 'delays',
-      title: 'Запросили отсрочку',
-      description: 'Нужно одобрить или отклонить новую дату.',
-      members: visibleMembers.filter(
-        (member) =>
-          memberMatchesPaymentSearch(member) &&
-          currentPaymentByMemberId.get(member.id)?.status === 'delay_requested'
-      )
-    },
-    {
-      id: 'overdue',
-      title: 'Просрочено',
-      description: 'Счёт уже должен быть оплачен.',
-      members: visibleMembers.filter(
-        (member) =>
-          memberMatchesPaymentSearch(member) &&
-          currentPaymentByMemberId.get(member.id)?.status === 'overdue'
-      )
-    },
-    {
-      id: 'without-payment',
-      title: 'Без оплаты',
-      description: 'Ученикам ещё не назначен текущий счёт.',
-      members: visibleMembers.filter(
-        (member) => memberMatchesPaymentSearch(member) && !currentPaymentByMemberId.has(member.id)
-      )
-    }
-  ];
-  const visiblePaymentActionGroups = paymentActionGroups.filter((group) => group.members.length > 0);
-  const paidPaymentResults = [...visiblePayments]
-    .filter(
-      (payment) =>
-        payment.status === 'paid' &&
-        userName(payment.member_id).toLocaleLowerCase('ru-RU').includes(normalizedPaymentSearch)
-    )
-    .reverse();
-  const selectedPaymentMember =
-    visibleMembers.find((member) => member.id === selectedPaymentMemberId) ?? null;
-  const selectedPayment = selectedPaymentMember
-    ? currentPaymentByMemberId.get(selectedPaymentMember.id)
-    : undefined;
-  const selectedPaymentPlan = selectedPaymentMember
-    ? activePlanByMemberId.get(selectedPaymentMember.id)
-    : undefined;
-  const selectedPaymentGroup = selectedPaymentMember ? groupFor(selectedPaymentMember.id) : null;
-  const selectedPaymentTrainer = selectedPayment
-    ? usersById.get(selectedPayment.trainer_id) ?? null
-    : selectedPaymentPlan
-      ? usersById.get(selectedPaymentPlan.trainerId) ?? null
-      : null;
-  const selectedPaymentHistory = selectedPaymentMember
-    ? visiblePayments
-        .filter(
-          (payment) =>
-            payment.member_id === selectedPaymentMember.id && payment.status === 'paid'
-        )
-        .reverse()
-    : [];
-  const selectedPaymentHistoryOpen = selectedPaymentMember
-    ? historyOpenByMember[selectedPaymentMember.id] ?? false
-    : false;
-  const todayTasks = [
-    {
-      id: 'confirmations',
-      count: confirmationPayments.length,
-      label: confirmationPayments.length === 1 ? 'оплата ждёт подтверждения' : 'оплаты ждут подтверждения',
-      onClick: () => openPaymentsView('actions')
-    },
-    {
-      id: 'delays',
-      count: delayRequestedPayments.length,
-      label: delayRequestedPayments.length === 1 ? 'запрос отсрочки' : 'запроса отсрочки',
-      onClick: () => openPaymentsView('actions')
-    },
-    {
-      id: 'overdue',
-      count: overduePayments.length,
-      label: overduePayments.length === 1 ? 'просроченный счёт' : 'просроченных счёта',
-      onClick: () => openPaymentsView('overdue')
-    }
-  ].filter((task) => task.count > 0);
+  const {
+    filteredMembers: filteredPaymentMembers,
+    visibleActionGroups: visiblePaymentActionGroups,
+    paidResults: paidPaymentResults
+  } = paymentRegistry;
+  const selectedPaymentDetails = buildSelectedPaymentDetails({
+    selectedMemberId: selectedPaymentMemberId,
+    visibleMembers,
+    visiblePayments,
+    currentPaymentByMemberId,
+    activePlanByMemberId,
+    usersById,
+    historyOpenByMember,
+    groupForMember: groupFor
+  });
+  const {
+    member: selectedPaymentMember,
+    payment: selectedPayment,
+    plan: selectedPaymentPlan,
+    group: selectedPaymentGroup,
+    trainer: selectedPaymentTrainer,
+    history: selectedPaymentHistory,
+    historyOpen: selectedPaymentHistoryOpen
+  } = selectedPaymentDetails;
+  const todayTasks = buildPaymentTasks({
+    confirmationPayments,
+    delayRequestedPayments,
+    overduePayments
+  }).map((task) => ({
+    ...task,
+    onClick: () => openPaymentsView(task.id === 'overdue' ? 'overdue' : 'actions')
+  }));
   const todayTaskCount = todayTasks.reduce((sum, task) => sum + task.count, 0);
-  const todayTaskHeadline =
-    todayTaskCount === 1
-      ? '1 задача требует внимания'
-      : todayTaskCount > 1 && todayTaskCount < 5
-        ? `${todayTaskCount} задачи требуют внимания`
-        : `${todayTaskCount} задач требуют внимания`;
-  const activeMemberPayment =
-    activeUser?.role === 'member'
-      ? currentPayments.find((payment) => payment.member_id === activeUser.id) ?? null
-      : null;
-  const activeMemberPlan =
-    activeUser?.role === 'member' ? activePlanByMemberId.get(activeUser.id) ?? null : null;
-  const activeMemberPaymentHistory =
-    activeUser?.role === 'member'
-      ? visiblePayments
-          .filter((payment) => payment.member_id === activeUser.id && payment.status === 'paid')
-          .reverse()
-      : [];
-  const activeMemberHistoryOpen =
-    activeUser?.role === 'member' ? historyOpenByMember[activeUser.id] ?? false : false;
+  const todayTaskHeadline = paymentTaskHeadline(todayTaskCount);
+  const activeMemberDetails = useMemo(
+    () =>
+      buildMemberPaymentDetails({
+        activeUser,
+        currentPayments,
+        visiblePayments,
+        activePlanByMemberId,
+        historyOpenByMember
+      }),
+    [activePlanByMemberId, activeUser, currentPayments, historyOpenByMember, visiblePayments]
+  );
+  const {
+    payment: activeMemberPayment,
+    plan: activeMemberPlan,
+    history: activeMemberPaymentHistory,
+    historyOpen: activeMemberHistoryOpen
+  } = activeMemberDetails;
   const activeMemberTrainer =
     activeUser?.role === 'member' ? trainerFor(activeUser.id) : null;
   const activeMemberGroup =

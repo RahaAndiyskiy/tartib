@@ -76,5 +76,3 @@ export type DashboardSection =
   | 'schedule'
   | 'expenses'
   | 'settings';
-
-export type PaymentView = 'actions' | 'all' | 'overdue' | 'paid';
