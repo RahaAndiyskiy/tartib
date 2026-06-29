@@ -109,6 +109,8 @@ Important modules:
 - Notification and logout confirmation modals are extracted from `DashboardApp.tsx`.
 - Group create/edit form is extracted into `GroupFormModal`.
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.
+- Repeated invite result UI is extracted into `InviteResultCard`.
+- Compact payment registry rows are extracted into `PaymentRegistryRow`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.
 - `src/app/api/workspace/actions/_lib/` contains domain action handlers.

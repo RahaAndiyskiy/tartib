@@ -96,6 +96,8 @@ Recent progress:
 - `NotificationsModal` and `LogoutConfirmModal` were extracted.
 - `GroupFormModal` was extracted.
 - `InviteLinkModal` was extracted for the overview group invite flow.
+- `InviteResultCard` was extracted for repeated invite link output.
+- `PaymentRegistryRow` was extracted for the compact payments registry list.
 
 Risk:
 

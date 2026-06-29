@@ -66,6 +66,8 @@ Dashboard support modules:
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.
+- `src/features/dashboard/InviteResultCard.tsx` - reusable rendered invite link card.
+- `src/features/dashboard/PaymentRegistryRow.tsx` - compact payment registry row UI.
 
 `/api/workspace`
 

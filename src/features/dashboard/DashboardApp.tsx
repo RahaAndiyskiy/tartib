@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   Bell,
   ChevronRight,
-  Copy,
   CreditCard,
   ExternalLink,
   LayoutDashboard,
@@ -97,6 +96,8 @@ import { NotificationsModal } from './NotificationsModal';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
+import { InviteResultCard } from './InviteResultCard';
+import { PaymentRegistryRow } from './PaymentRegistryRow';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -2449,27 +2450,18 @@ export function DashboardApp(): React.ReactElement {
     const group = groupFor(member.id);
 
     return (
-      <button
-        className={`payment-registry-row ${selectedPaymentMemberId === member.id ? 'selected' : ''}`}
+      <PaymentRegistryRow
         key={member.id}
-        type="button"
-        onClick={() => {
+        memberName={userName(member.id)}
+        payment={payment}
+        plan={plan}
+        group={group}
+        isSelected={selectedPaymentMemberId === member.id}
+        onSelect={() => {
           setSelectedPaymentMemberId(member.id);
           setPaymentEditOpen(false);
         }}
-      >
-        <div className="payment-person">
-          <strong>{userName(member.id)}</strong>
-          <span>
-            {group ? group.activity : 'Без группы'}
-            {plan ? ` · ${planLabels[plan.type]}` : ' · условия не настроены'}
-          </span>
-        </div>
-        <strong className="payment-amount">{payment ? formatMoney(payment.amount) : '—'}</strong>
-        <span className="payment-due">{formatShortDate(payment?.due_date)}</span>
-        <span className={`status-pill ${payment?.status ?? 'not-set'}`}>{statusLabels[payment?.status ?? 'not-set']}</span>
-        <ChevronRight className="payment-row-arrow" size={18} />
-      </button>
+      />
     );
   }
 
@@ -3346,28 +3338,13 @@ export function DashboardApp(): React.ReactElement {
                 {memberInvite &&
                 ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
                   personDraft.role === 'member') ? (
-                  <div className="invite-result">
-                    <div className="invite-result-header">
-                      <div>
-                        <strong>Ссылка для группы {memberInvite.groupName}</strong>
-                        <span>
-                          Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
-                        </span>
-                      </div>
-                    </div>
-                    <input aria-label="Ссылка-приглашение" readOnly value={memberInvite.inviteUrl} />
-                    <div className="invite-result-actions">
-                      <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
-                        <Copy size={17} /> Копировать
-                      </button>
-                      <button className="invite-close-button" aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
-                        <X size={18} />
-                      </button>
-                      <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
-                        <Share2 size={17} /> Поделиться
-                      </button>
-                    </div>
-                  </div>
+                  <InviteResultCard
+                    invite={memberInvite}
+                    inputLabel="Ссылка-приглашение"
+                    onCopy={() => void copyMemberInvite()}
+                    onClose={closeMemberInvite}
+                    onShare={() => void shareMemberInvite()}
+                  />
                 ) : null}
               </form>
             ) : null}
@@ -4172,28 +4149,14 @@ export function DashboardApp(): React.ReactElement {
                 </div>
               ) : null}
               {memberInvite ? (
-                <div className="invite-result group-invite-result">
-                  <div className="invite-result-header">
-                    <div>
-                      <strong>Ссылка для группы {memberInvite.groupName}</strong>
-                      <span>
-                        Действует до {new Date(memberInvite.expiresAt).toLocaleDateString('ru-RU')}
-                      </span>
-                    </div>
-                  </div>
-                  <input aria-label="Ссылка для набора" readOnly value={memberInvite.inviteUrl} />
-                  <div className="invite-result-actions">
-                    <button className="ghost-button" type="button" onClick={() => void copyMemberInvite()}>
-                      <Copy size={17} /> Копировать
-                    </button>
-                    <button className="invite-close-button" aria-label="Закрыть ссылку" type="button" onClick={closeMemberInvite}>
-                      <X size={18} />
-                    </button>
-                    <button className="primary-button" type="button" onClick={() => void shareMemberInvite()}>
-                      <Share2 size={17} /> Поделиться
-                    </button>
-                  </div>
-                </div>
+                <InviteResultCard
+                  invite={memberInvite}
+                  inputLabel="Ссылка для набора"
+                  className="group-invite-result"
+                  onCopy={() => void copyMemberInvite()}
+                  onClose={closeMemberInvite}
+                  onShare={() => void shareMemberInvite()}
+                />
               ) : null}
             </div>
 
