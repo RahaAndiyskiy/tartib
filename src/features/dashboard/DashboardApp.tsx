@@ -141,6 +141,8 @@ import {
   mapCurrentPaymentsByMemberId,
   paymentTaskHeadline,
   requestLocalPaymentDelay,
+  saveLocalMemberPayment,
+  saveRemoteMemberPaymentAction,
   selectVisiblePayments,
   submitLocalPaymentConfirmation,
   submitLocalPrepayment,
@@ -148,6 +150,7 @@ import {
   upsertPayment,
   type RemotePaymentDeletionResult,
   type RemotePaymentMutationResult,
+  validateSavePaymentDraft,
   type PaymentView
 } from '@/modules/payments';
 
@@ -1216,41 +1219,29 @@ export function DashboardApp(): React.ReactElement {
         ? activeUser.id
         : assignment?.trainer_id;
 
-    if (!trainerId) {
+    const validation = validateSavePaymentDraft({ edit, trainerId });
+    if (!validation.ok && validation.reason === 'missing_trainer') {
       setMessage('У этого ученика не назначен тренер.');
       return;
     }
-
-    if (!edit?.dueDate) {
+    if (!validation.ok && validation.reason === 'missing_due_date') {
       setMessage('Укажите сумму и срок оплаты.');
       return;
     }
-
-    const calculatedAmount = Number(edit.currentAmount);
-    const planSource = edit.individualTerms || edit.type === 'one_time' ? 'individual' : 'group_default';
-
-    if (calculatedAmount <= 0) {
+    if (!validation.ok && validation.reason === 'invalid_amount') {
       setMessage('Сумма оплаты должна быть больше нуля.');
       return;
     }
+    if (!edit || !trainerId || !validation.ok) return;
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment: PaymentRequest;
-        billingPlan: LocalBillingPlan;
-      }>(
-        {
-          action: 'save_payment',
-          memberId,
-          type: edit.type,
-          trainingFormat: edit.trainingFormat,
-          amount: calculatedAmount,
-          dueDate: edit.dueDate,
-          updateFuture: edit.updateFuture,
-          source: planSource
-        },
-        `save-payment:${memberId}`
-      );
+      const data = await saveRemoteMemberPaymentAction({
+        memberId,
+        edit,
+        amount: validation.amount,
+        source: validation.source,
+        runRemoteActionWithPending
+      });
       if (data?.payment && data.billingPlan) {
         setWorkspace((current) =>
           current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
@@ -1267,80 +1258,26 @@ export function DashboardApp(): React.ReactElement {
 
     const existingPayment = currentPaymentByMemberId.get(memberId);
     const existingPlan = activePlanByMemberId.get(memberId);
-    const now = new Date().toISOString();
-    const planId = existingPlan?.id ?? createId();
-    const baseAmount = Number(
-      edit.individualTerms || edit.updateFuture || !existingPlan
-        ? edit.currentAmount
-        : existingPlan.baseAmount || edit.currentAmount
-    );
-    const nextPlan: LocalBillingPlan = {
-      id: planId,
+    const result = saveLocalMemberPayment({
+      workspace,
       memberId,
       trainerId,
-      type: edit.type,
-      trainingFormat: edit.trainingFormat,
-      source: planSource,
-      baseAmount,
-      billingDay:
-        edit.type === 'monthly' ? new Date(`${edit.dueDate}T12:00:00`).getDate() : null,
-      active: true,
-      createdAt: existingPlan?.createdAt ?? now,
-      updatedAt: now
-    };
-    const shouldUpdatePlan =
-      !existingPlan ||
-      edit.individualTerms ||
-      edit.updateFuture ||
-      existingPlan.type !== edit.type ||
-      existingPlan.source !== planSource;
-    const nextPayment = existingPayment
-      ? {
-          ...existingPayment,
-          amount: calculatedAmount,
-          due_date: edit.dueDate,
-          plan_id: planId,
-          period_label: periodLabel(edit.dueDate)
-        }
-      : {
-          id: createId(),
-          organization_id: workspace.organization.id,
-          member_id: memberId,
-          trainer_id: trainerId,
-          amount: calculatedAmount,
-          due_date: edit.dueDate,
-          status: 'active' as const,
-          created_at: now,
-          plan_id: planId,
-          period_label: periodLabel(edit.dueDate),
-          is_current: true,
-          coverage_months: 1,
-          paid_at: null
-        };
-
-    saveWorkspace({
-      ...workspace,
-      billingPlans: existingPlan
-        ? workspace.billingPlans.map((plan) =>
-            plan.id === existingPlan.id
-              ? shouldUpdatePlan
-                ? nextPlan
-                : plan
-              : plan
-          )
-        : [...workspace.billingPlans, nextPlan],
-      payments: existingPayment
-        ? workspace.payments.map((payment) =>
-            payment.id === existingPayment.id ? nextPayment : payment
-          )
-        : [...workspace.payments, nextPayment]
+      edit,
+      amount: validation.amount,
+      source: validation.source,
+      existingPayment,
+      existingPlan,
+      now: new Date().toISOString(),
+      createId,
+      periodLabel
     });
+    saveWorkspace(result.workspace);
     setPaymentEdits((current) => {
       const next = { ...current };
       delete next[memberId];
       return next;
     });
-    setMessage(existingPayment ? 'Оплата обновлена.' : 'Оплата назначена.');
+    setMessage(result.paymentExisted ? 'Оплата обновлена.' : 'Оплата назначена.');
   }
 
   async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {

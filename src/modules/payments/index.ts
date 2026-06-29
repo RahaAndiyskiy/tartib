@@ -17,10 +17,13 @@ export {
   decideLocalPaymentStatus,
   deleteLocalPayment,
   requestLocalPaymentDelay,
+  saveLocalMemberPayment,
+  saveRemoteMemberPaymentAction,
   submitLocalPaymentConfirmation,
   submitLocalPrepayment,
   upsertBillingPlan,
-  upsertPayment
+  upsertPayment,
+  validateSavePaymentDraft
 } from './actions/paymentActions';
 export type {
   MemberPaymentDetails,
@@ -34,5 +37,8 @@ export type {
 } from './model/selectors';
 export type {
   RemotePaymentDeletionResult,
-  RemotePaymentMutationResult
+  RemotePaymentMutationResult,
+  RemoteSavePaymentResult,
+  SavePaymentEditLike,
+  SavePaymentValidationResult
 } from './actions/paymentActions';

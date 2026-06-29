@@ -107,7 +107,7 @@ Recent progress:
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.
 - Payment view selectors, overview counts, registry filtering and selected payment details were started in `src/modules/payments`.
-- Payment workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions were started in `src/modules/payments/actions`.
+- Payment save validation/build, remote save wrapper and workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions were started in `src/modules/payments/actions`.
 
 Risk:
 

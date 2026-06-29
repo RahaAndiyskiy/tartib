@@ -5,8 +5,11 @@ import type {
   LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import type {
+  BillingPlanSource,
+  BillingPlanType,
   PaymentRequest,
-  PaymentRequestStatus
+  PaymentRequestStatus,
+  TrainingFormat
 } from '@shared/types/domain';
 
 export type RemotePaymentMutationResult = {
@@ -21,12 +24,180 @@ export type RemotePaymentDeletionResult = {
   notification?: LocalNotification;
 };
 
+export type SavePaymentEditLike = {
+  type: BillingPlanType;
+  trainingFormat: TrainingFormat;
+  individualTerms: boolean;
+  currentAmount: string;
+  dueDate: string;
+  updateFuture: boolean;
+};
+
+export type SavePaymentValidationResult =
+  | { ok: true; amount: number; source: BillingPlanSource }
+  | { ok: false; reason: 'missing_trainer' | 'missing_due_date' | 'invalid_amount' };
+
+type RunRemoteActionWithPending = <T>(
+  payload: Record<string, unknown>,
+  pendingKey: string
+) => Promise<T | null>;
+
+export type RemoteSavePaymentResult = {
+  payment: PaymentRequest;
+  billingPlan: LocalBillingPlan;
+};
+
+export function validateSavePaymentDraft({
+  edit,
+  trainerId
+}: {
+  edit: SavePaymentEditLike | undefined;
+  trainerId: string | undefined;
+}): SavePaymentValidationResult {
+  if (!trainerId) return { ok: false, reason: 'missing_trainer' };
+  if (!edit?.dueDate) return { ok: false, reason: 'missing_due_date' };
+
+  const amount = Number(edit.currentAmount);
+  if (amount <= 0) return { ok: false, reason: 'invalid_amount' };
+
+  return {
+    ok: true,
+    amount,
+    source: edit.individualTerms || edit.type === 'one_time' ? 'individual' : 'group_default'
+  };
+}
+
+export async function saveRemoteMemberPaymentAction({
+  memberId,
+  edit,
+  amount,
+  source,
+  runRemoteActionWithPending
+}: {
+  memberId: string;
+  edit: SavePaymentEditLike;
+  amount: number;
+  source: BillingPlanSource;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+}): Promise<RemoteSavePaymentResult | null> {
+  return runRemoteActionWithPending<RemoteSavePaymentResult>(
+    {
+      action: 'save_payment',
+      memberId,
+      type: edit.type,
+      trainingFormat: edit.trainingFormat,
+      amount,
+      dueDate: edit.dueDate,
+      updateFuture: edit.updateFuture,
+      source
+    },
+    `save-payment:${memberId}`
+  );
+}
+
 export function upsertPayment(workspace: LocalWorkspace, payment: PaymentRequest): LocalWorkspace {
   return {
     ...workspace,
     payments: workspace.payments.some((item) => item.id === payment.id)
       ? workspace.payments.map((item) => (item.id === payment.id ? payment : item))
       : [...workspace.payments, payment]
+  };
+}
+
+export function saveLocalMemberPayment({
+  workspace,
+  memberId,
+  trainerId,
+  edit,
+  amount,
+  source,
+  existingPayment,
+  existingPlan,
+  now,
+  createId,
+  periodLabel
+}: {
+  workspace: LocalWorkspace;
+  memberId: string;
+  trainerId: string;
+  edit: SavePaymentEditLike;
+  amount: number;
+  source: BillingPlanSource;
+  existingPayment: PaymentRequest | undefined;
+  existingPlan: LocalBillingPlan | undefined;
+  now: string;
+  createId: () => string;
+  periodLabel: (date: string) => string;
+}): { workspace: LocalWorkspace; paymentExisted: boolean } {
+  const planId = existingPlan?.id ?? createId();
+  const baseAmount = Number(
+    edit.individualTerms || edit.updateFuture || !existingPlan
+      ? edit.currentAmount
+      : existingPlan.baseAmount || edit.currentAmount
+  );
+  const nextPlan: LocalBillingPlan = {
+    id: planId,
+    memberId,
+    trainerId,
+    type: edit.type,
+    trainingFormat: edit.trainingFormat,
+    source,
+    baseAmount,
+    billingDay:
+      edit.type === 'monthly' ? new Date(`${edit.dueDate}T12:00:00`).getDate() : null,
+    active: true,
+    createdAt: existingPlan?.createdAt ?? now,
+    updatedAt: now
+  };
+  const shouldUpdatePlan =
+    !existingPlan ||
+    edit.individualTerms ||
+    edit.updateFuture ||
+    existingPlan.type !== edit.type ||
+    existingPlan.source !== source;
+  const nextPayment = existingPayment
+    ? {
+        ...existingPayment,
+        amount,
+        due_date: edit.dueDate,
+        plan_id: planId,
+        period_label: periodLabel(edit.dueDate)
+      }
+    : {
+        id: createId(),
+        organization_id: workspace.organization.id,
+        member_id: memberId,
+        trainer_id: trainerId,
+        amount,
+        due_date: edit.dueDate,
+        status: 'active' as const,
+        created_at: now,
+        plan_id: planId,
+        period_label: periodLabel(edit.dueDate),
+        is_current: true,
+        coverage_months: 1,
+        paid_at: null
+      };
+
+  return {
+    workspace: {
+      ...workspace,
+      billingPlans: existingPlan
+        ? workspace.billingPlans.map((plan) =>
+            plan.id === existingPlan.id
+              ? shouldUpdatePlan
+                ? nextPlan
+                : plan
+              : plan
+          )
+        : [...workspace.billingPlans, nextPlan],
+      payments: existingPayment
+        ? workspace.payments.map((payment) =>
+            payment.id === existingPayment.id ? nextPayment : payment
+          )
+        : [...workspace.payments, nextPayment]
+    },
+    paymentExisted: Boolean(existingPayment)
   };
 }
 

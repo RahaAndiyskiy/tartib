@@ -119,7 +119,7 @@ Important modules:
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.
 - Payment view selectors, overview counts, registry filtering and selected payment details are started in `src/modules/payments`.
-- Payment workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions are started in `src/modules/payments/actions`.
+- Payment save validation/build, remote save wrapper and workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions are started in `src/modules/payments/actions`.
 - Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.
