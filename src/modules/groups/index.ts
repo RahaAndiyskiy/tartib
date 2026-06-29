@@ -9,4 +9,13 @@ export {
   mapGroupsById,
   selectVisibleGroups
 } from './model/selectors';
-export { deleteGroupAction } from './actions/groupActions';
+export {
+  buildLocalTrainingGroup,
+  parseGroupPaymentDefaults,
+  resolveGroupTrainerId,
+  validateGroupDraft
+} from './model/draft';
+export {
+  deleteGroupAction,
+  saveRemoteGroupAction
+} from './actions/groupActions';

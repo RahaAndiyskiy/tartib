@@ -1,4 +1,11 @@
-import type { LocalWorkspace } from '@shared/lib/localWorkspace';
+import type {
+  LocalTrainingGroup,
+  LocalWorkspace
+} from '@shared/lib/localWorkspace';
+import type {
+  GroupDraftLike,
+  GroupPaymentDefaults
+} from '../model/draft';
 
 type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
 
@@ -15,6 +22,42 @@ type DeleteGroupParams = {
   saveWorkspace: (workspace: LocalWorkspace) => void;
   setWorkspace: SetWorkspace;
 };
+
+type SaveRemoteGroupParams = {
+  editingGroupId: string;
+  trainerId: string;
+  draft: GroupDraftLike;
+  defaults: GroupPaymentDefaults;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+};
+
+export async function saveRemoteGroupAction({
+  editingGroupId,
+  trainerId,
+  draft,
+  defaults,
+  runRemoteActionWithPending
+}: SaveRemoteGroupParams): Promise<LocalTrainingGroup | null> {
+  const data = await runRemoteActionWithPending<
+    | { group: LocalTrainingGroup }
+    | null
+  >(
+    {
+      action: 'save_group',
+      id: editingGroupId || undefined,
+      trainerId,
+      activity: draft.activity,
+      days: draft.days,
+      time: draft.time,
+      note: draft.note,
+      defaultAmount: defaults.hasDefaultPayment ? defaults.defaultAmount : null,
+      defaultBillingDay: defaults.hasDefaultPayment ? defaults.defaultBillingDay : null
+    },
+    `save-group:${editingGroupId || 'new'}`
+  );
+
+  return data?.group ?? null;
+}
 
 export async function deleteGroupAction({
   workspace,

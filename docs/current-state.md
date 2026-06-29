@@ -117,6 +117,7 @@ Important modules:
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
+- Group draft validation/build and remote group save are extracted into `src/modules/groups`.
 - Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.

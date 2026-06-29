@@ -22,7 +22,7 @@ Each module is considered migrated only when all layers are moved:
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, member assignment and member deletion actions are in `src/modules/people`; local member creation with initial payment stays in dashboard orchestration until `groups` and `payments` exist. |
-| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, basic group permissions and group deletion are in `src/modules/groups`; create/update group actions still live in `DashboardApp.tsx`. |
+| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, remote save, basic permissions and group deletion are in `src/modules/groups`; local update with payment-default sync still lives in `DashboardApp.tsx`. |
 | `payments` | partial | pending | pending | pending | partial | Some row UI is extracted, but payment logic mostly remains in `DashboardApp.tsx`. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
 | `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
@@ -40,8 +40,10 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/index.ts` exposes the current public people module API.
 - `src/modules/groups/components/GroupsPanel.tsx` owns the group list UI.
 - `src/modules/groups/model/selectors.ts` owns visible group selectors and group maps.
+- `src/modules/groups/model/draft.ts` owns group draft validation, payment-default parsing and local group building.
 - `src/modules/groups/permissions.ts` owns basic group access helpers.
 - `src/modules/groups/actions/groupActions.ts` owns group deletion.
+- `src/modules/groups/actions/groupActions.ts` also owns remote group save.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
 ## Immediate Next Steps
@@ -52,7 +54,7 @@ Each module is considered migrated only when all layers are moved:
 2. Continue `people` actions:
    - local member creation path.
 3. Continue `groups` module:
-   - move group create/update actions carefully;
+   - extract local group create/update shell where possible;
    - keep payment-default synchronization at the boundary until `payments` owns its part.
 
 ## Rule

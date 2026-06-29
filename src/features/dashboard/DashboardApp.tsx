@@ -59,12 +59,17 @@ import {
   roleLabel
 } from '@/core/roles';
 import {
+  buildLocalTrainingGroup,
   canManageGroups,
   canViewGroups,
   deleteGroupAction,
   GroupsPanel,
   mapGroupsById,
-  selectVisibleGroups
+  parseGroupPaymentDefaults,
+  resolveGroupTrainerId,
+  saveRemoteGroupAction,
+  selectVisibleGroups,
+  validateGroupDraft
 } from '@/modules/groups';
 import {
   emptyExpenseDraft,
@@ -1043,96 +1048,64 @@ export function DashboardApp(): React.ReactElement {
     event.preventDefault();
     if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return;
 
-    const trainerId = hasRole(activeUser, 'owner')
-      ? groupDraft.trainerId || activeUser.id
-      : activeUser.id;
-    if (!trainerId || !groupDraft.activity.trim() || !groupDraft.days.trim() || !groupDraft.time.trim()) {
+    const trainerId = resolveGroupTrainerId(activeUser, groupDraft);
+    const defaults = parseGroupPaymentDefaults(groupDraft);
+    const validationError = validateGroupDraft(groupDraft, trainerId, defaults);
+
+    if (validationError === 'missing_required') {
       setMessage('Укажите направление, дни и время.');
+      return;
+    }
+    if (validationError === 'invalid_payment_defaults') {
+      setMessage('Укажите корректную сумму и день оплаты группы.');
       return;
     }
 
     if (!isLocalMode) {
-      const defaultAmount = Number(groupDraft.defaultAmount);
-      const defaultBillingDay = Number(groupDraft.defaultBillingDay);
-      const hasDefaultPayment = groupDraft.defaultAmount.trim() !== '';
-      if (
-        (hasDefaultPayment && defaultAmount <= 0) ||
-        (hasDefaultPayment && (defaultBillingDay < 1 || defaultBillingDay > 31))
-      ) {
-        setMessage('Укажите корректную сумму и день оплаты группы.');
-        return;
-      }
-
-      const data = await runRemoteActionWithPending<
-        | { group: LocalTrainingGroup }
-        | null
-      >(
-        {
-          action: 'save_group',
-          id: editingGroupId || undefined,
-          trainerId,
-          activity: groupDraft.activity,
-          days: groupDraft.days,
-          time: groupDraft.time,
-          note: groupDraft.note,
-          defaultAmount: hasDefaultPayment ? defaultAmount : null,
-          defaultBillingDay: hasDefaultPayment ? defaultBillingDay : null
-        },
-        `save-group:${editingGroupId || 'new'}`
-      );
-      if (data?.group) {
+      const savedGroup = await saveRemoteGroupAction({
+        editingGroupId,
+        trainerId,
+        draft: groupDraft,
+        defaults,
+        runRemoteActionWithPending
+      });
+      if (savedGroup) {
         const wasEditingGroup = Boolean(editingGroupId);
         setWorkspace((current) =>
           current
             ? {
                 ...current,
-                groups: current.groups.some((item) => item.id === data.group.id)
-                  ? current.groups.map((item) => (item.id === data.group.id ? data.group : item))
-                  : [...current.groups, data.group]
+                groups: current.groups.some((item) => item.id === savedGroup.id)
+                  ? current.groups.map((item) => (item.id === savedGroup.id ? savedGroup : item))
+                  : [...current.groups, savedGroup]
               }
             : current
         );
         setGroupDraft(emptyGroupDraft);
         setEditingGroupId('');
         setMobileFormOpen(false);
-        setLastCreatedGroupId(wasEditingGroup ? '' : data.group.id);
+        setLastCreatedGroupId(wasEditingGroup ? '' : savedGroup.id);
         void refreshRemoteWorkspace('group-save', 0);
         setMessage(wasEditingGroup ? 'Группа обновлена.' : 'Группа создана. Теперь можно создать ссылку для набора.');
       }
       return;
     }
 
-    const defaultAmount = Number(groupDraft.defaultAmount);
-    const defaultBillingDay = Number(groupDraft.defaultBillingDay);
-    const hasDefaultPayment = groupDraft.defaultAmount.trim() !== '';
-    if (
-      (hasDefaultPayment && defaultAmount <= 0) ||
-      (hasDefaultPayment && (defaultBillingDay < 1 || defaultBillingDay > 31))
-    ) {
-      setMessage('Укажите корректную сумму и день оплаты группы.');
-      return;
-    }
-
     const now = new Date().toISOString();
-    const group: LocalTrainingGroup = {
+    const group = buildLocalTrainingGroup({
       id: createId(),
       trainerId,
-      activity: groupDraft.activity.trim(),
-      days: groupDraft.days.trim(),
-      time: groupDraft.time.trim(),
-      note: groupDraft.note.trim(),
-      defaultAmount: hasDefaultPayment ? defaultAmount : null,
-      defaultBillingDay: hasDefaultPayment ? defaultBillingDay : null,
-      createdAt: now,
-      updatedAt: now
-    };
+      draft: groupDraft,
+      defaults,
+      now
+    });
 
     if (editingGroupId) {
       const memberIds = workspace.groupMembers
         .filter((assignment) => assignment.groupId === editingGroupId)
         .map((assignment) => assignment.memberId);
-      const dueDate = hasDefaultPayment ? dueDateForBillingDay(defaultBillingDay) : '';
-      const updatedPlans = hasDefaultPayment
+      const dueDate = defaults.hasDefaultPayment ? dueDateForBillingDay(defaults.defaultBillingDay) : '';
+      const updatedPlans = defaults.hasDefaultPayment
         ? workspace.billingPlans.map((plan) =>
             memberIds.includes(plan.memberId) && plan.active && plan.source !== 'individual'
               ? {
@@ -1141,15 +1114,15 @@ export function DashboardApp(): React.ReactElement {
                   type: 'monthly' as const,
                   trainingFormat: 'group' as const,
                   source: 'group_default' as const,
-                  baseAmount: defaultAmount,
-                  billingDay: defaultBillingDay,
+                  baseAmount: defaults.defaultAmount,
+                  billingDay: defaults.defaultBillingDay,
                   updatedAt: now
                 }
               : plan
           )
         : workspace.billingPlans;
       const planMemberIds = new Set(updatedPlans.filter((plan) => plan.active).map((plan) => plan.memberId));
-      const nextPlans = hasDefaultPayment
+      const nextPlans = defaults.hasDefaultPayment
         ? [
             ...updatedPlans,
             ...memberIds
@@ -1161,8 +1134,8 @@ export function DashboardApp(): React.ReactElement {
                 type: 'monthly' as const,
                 trainingFormat: 'group' as const,
                 source: 'group_default' as const,
-                baseAmount: defaultAmount,
-                billingDay: defaultBillingDay,
+                baseAmount: defaults.defaultAmount,
+                billingDay: defaults.defaultBillingDay,
                 active: true,
                 createdAt: now,
                 updatedAt: now
@@ -1173,7 +1146,7 @@ export function DashboardApp(): React.ReactElement {
       const currentPaymentMemberIds = new Set(
         workspace.payments.filter((payment) => payment.is_current).map((payment) => payment.member_id)
       );
-      const nextPayments = hasDefaultPayment
+      const nextPayments = defaults.hasDefaultPayment
         ? [
             ...workspace.payments.map((payment) => {
               const plan = currentPlanByMemberId.get(payment.member_id);
@@ -1183,7 +1156,7 @@ export function DashboardApp(): React.ReactElement {
               return {
                 ...payment,
                 trainer_id: trainerId,
-                amount: defaultAmount,
+                amount: defaults.defaultAmount,
                 due_date: dueDate,
                 status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
                 plan_id: plan.id,
@@ -1200,7 +1173,7 @@ export function DashboardApp(): React.ReactElement {
                   organization_id: workspace.organization.id,
                   member_id: memberId,
                   trainer_id: trainerId,
-                  amount: defaultAmount,
+                  amount: defaults.defaultAmount,
                   due_date: dueDate,
                   status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
                   created_at: now,
