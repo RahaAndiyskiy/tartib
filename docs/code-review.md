@@ -102,6 +102,7 @@ Recent progress:
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 - People view selectors and permissions were moved into `src/modules/people`.
 - Member group assignment and member deletion actions were moved into `src/modules/people/actions`.
+- Trainer creation and member invite creation helpers were moved into `src/modules/people/actions`.
 
 Risk:
 

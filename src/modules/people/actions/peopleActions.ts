@@ -13,6 +13,93 @@ type RunRemoteActionWithPending = <T>(
   pendingKey: string
 ) => Promise<T | null>;
 
+type RunRemoteAction = (payload: Record<string, unknown>) => Promise<boolean>;
+
+type CreateTrainerParams = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  password: string;
+  phone: string;
+  runRemoteAction: RunRemoteAction;
+};
+
+export async function createTrainerAction({
+  firstName,
+  lastName,
+  username,
+  password,
+  phone,
+  runRemoteAction
+}: CreateTrainerParams): Promise<boolean> {
+  return runRemoteAction({
+    action: 'create_user',
+    role: 'trainer',
+    firstName,
+    lastName,
+    username,
+    password,
+    phone
+  });
+}
+
+type MemberInviteResult = {
+  inviteUrl: string;
+  expiresAt: string;
+  groupName: string;
+};
+
+type CreateMemberInviteParams = {
+  group: LocalTrainingGroup | null;
+  groupId: string;
+  cachedInvite?: MemberInviteResult;
+  isLocalMode: boolean;
+  origin: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+};
+
+export async function createMemberInviteAction({
+  group,
+  groupId,
+  cachedInvite,
+  isLocalMode,
+  origin,
+  runRemoteActionWithPending
+}: CreateMemberInviteParams): Promise<{ invite: MemberInviteResult; localMode: boolean } | null> {
+  if (!group) return null;
+  if (cachedInvite) return { invite: cachedInvite, localMode: false };
+
+  if (isLocalMode) {
+    return {
+      invite: {
+        inviteUrl: `${origin}/join/local-${group.id}`,
+        expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        groupName: group.activity
+      },
+      localMode: true
+    };
+  }
+
+  const result = await runRemoteActionWithPending<{ inviteUrl: string; expiresAt: string }>(
+    {
+      action: 'create_member_invite',
+      groupId
+    },
+    `create-invite:${groupId}`
+  );
+
+  if (!result) return null;
+
+  return {
+    invite: {
+      inviteUrl: result.inviteUrl,
+      expiresAt: result.expiresAt,
+      groupName: group.activity
+    },
+    localMode: false
+  };
+}
+
 type AssignMemberToGroupParams = {
   workspace: LocalWorkspace | null;
   group: LocalTrainingGroup | null;

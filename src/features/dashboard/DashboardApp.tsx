@@ -99,6 +99,8 @@ import { InviteResultCard } from './InviteResultCard';
 import { PaymentRegistryRow } from './PaymentRegistryRow';
 import {
   assignMemberToGroupAction,
+  createMemberInviteAction,
+  createTrainerAction,
   deleteMemberAction,
   filterPeopleForView,
   mapAssignmentsByMemberId,
@@ -866,47 +868,22 @@ export function DashboardApp(): React.ReactElement {
 
   async function createMemberInviteForGroup(groupId: string): Promise<void> {
     const selectedGroup = workspace?.groups.find((group) => group.id === groupId);
-    if (!workspace || !selectedGroup) return;
+    if (!workspace) return;
 
-    const cachedInvite = memberInvitesByGroup[groupId];
-    if (cachedInvite) {
-      setMemberInvite(cachedInvite);
-      setLastCreatedGroupId('');
-      setMessage('');
-      return;
-    }
-
-    if (isLocalMode) {
-      const localInvite = {
-        inviteUrl: `${window.location.origin}/join/local-${selectedGroup.id}`,
-        expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
-        groupName: selectedGroup.activity
-      };
-      setMemberInvite(localInvite);
-      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: localInvite }));
-      setLastCreatedGroupId('');
-      setMessage('В локальном режиме ссылка показана для проверки интерфейса.');
-      return;
-    }
-
-    const result = await runRemoteActionWithPending<{ inviteUrl: string; expiresAt: string }>(
-      {
-        action: 'create_member_invite',
-        groupId
-      },
-      `create-invite:${groupId}`
-    );
+    const result = await createMemberInviteAction({
+      group: selectedGroup ?? null,
+      groupId,
+      cachedInvite: memberInvitesByGroup[groupId],
+      isLocalMode,
+      origin: window.location.origin,
+      runRemoteActionWithPending
+    });
 
     if (result) {
-      const nextInvite = {
-        inviteUrl: result.inviteUrl,
-        expiresAt: result.expiresAt,
-        groupName: selectedGroup.activity
-      };
-      setMemberInvite(nextInvite);
-      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: nextInvite }));
+      setMemberInvite(result.invite);
+      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: result.invite }));
       setLastCreatedGroupId('');
-      setMessage('');
+      setMessage(result.localMode ? 'В локальном режиме ссылка показана для проверки интерфейса.' : '');
     }
   }
 
@@ -942,14 +919,13 @@ export function DashboardApp(): React.ReactElement {
         return;
       }
 
-      const success = await runRemoteAction({
-        action: 'create_user',
-        role: 'trainer',
+      const success = await createTrainerAction({
         firstName: personDraft.firstName,
         lastName: personDraft.lastName,
         username: personDraft.username,
         password: personDraft.password,
-        phone: personDraft.phone
+        phone: personDraft.phone,
+        runRemoteAction
       });
       if (success) {
         setPersonDraft(emptyPersonDraft);

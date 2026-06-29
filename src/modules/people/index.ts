@@ -14,5 +14,7 @@ export {
 } from './model/selectors';
 export {
   assignMemberToGroupAction,
+  createMemberInviteAction,
+  createTrainerAction,
   deleteMemberAction
 } from './actions/peopleActions';

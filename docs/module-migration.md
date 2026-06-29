@@ -21,7 +21,7 @@ Each module is considered migrated only when all layers are moved:
 
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions and member assign/delete actions are in `src/modules/people`; invite/create member actions still live in `DashboardApp.tsx`. |
+| `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, member assignment and member deletion actions are in `src/modules/people`; local member creation with initial payment stays in dashboard orchestration until `groups` and `payments` exist. |
 | `groups` | pending | pending | pending | pending | pending | Groups should become the next full domain after people. |
 | `payments` | partial | pending | pending | pending | partial | Some row UI is extracted, but payment logic mostly remains in `DashboardApp.tsx`. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
@@ -36,6 +36,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/model/selectors.ts` owns people view selectors and filtering.
 - `src/modules/people/permissions.ts` owns people permission helpers.
 - `src/modules/people/actions/peopleActions.ts` owns member group assignment and member deletion actions.
+- `src/modules/people/actions/peopleActions.ts` also owns remote trainer creation and member invite creation.
 - `src/modules/people/index.ts` exposes the current public people module API.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
@@ -45,11 +46,27 @@ Each module is considered migrated only when all layers are moved:
    - move any remaining people-specific mapping that is still in `DashboardApp.tsx`;
    - keep shared payment/group selectors out until those modules exist.
 2. Continue `people` actions:
-   - create trainer;
-   - create member invite;
    - local member creation path.
-3. Start `groups` module only after the current `people` migration state is clear.
+3. Start `groups` module after this step. Keep local member creation with initial payment in dashboard orchestration until group/payment modules have owners for their parts.
 
 ## Rule
 
 Do not mark a module as complete when only UI has been extracted.
+
+## Core Growth Rule
+
+Core is not built as a large abstract layer upfront.
+
+Move code into `src/core` only when a rule is shared by more than one module or clearly belongs to the whole product. Current examples:
+
+- roles and role labels live in `src/core/roles.ts`;
+- future cross-module permissions may live in `src/core/permissions`;
+- future workspace/module orchestration may live in `src/core/workspace` or `src/core/module-registry`.
+
+Do not move domain-specific logic into core just because it is reused once. Prefer the owning module first.
+
+## People Boundary Note
+
+Do not force payment or group ownership into `people`.
+
+People may create a member and connect that member to a group, but group defaults belong to `groups`, and payment plans/invoices belong to `payments`. Until those modules are fully extracted, `DashboardApp.tsx` may temporarily orchestrate the boundary.
