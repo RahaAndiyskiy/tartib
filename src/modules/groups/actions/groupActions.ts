@@ -59,6 +59,31 @@ export async function saveRemoteGroupAction({
   return data?.group ?? null;
 }
 
+export function upsertGroupInWorkspace(
+  workspace: LocalWorkspace,
+  group: LocalTrainingGroup
+): LocalWorkspace {
+  return {
+    ...workspace,
+    groups: workspace.groups.some((item) => item.id === group.id)
+      ? workspace.groups.map((item) => (item.id === group.id ? group : item))
+      : [...workspace.groups, group]
+  };
+}
+
+export function replaceGroupInWorkspace(
+  workspace: LocalWorkspace,
+  groupId: string,
+  group: LocalTrainingGroup
+): LocalWorkspace {
+  return {
+    ...workspace,
+    groups: workspace.groups.map((item) =>
+      item.id === groupId ? { ...item, ...group, id: groupId, createdAt: item.createdAt } : item
+    )
+  };
+}
+
 export async function deleteGroupAction({
   workspace,
   groupId,

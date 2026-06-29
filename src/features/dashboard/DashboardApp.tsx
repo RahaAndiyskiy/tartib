@@ -59,6 +59,7 @@ import {
   roleLabel
 } from '@/core/roles';
 import {
+  buildGroupDraftFromGroup,
   buildLocalTrainingGroup,
   canManageGroups,
   canViewGroups,
@@ -66,9 +67,11 @@ import {
   GroupsPanel,
   mapGroupsById,
   parseGroupPaymentDefaults,
+  replaceGroupInWorkspace,
   resolveGroupTrainerId,
   saveRemoteGroupAction,
   selectVisibleGroups,
+  upsertGroupInWorkspace,
   validateGroupDraft
 } from '@/modules/groups';
 import {
@@ -1072,14 +1075,7 @@ export function DashboardApp(): React.ReactElement {
       if (savedGroup) {
         const wasEditingGroup = Boolean(editingGroupId);
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                groups: current.groups.some((item) => item.id === savedGroup.id)
-                  ? current.groups.map((item) => (item.id === savedGroup.id ? savedGroup : item))
-                  : [...current.groups, savedGroup]
-              }
-            : current
+          current ? upsertGroupInWorkspace(current, savedGroup) : current
         );
         setGroupDraft(emptyGroupDraft);
         setEditingGroupId('');
@@ -1187,19 +1183,13 @@ export function DashboardApp(): React.ReactElement {
           ]
         : workspace.payments;
       saveWorkspace({
-        ...workspace,
-        groups: workspace.groups.map((item) =>
-          item.id === editingGroupId ? { ...item, ...group, id: editingGroupId, createdAt: item.createdAt } : item
-        ),
+        ...replaceGroupInWorkspace(workspace, editingGroupId, group),
         billingPlans: nextPlans,
         payments: nextPayments
       });
       setMessage('Группа обновлена.');
     } else {
-      saveWorkspace({
-        ...workspace,
-        groups: [...workspace.groups, group]
-      });
+      saveWorkspace(upsertGroupInWorkspace(workspace, group));
       setLastCreatedGroupId(group.id);
       setMessage('Группа создана. Теперь можно создать ссылку для набора.');
     }
@@ -1214,15 +1204,7 @@ export function DashboardApp(): React.ReactElement {
     setEditingGroupId(group.id);
     setLastCreatedGroupId('');
     setMemberInvite(null);
-    setGroupDraft({
-      activity: group.activity,
-      days: group.days,
-      time: group.time,
-      note: group.note,
-      trainerId: group.trainerId,
-      defaultAmount: group.defaultAmount ? String(group.defaultAmount) : '',
-      defaultBillingDay: group.defaultBillingDay ? String(group.defaultBillingDay) : '5'
-    });
+    setGroupDraft(buildGroupDraftFromGroup(group));
     setMobileFormOpen(true);
     setMessage('Редактирование группы. Внесите изменения и сохраните.');
   }

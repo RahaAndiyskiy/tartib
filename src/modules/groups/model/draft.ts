@@ -77,3 +77,15 @@ export function buildLocalTrainingGroup({
     updatedAt: now
   };
 }
+
+export function buildGroupDraftFromGroup(group: LocalTrainingGroup): GroupDraftLike {
+  return {
+    activity: group.activity,
+    days: group.days,
+    time: group.time,
+    note: group.note,
+    trainerId: group.trainerId,
+    defaultAmount: group.defaultAmount ? String(group.defaultAmount) : '',
+    defaultBillingDay: group.defaultBillingDay ? String(group.defaultBillingDay) : '5'
+  };
+}

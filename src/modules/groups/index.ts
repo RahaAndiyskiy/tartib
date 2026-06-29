@@ -11,11 +11,14 @@ export {
 } from './model/selectors';
 export {
   buildLocalTrainingGroup,
+  buildGroupDraftFromGroup,
   parseGroupPaymentDefaults,
   resolveGroupTrainerId,
   validateGroupDraft
 } from './model/draft';
 export {
   deleteGroupAction,
+  replaceGroupInWorkspace,
+  upsertGroupInWorkspace,
   saveRemoteGroupAction
 } from './actions/groupActions';

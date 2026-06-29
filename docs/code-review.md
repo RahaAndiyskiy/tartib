@@ -105,7 +105,7 @@ Recent progress:
 - Trainer creation and member invite creation helpers were moved into `src/modules/people/actions`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
-- Group draft validation/build and remote group save were moved into `src/modules/groups`.
+- Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.
 
 Risk:
 
