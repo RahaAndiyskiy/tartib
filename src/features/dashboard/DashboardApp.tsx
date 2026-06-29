@@ -61,6 +61,7 @@ import {
 import {
   canManageGroups,
   canViewGroups,
+  deleteGroupAction,
   GroupsPanel,
   mapGroupsById,
   selectVisibleGroups
@@ -1263,33 +1264,15 @@ export function DashboardApp(): React.ReactElement {
   async function deleteGroup(groupId: string): Promise<void> {
     if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return;
 
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{ deletedGroupId: string }>(
-        { action: 'delete_group', groupId },
-        `delete-group:${groupId}`
-      );
-      if (data?.deletedGroupId) {
-        if (editingGroupId === groupId) cancelGroupEdit();
-        if (lastCreatedGroupId === groupId) setLastCreatedGroupId('');
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                groups: current.groups.filter((item) => item.id !== data.deletedGroupId),
-                groupMembers: current.groupMembers.filter((assignment) => assignment.groupId !== data.deletedGroupId)
-              }
-            : current
-        );
-        setMessage('Группа удалена.');
-      }
-      return;
-    }
-
-    saveWorkspace({
-      ...workspace,
-      groups: workspace.groups.filter((item) => item.id !== groupId),
-      groupMembers: workspace.groupMembers.filter((assignment) => assignment.groupId !== groupId)
+    const deleted = await deleteGroupAction({
+      workspace,
+      groupId,
+      isLocalMode,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace
     });
+    if (!deleted) return;
 
     if (editingGroupId === groupId) {
       cancelGroupEdit();

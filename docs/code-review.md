@@ -104,6 +104,7 @@ Recent progress:
 - Member group assignment and member deletion actions were moved into `src/modules/people/actions`.
 - Trainer creation and member invite creation helpers were moved into `src/modules/people/actions`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
+- Group deletion action was moved into `src/modules/groups/actions`.
 
 Risk:
 

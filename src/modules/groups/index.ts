@@ -9,3 +9,4 @@ export {
   mapGroupsById,
   selectVisibleGroups
 } from './model/selectors';
+export { deleteGroupAction } from './actions/groupActions';
