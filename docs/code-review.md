@@ -98,7 +98,8 @@ Recent progress:
 - `InviteLinkModal` was extracted for the overview group invite flow.
 - `InviteResultCard` was extracted for repeated invite link output.
 - `PaymentRegistryRow` was extracted for the compact payments registry list.
-- `PeoplePanel` was extracted for the team list, search/filter controls and member group actions.
+- `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
+- `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 
 Risk:
 

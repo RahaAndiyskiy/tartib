@@ -61,14 +61,20 @@ Dashboard support modules:
 
 - `src/features/dashboard/types.ts` - local dashboard form/view types.
 - `src/features/dashboard/constants.ts` - labels and empty draft values.
-- `src/features/dashboard/utils.ts` - role/date/payment helper functions.
+- `src/features/dashboard/utils.ts` - dashboard date/payment helper functions.
 - `src/features/dashboard/NotificationsModal.tsx` - notification modal UI.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.
 - `src/features/dashboard/InviteResultCard.tsx` - reusable rendered invite link card.
 - `src/features/dashboard/PaymentRegistryRow.tsx` - compact payment registry row UI.
-- `src/features/dashboard/PeoplePanel.tsx` - team list, group filter, search, member expansion and legacy people table UI.
+
+Core/module boundaries are documented in [modular-architecture.md](./modular-architecture.md).
+
+Current modularized pieces:
+
+- `src/core/roles.ts` - shared role checks and role labels.
+- `src/modules/people/components/PeoplePanel.tsx` - team list, group filter, search, member expansion and legacy people table UI.
 
 `/api/workspace`
 

@@ -89,6 +89,16 @@
 - Сквозные проверки: `scripts`.
 - Архитектурные решения и состояние: `docs`.
 
+### Modular architecture rules
+
+- Product domains belong in `src/modules/<domain>`.
+- Cross-product rules belong in `src/core`.
+- Modules may import from `src/core` and `src/shared`.
+- Modules should not import from `src/features/dashboard`; move shared dependencies to `core`, `shared` or the module itself.
+- Dashboard should assemble modules, not own module business logic long-term.
+
+See [modular-architecture.md](./modular-architecture.md).
+
 ## Performance rules
 
 - Начальный workspace загружать одним RPC.

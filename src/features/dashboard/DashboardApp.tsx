@@ -57,6 +57,10 @@ import type {
   TrainerMember
 } from '@shared/types/domain';
 import {
+  hasRole,
+  roleLabel
+} from '@/core/roles';
+import {
   emptyExpenseDraft,
   emptyGroupDraft,
   emptyPersonDraft,
@@ -82,12 +86,10 @@ import {
   dateAtNoon,
   dueDateForBillingDay,
   formatShortDate,
-  hasRole,
   nextMonthDate,
   paymentLockedText,
   periodLabel,
   prepaymentPeriodLabel,
-  roleLabel,
   statusAfterRejectedAction,
   todayString
 } from './utils';
@@ -97,7 +99,7 @@ import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { PaymentRegistryRow } from './PaymentRegistryRow';
-import { PeoplePanel } from './PeoplePanel';
+import { PeoplePanel } from '@/modules/people';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';

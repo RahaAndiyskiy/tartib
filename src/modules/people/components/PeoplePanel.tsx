@@ -10,7 +10,7 @@ import type { AppUser } from '@shared/types/domain';
 import {
   hasRole,
   roleLabel
-} from './utils';
+} from '@/core/roles';
 
 type PeoplePanelProps = {
   activeUser: AppUser;

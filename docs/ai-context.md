@@ -60,6 +60,8 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 
 ## Important Decisions
 
+- Tartib is moving toward a configurable modular monolith. See [modular-architecture.md](./modular-architecture.md).
+- Product domains should move into `src/modules`; cross-product rules should move into `src/core`.
 - Login/password is used now; real verified email is postponed.
 - The login is internally converted to an email under `auth.tartib.local`.
 - Supabase service role is server-only.

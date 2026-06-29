@@ -1,19 +1,7 @@
 import type {
-  AppUser,
   PaymentRequest,
   PaymentRequestStatus
 } from '@shared/types/domain';
-import { roleLabels } from './constants';
-
-export function hasRole(user: AppUser | null, role: AppUser['role']): boolean {
-  return Boolean(user && (user.role === role || user.roles?.includes(role)));
-}
-
-export function roleLabel(user: AppUser): string {
-  return hasRole(user, 'owner') && hasRole(user, 'trainer')
-    ? 'Владелец + тренер'
-    : roleLabels[user.role];
-}
 
 export function dateAtNoon(date: string): number {
   return new Date(`${date}T12:00:00`).getTime();

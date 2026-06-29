@@ -111,7 +111,8 @@ Important modules:
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.
 - Repeated invite result UI is extracted into `InviteResultCard`.
 - Compact payment registry rows are extracted into `PaymentRegistryRow`.
-- Team list UI is extracted into `PeoplePanel`.
+- Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
+- Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.
 - `src/app/api/workspace/actions/_lib/` contains domain action handlers.

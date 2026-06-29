@@ -41,12 +41,6 @@ export const emptyGroupDraft: GroupDraft = {
   defaultBillingDay: '5'
 };
 
-export const roleLabels = {
-  owner: 'Владелец',
-  trainer: 'Тренер',
-  member: 'Ученик'
-} as const;
-
 export const statusLabels: Record<PaymentRequestStatus | 'not-set', string> = {
   active: 'Активна',
   delay_requested: 'Запрошена отсрочка',
