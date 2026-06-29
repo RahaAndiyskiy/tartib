@@ -98,6 +98,7 @@ Recent progress:
 - `InviteLinkModal` was extracted for the overview group invite flow.
 - `InviteResultCard` was extracted for repeated invite link output.
 - `PaymentRegistryRow` was extracted for the compact payments registry list.
+- `PeoplePanel` was extracted for the team list, search/filter controls and member group actions.
 
 Risk:
 

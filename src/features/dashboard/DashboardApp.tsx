@@ -19,7 +19,6 @@ import {
   CalendarDays,
   Clock3,
   Layers3,
-  Trash2,
   UserRound,
   Wallet,
   Users,
@@ -98,6 +97,7 @@ import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { PaymentRegistryRow } from './PaymentRegistryRow';
+import { PeoplePanel } from './PeoplePanel';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -2510,7 +2510,6 @@ export function DashboardApp(): React.ReactElement {
 
     return matchesSearch && matchesGroup;
   });
-  const peopleGroupsForFilter = visibleGroups;
   const isMemberInviteForm =
     Boolean(activeUser) &&
     !isLocalMode &&
@@ -3020,195 +3019,37 @@ export function DashboardApp(): React.ReactElement {
 
         {activeSection === 'people' ? (
           <section className="crm-content-grid">
-            <div className="crm-panel">
-              <div className="crm-panel-header people-panel-header">
-                <div>
-                  <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Мои ученики' : 'Состав клуба'}</h2>
-                  <p>{filteredPeopleForView.length} / {peopleForView.length}</p>
-                </div>
-                <select
-                  aria-label="Фильтр по группе"
-                  className="people-group-filter"
-                  value={peopleGroupFilter}
-                  onChange={(event) => setPeopleGroupFilter(event.target.value)}
-                >
-                  <option value="all">Все группы</option>
-                  {peopleGroupsForFilter.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.activity} · {group.days} {group.time}
-                    </option>
-                  ))}
-                  <option value="no-group">Без группы</option>
-                </select>
-              </div>
-              <div className="people-toolbar">
-                <label className="people-search">
-                  <Search size={17} />
-                  <input
-                    placeholder="Найти человека"
-                    value={peopleSearch}
-                    onChange={(event) => setPeopleSearch(event.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="people-accordion">
-                {filteredPeopleForView.map((user) => {
-                  const group = user.role === 'member' ? groupFor(user.id) : null;
-                  const isOpen = expandedPeople[user.id] ?? false;
-                  const groupEditorOpen = groupEditorOpenByMember[user.id] ?? false;
-                  const contact = user.email ?? user.phone ?? 'Не указан';
-                  return (
-                    <article className={`person-accordion-row ${isOpen ? 'open' : ''}`} key={user.id}>
-                      <button
-                        className="person-accordion-summary"
-                        type="button"
-                        onClick={() =>
-                          setExpandedPeople((current) => ({
-                            ...current,
-                            [user.id]: !isOpen
-                          }))
-                        }
-                      >
-                        <span>
-                          <strong>{user.first_name} {user.last_name}</strong>
-                          <small>{roleLabel(user)}</small>
-                        </span>
-                        <ChevronRight className={isOpen ? 'open' : ''} size={18} />
-                      </button>
-                      {isOpen ? (
-                        <div className="person-accordion-detail">
-                          <div>
-                            <span>Контакт</span>
-                            <strong>{contact}</strong>
-                          </div>
-                          {user.role === 'member' ? (
-                            <div className="person-group-detail">
-                              <span>Группа</span>
-                              <strong>
-                                {group ? `${group.activity} · ${group.days} ${group.time}` : 'Без группы'}
-                              </strong>
-                              {groupEditorOpen ? (
-                                <select
-                                  aria-label="Выберите группу"
-                                  value={group?.id ?? ''}
-                                  disabled={isPendingAction(`assign-member-group:${user.id}`)}
-                                  onChange={(event) => {
-                                    void assignMemberToGroup(user.id, event.target.value);
-                                    setGroupEditorOpenByMember((current) => ({
-                                      ...current,
-                                      [user.id]: false
-                                    }));
-                                  }}
-                                >
-                                  <option value="">Без группы</option>
-                                  {visibleGroups.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                      {item.activity} · {item.days} {item.time}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {user.role === 'member' ? (
-                            <div className="person-detail-actions">
-                              {visibleGroups.length > 0 ? (
-                                <button
-                                  className="small-button secondary compact-action change-group-action"
-                                  type="button"
-                                  onClick={() =>
-                                    setGroupEditorOpenByMember((current) => ({
-                                      ...current,
-                                      [user.id]: !groupEditorOpen
-                                    }))
-                                  }
-                                >
-                                  {groupEditorOpen ? 'Скрыть' : 'Сменить группу'}
-                                </button>
-                              ) : null}
-                              <button
-                                aria-label="Удалить ученика"
-                                className="small-button danger compact-action delete-person-action"
-                                type="button"
-                                disabled={isPendingAction(`delete-member:${user.id}`)}
-                                onClick={() => void deleteMember(user.id)}
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
-                {filteredPeopleForView.length === 0 ? (
-                  <div className="empty-state action-empty">
-                    <p>{peopleForView.length === 0 ? 'Людей пока нет.' : 'По этому поиску никого нет.'}</p>
-                    {!hasRole(activeUser, 'member') && visibleGroups.length === 0 ? (
-                      <button className="small-button secondary" type="button" onClick={openCreateGroup}>
-                        Создать группу
-                      </button>
-                    ) : null}
-                    {!hasRole(activeUser, 'member') && visibleGroups.length > 0 ? (
-                      <button
-                        className="small-button secondary"
-                        type="button"
-                        onClick={() => openInviteFlow(visibleGroups[0]?.id)}
-                      >
-                        Дать ссылку
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-              <div className="crm-table legacy-people-table">
-                <div className="crm-table-head">
-                  <span>Имя</span><span>Роль</span><span>Группа</span><span>Контакт</span><span>Действия</span>
-                </div>
-                {peopleForView.map((user) => {
-                  const group = user.role === 'member' ? groupFor(user.id) : null;
-                  return (
-                    <div className="crm-table-row" key={user.id}>
-                      <strong>{user.first_name} {user.last_name}</strong>
-                      <span>{roleLabel(user)}</span>
-                      {user.role === 'member' ? (
-                        <select
-                          value={group?.id ?? ''}
-                          disabled={isPendingAction(`assign-member-group:${user.id}`)}
-                          onChange={(event) =>
-                            assignMemberToGroup(user.id, event.target.value)
-                          }
-                        >
-                          <option value="">Без группы</option>
-                          {visibleGroups.map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.activity} · {item.days} {item.time}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span>—</span>
-                      )}
-                      <span>{user.email ?? user.phone ?? 'Не указан'}</span>
-                      {user.role === 'member' ? (
-                        <button
-                          className="small-button danger"
-                          type="button"
-                          disabled={isPendingAction(`delete-member:${user.id}`)}
-                          onClick={() => void deleteMember(user.id)}
-                        >
-                          {buttonLabel(`delete-member:${user.id}`, 'Удалить')}
-                        </button>
-                      ) : (
-                        <span>—</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
+            <PeoplePanel
+              activeUser={activeUser}
+              people={peopleForView}
+              filteredPeople={filteredPeopleForView}
+              groups={visibleGroups}
+              groupFilter={peopleGroupFilter}
+              search={peopleSearch}
+              expandedPeople={expandedPeople}
+              groupEditorOpenByMember={groupEditorOpenByMember}
+              getMemberGroup={groupFor}
+              isPendingAction={isPendingAction}
+              buttonLabel={buttonLabel}
+              onGroupFilterChange={setPeopleGroupFilter}
+              onSearchChange={setPeopleSearch}
+              onTogglePerson={(userId, nextOpen) =>
+                setExpandedPeople((current) => ({
+                  ...current,
+                  [userId]: nextOpen
+                }))
+              }
+              onToggleGroupEditor={(memberId, nextOpen) =>
+                setGroupEditorOpenByMember((current) => ({
+                  ...current,
+                  [memberId]: nextOpen
+                }))
+              }
+              onAssignMemberToGroup={(memberId, groupId) => void assignMemberToGroup(memberId, groupId)}
+              onDeleteMember={(memberId) => void deleteMember(memberId)}
+              onCreateGroup={openCreateGroup}
+              onOpenInviteFlow={openInviteFlow}
+            />
             {!hasRole(activeUser, 'member') ? (
               <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={addPerson}>
                 <div className="crm-panel-header">

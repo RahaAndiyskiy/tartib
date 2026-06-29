@@ -68,6 +68,7 @@ Dashboard support modules:
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.
 - `src/features/dashboard/InviteResultCard.tsx` - reusable rendered invite link card.
 - `src/features/dashboard/PaymentRegistryRow.tsx` - compact payment registry row UI.
+- `src/features/dashboard/PeoplePanel.tsx` - team list, group filter, search, member expansion and legacy people table UI.
 
 `/api/workspace`
 
