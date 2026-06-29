@@ -5,6 +5,7 @@ import type {
 } from '@shared/lib/localWorkspace';
 import type {
   AppUser,
+  BillingPlanType,
   PaymentRequest
 } from '@shared/types/domain';
 import { hasRole } from '@/core/roles';
@@ -29,6 +30,111 @@ export type PaymentTask = {
   count: number;
   label: string;
 };
+
+export type PaymentEditLike = {
+  type: BillingPlanType;
+  trainingFormat: 'group' | 'individual';
+  individualTerms: boolean;
+  currentAmount: string;
+  dueDate: string;
+  updateFuture: boolean;
+};
+
+export type DelayDraftLike = {
+  requestedDate: string;
+  comment: string;
+};
+
+export function paymentEditForMember<T extends PaymentEditLike>({
+  edits,
+  memberId,
+  payment,
+  plan,
+  fallback
+}: {
+  edits: Record<string, T>;
+  memberId: string;
+  payment?: PaymentRequest;
+  plan?: LocalBillingPlan;
+  fallback: T;
+}): T {
+  return edits[memberId] ?? {
+    ...fallback,
+    type: plan?.type ?? fallback.type,
+    trainingFormat: plan?.trainingFormat ?? fallback.trainingFormat,
+    individualTerms: plan?.source === 'individual',
+    currentAmount: String(payment?.amount ?? plan?.baseAmount ?? ''),
+    dueDate: payment?.due_date ?? fallback.dueDate
+  };
+}
+
+export function mergePaymentEdit<T extends PaymentEditLike>({
+  edits,
+  memberId,
+  currentEdit,
+  patch
+}: {
+  edits: Record<string, T>;
+  memberId: string;
+  currentEdit: T;
+  patch: Partial<T>;
+}): Record<string, T> {
+  return {
+    ...edits,
+    [memberId]: {
+      ...currentEdit,
+      ...patch
+    }
+  };
+}
+
+export function removePaymentEdit<T extends PaymentEditLike>(
+  edits: Record<string, T>,
+  memberId: string
+): Record<string, T> {
+  const next = { ...edits };
+  delete next[memberId];
+  return next;
+}
+
+export function delayDraftForPayment<T extends DelayDraftLike>({
+  drafts,
+  payment
+}: {
+  drafts: Record<string, T>;
+  payment: PaymentRequest;
+}): T {
+  return (
+    drafts[payment.id] ?? {
+      requestedDate: payment.delay_requested_date ?? '',
+      comment: payment.delay_comment ?? ''
+    }
+  ) as T;
+}
+
+export function mergeDelayDraft<T extends DelayDraftLike>({
+  drafts,
+  paymentId,
+  currentDraft,
+  patch
+}: {
+  drafts: Record<string, T>;
+  paymentId: string;
+  currentDraft: T;
+  patch: Partial<T>;
+}): Record<string, T> {
+  return {
+    ...drafts,
+    [paymentId]: {
+      ...currentDraft,
+      ...patch
+    }
+  };
+}
+
+export function prepaymentMonthsForPayment(monthsByPaymentId: Record<string, number>, paymentId: string): number {
+  return monthsByPaymentId[paymentId] ?? 1;
+}
 
 export function selectVisiblePayments(
   workspace: LocalWorkspace | null,

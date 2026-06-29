@@ -134,13 +134,19 @@ import {
   buildPaymentRegistry,
   buildPaymentTasks,
   buildSelectedPaymentDetails,
+  delayDraftForPayment,
   decideLocalPaymentDelay,
   decideLocalPaymentStatus,
   deleteLocalPayment,
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
+  mergeDelayDraft,
+  mergePaymentEdit,
+  paymentEditForMember,
   paymentTaskHeadline,
+  prepaymentMonthsForPayment,
   requestLocalPaymentDelay,
+  removePaymentEdit,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
   selectVisiblePayments,
@@ -1246,11 +1252,7 @@ export function DashboardApp(): React.ReactElement {
         setWorkspace((current) =>
           current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
         );
-        setPaymentEdits((current) => {
-          const next = { ...current };
-          delete next[memberId];
-          return next;
-        });
+        setPaymentEdits((current) => removePaymentEdit(current, memberId));
         setMessage('Оплата сохранена.');
       }
       return;
@@ -1272,11 +1274,7 @@ export function DashboardApp(): React.ReactElement {
       periodLabel
     });
     saveWorkspace(result.workspace);
-    setPaymentEdits((current) => {
-      const next = { ...current };
-      delete next[memberId];
-      return next;
-    });
+    setPaymentEdits((current) => removePaymentEdit(current, memberId));
     setMessage(result.paymentExisted ? 'Оплата обновлена.' : 'Оплата назначена.');
   }
 
@@ -1296,11 +1294,7 @@ export function DashboardApp(): React.ReactElement {
         setWorkspace((current) =>
           current ? applyRemotePaymentDeletion(current, data, activeUserId) : current
         );
-        setPaymentEdits((current) => {
-          const next = { ...current };
-          delete next[payment.member_id];
-          return next;
-        });
+        setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
         setMessage('Счёт удалён. Ученику отправлено уведомление.');
       }
       return;
@@ -1308,11 +1302,7 @@ export function DashboardApp(): React.ReactElement {
 
     const now = new Date().toISOString();
     saveWorkspace(deleteLocalPayment({ workspace, payment, now, createId }));
-    setPaymentEdits((current) => {
-      const next = { ...current };
-      delete next[payment.member_id];
-      return next;
-    });
+    setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
     setMessage('Счёт удалён. Ученику отправлено уведомление.');
   }
 
@@ -1397,38 +1387,30 @@ export function DashboardApp(): React.ReactElement {
       })
     );
     if (payment) {
-      setPaymentEdits((current) => {
-        const next = { ...current };
-        delete next[payment.member_id];
-        return next;
-      });
+      setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
     }
   }
 
   function delayDraftFor(payment: PaymentRequest): DelayDraft {
-    return (
-      delayDrafts[payment.id] ?? {
-        requestedDate: payment.delay_requested_date ?? '',
-        comment: payment.delay_comment ?? ''
-      }
-    );
+    return delayDraftForPayment({ drafts: delayDrafts, payment });
   }
 
   function updateDelayDraft(paymentId: string, patch: Partial<DelayDraft>): void {
     const payment = workspace?.payments.find((item) => item.id === paymentId);
     if (!payment) return;
 
-    setDelayDrafts((current) => ({
-      ...current,
-      [paymentId]: {
-        ...delayDraftFor(payment),
-        ...patch
-      }
-    }));
+    setDelayDrafts((current) =>
+      mergeDelayDraft({
+        drafts: current,
+        paymentId,
+        currentDraft: delayDraftFor(payment),
+        patch
+      })
+    );
   }
 
   function prepaymentMonthsFor(paymentId: string): number {
-    return prepaymentMonths[paymentId] ?? 1;
+    return prepaymentMonthsForPayment(prepaymentMonths, paymentId);
   }
 
   function canSubmitPrepayment(payment: PaymentRequest): boolean {
@@ -1947,29 +1929,33 @@ export function DashboardApp(): React.ReactElement {
   }
 
   function paymentEditFor(memberId: string): PaymentEdit {
-    const existingEdit = paymentEdits[memberId];
-    if (existingEdit) return existingEdit;
-
     const payment = currentPaymentByMemberId.get(memberId);
     const plan = activePlanByMemberId.get(memberId);
-    return {
-      type: plan?.type ?? 'monthly',
-      trainingFormat: plan?.trainingFormat ?? 'group',
-      individualTerms: plan?.source === 'individual',
-      currentAmount: payment ? String(payment.amount) : '',
-      dueDate: payment?.due_date ?? '',
-      updateFuture: false
-    };
+    return paymentEditForMember({
+      edits: paymentEdits,
+      memberId,
+      payment,
+      plan,
+      fallback: {
+        type: 'monthly',
+        trainingFormat: 'group',
+        individualTerms: false,
+        currentAmount: '',
+        dueDate: '',
+        updateFuture: false
+      }
+    });
   }
 
   function updatePaymentEdit(memberId: string, patch: Partial<PaymentEdit>): void {
-    setPaymentEdits((current) => ({
-      ...current,
-      [memberId]: {
-        ...paymentEditFor(memberId),
-        ...patch
-      }
-    }));
+    setPaymentEdits((current) =>
+      mergePaymentEdit({
+        edits: current,
+        memberId,
+        currentEdit: paymentEditFor(memberId),
+        patch
+      })
+    );
   }
 
   const peopleForView = selectPeopleForView({

@@ -4,9 +4,15 @@ export {
   buildPaymentRegistry,
   buildPaymentTasks,
   buildSelectedPaymentDetails,
+  delayDraftForPayment,
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
+  mergeDelayDraft,
+  mergePaymentEdit,
+  paymentEditForMember,
   paymentTaskHeadline,
+  prepaymentMonthsForPayment,
+  removePaymentEdit,
   selectCurrentPayments,
   selectVisiblePayments
 } from './model/selectors';
@@ -33,7 +39,9 @@ export type {
   PaymentRegistry,
   PaymentTask,
   PaymentView,
-  SelectedPaymentDetails
+  SelectedPaymentDetails,
+  DelayDraftLike,
+  PaymentEditLike
 } from './model/selectors';
 export type {
   RemotePaymentDeletionResult,
