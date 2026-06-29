@@ -26,6 +26,7 @@ Current migration sequence:
 12. `011_unique_current_payment.sql`
 13. `012_lock_payment_confirmation_rpc.sql`
 14. `013_push_subscriptions.sql`
+15. `014_group_payment_defaults.sql`
 
 Never edit old applied migrations. Add a new migration.
 
@@ -73,7 +74,10 @@ Training/education group.
 - PK: `id`
 - FK: `organization_id -> organizations.id`
 - FK: `trainer_id -> users.id`
-- Fields: `activity`, `days`, `time`, `note`, timestamps
+- Fields: `activity`, `days`, `time`, `note`, `default_amount`, `default_billing_day`, timestamps
+- `default_amount`: optional positive default monthly amount for new/current group members.
+- `default_billing_day`: optional day of month from 1 to 31.
+- The defaults are not foreign-keyed to billing plans. Application/server actions copy them into member `billing_plans` and current `payment_requests`.
 
 ### `group_members`
 
@@ -95,6 +99,9 @@ Payment conditions for a member.
 - Fields: `type`, `training_format`, `base_amount`, `billing_day`, `active`, timestamps
 - `type`: `monthly | one_time`
 - `training_format`: `group | individual`
+- `source`: `group_default | individual`
+- Group default edits update only active `group_default` plans.
+- Individual plans are skipped by group-wide price updates.
 
 ### `payment_requests`
 
@@ -105,6 +112,7 @@ Concrete invoice/current payment.
 - FK: `plan_id -> billing_plans.id`
 - Fields: `amount`, `due_date`, `status`, `period_label`, `is_current`, `coverage_months`, `paid_at`, delay fields
 - Constraint: partial unique index `payment_requests_one_current_per_member_idx` allows only one `is_current = true` payment per member.
+- Group default edits can update the current payment for group-default members. Confirmation, delay and paid states should not be reset by that flow.
 
 Statuses used by the app:
 
@@ -226,6 +234,12 @@ Required environment variables:
 Push delivery is event-based: when the app creates an internal notification, the server also attempts to send web push to the same user.
 
 Scheduled reminder push is not a separate cron flow yet; reminders still originate from the existing database reminder function and internal notifications.
+
+## Current Data Model Gaps
+
+- Billing defaults live on `groups`; member-level overrides are modeled through `billing_plans.source`.
+- Group-wide pricing updates are handled by server code, not by a transactional database RPC.
+- Billing date helper logic exists in more than one application file and should be consolidated before complex tariff logic is added.
 
 ## Auth Structure
 

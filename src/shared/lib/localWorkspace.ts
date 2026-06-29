@@ -1,5 +1,6 @@
 import type {
   AppUser,
+  BillingPlanSource,
   BillingPlanType,
   Organization,
   PaymentRequest,
@@ -28,6 +29,7 @@ export type LocalBillingPlan = {
   trainerId: string;
   type: BillingPlanType;
   trainingFormat: TrainingFormat;
+  source: BillingPlanSource;
   baseAmount: number;
   billingDay: number | null;
   active: boolean;
@@ -153,6 +155,7 @@ export function readWorkspace(): LocalWorkspace {
       billingPlans: (workspace.billingPlans ?? []).map((plan) => ({
         ...plan,
         type: (plan.type as string) === 'per_lesson' ? 'monthly' : plan.type,
+        source: plan.source ?? 'individual',
         trainingFormat:
           plan.trainingFormat ??
           ((plan.type as string) === 'per_lesson' ? 'individual' : 'group')

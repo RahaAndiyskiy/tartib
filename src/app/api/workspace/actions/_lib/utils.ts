@@ -139,6 +139,7 @@ export function toLocalBillingPlan(row: BillingPlanRow): LocalBillingPlan {
     trainerId: row.trainer_id,
     type: row.type,
     trainingFormat: row.training_format,
+    source: row.source ?? 'group_default',
     baseAmount: Number(row.base_amount),
     billingDay: row.billing_day,
     active: row.active,

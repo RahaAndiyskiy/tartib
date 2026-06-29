@@ -202,5 +202,5 @@ New interactive UI should live under `src/features/<feature>/`.
 - `DashboardApp.tsx` is too large.
 - Some local-mode prototype concepts are still present.
 - Tests are script-based, not a full automated suite.
-- Push notifications are not implemented.
+- Event-based web push notifications are implemented. Scheduled push reminder cadence is still planned.
 - Rate limiting is not implemented.

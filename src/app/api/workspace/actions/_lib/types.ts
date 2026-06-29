@@ -1,4 +1,5 @@
 import type {
+  BillingPlanSource,
   BillingPlanType,
   PaymentRequestStatus,
   TrainingFormat
@@ -57,6 +58,7 @@ export type ActionBody =
       amount: number;
       dueDate: string;
       updateFuture: boolean;
+      source: BillingPlanSource;
     }
   | { action: 'delete_payment'; paymentId: string }
   | { action: 'submit_payment'; paymentId: string }
@@ -109,6 +111,7 @@ export type BillingPlanRow = {
   trainer_id: string;
   type: BillingPlanType;
   training_format: TrainingFormat;
+  source: BillingPlanSource;
   base_amount: number;
   billing_day: number | null;
   active: boolean;

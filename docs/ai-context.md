@@ -9,6 +9,7 @@ Tartib is a lightweight CRM/PWA for clubs, trainers and students. The current pr
 - organizations;
 - roles;
 - groups;
+- group payment defaults;
 - invite links;
 - members;
 - billing plans;
@@ -31,10 +32,11 @@ The main working flow is:
 3. Trainer creates a group.
 4. Trainer gives a group invite link.
 5. Member registers through the link.
-6. Trainer assigns payment.
-7. Member confirms payment or requests delay.
-8. Trainer approves/rejects.
-9. Paid monthly payment creates the next payment through a database RPC.
+6. If the group has default payment settings, a monthly plan and current payment are created automatically.
+7. Trainer can adjust payment when needed.
+8. Member confirms payment or requests delay.
+9. Trainer approves/rejects.
+10. Paid monthly payment creates the next payment through a database RPC.
 
 PWA, mobile navigation and persistent Supabase browser sessions are already implemented.
 
@@ -54,6 +56,7 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 - `docs/design-system.md` - UI tokens, primitives, Figma mapping and migration rules.
 - `docs/release-checklist.md` - release and smoke-test checklist.
 - `docs/dependency-audit.md` - npm audit findings and dependency risk notes.
+- `docs/code-review.md` - latest code review findings and technical risks.
 
 ## Important Decisions
 
@@ -63,8 +66,13 @@ PWA, mobile navigation and persistent Supabase browser sessions are already impl
 - Owner can also be trainer.
 - Member currently belongs to one group.
 - Group recruitment links are reusable.
+- Groups can define default payment amount and billing day.
+- Group payment defaults are copied into member billing plans and current payments.
+- `billing_plans.source` controls whether a member follows group defaults or individual conditions.
+- Individual payment conditions must not be overwritten by group price edits.
 - Payment conditions live in `billing_plans`.
 - Current and historical invoices live in `payment_requests`.
+- `Team` is the people/profile hub; `Payments` is the payment action queue. Do not merge them without a product decision.
 - Paid history must not be deleted.
 - Monthly payment approval is atomic through `confirm_payment_and_advance`.
 - Basic profile and owner organization settings are edited through workspace actions.
@@ -88,6 +96,7 @@ Current preferred direction:
 - Follow [database.md](./database.md) for schema concepts.
 - Read [current-state.md](./current-state.md) before product work.
 - Read [ui-style.md](./ui-style.md) and [design-system.md](./design-system.md) before UI work.
+- Read [code-review.md](./code-review.md) before changing payment/group/team flows.
 - Use `src/shared/ui` primitives for new UI when possible.
 - For schema changes, create a new migration; never edit old applied migrations.
 - Keep service-role access in server-only files.

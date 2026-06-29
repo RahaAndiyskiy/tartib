@@ -30,9 +30,15 @@ Related docs:
 
 ### Groups
 
-- Description: owner/trainer creates, edits and deletes groups with activity, days, time and note.
+- Description: owner/trainer creates, edits and deletes groups with activity, days, time, note and default payment settings.
 - Pages: `/dashboard`
-- Tables: `groups`
+- Tables: `groups`, `billing_plans`, `payment_requests`
+
+### Group Payment Defaults
+
+- Description: a group can define default monthly amount and billing day; new invite members receive a billing plan and current invoice automatically.
+- Pages: `/dashboard`, `/join/[token]`
+- Tables: `groups`, `billing_plans`, `payment_requests`, `member_invites`
 
 ### Reusable Group Invite Links
 
@@ -48,7 +54,7 @@ Related docs:
 
 ### Payment Conditions
 
-- Description: trainer/owner sets payment type, format, base amount and billing day.
+- Description: trainer/owner sets payment type, format, base amount, billing day and whether the member follows group defaults or individual conditions.
 - Pages: `/dashboard`
 - Tables: `billing_plans`
 
@@ -87,7 +93,7 @@ Related docs:
 
 ### Internal Notifications
 
-- Description: user sees relevant notifications; payment/delay notifications are actionable.
+- Description: user opens notifications from the top button in a modal; payment/delay notifications are actionable.
 - Pages: `/dashboard`
 - Tables: `notifications`, `payment_requests`
 
@@ -128,6 +134,12 @@ Related docs:
 - Description: gradually split `DashboardApp.tsx` and reduce local-only prototype surface.
 - Pages: `/dashboard`
 - Tables: not applicable
+
+### Team / Payments UX Separation
+
+- Description: reduce duplicated student/payment surfaces. `Team` should stay the people/profile hub; `Payments` should become an action-first payment queue.
+- Pages: `/dashboard`
+- Tables: `users`, `group_members`, `billing_plans`, `payment_requests`
 
 ### Profile Avatar Upload
 

@@ -43,14 +43,18 @@ export async function savePaymentAction(
     .eq('member_id', body.memberId)
     .eq('active', true)
     .maybeSingle();
+  const planSource = body.type === 'one_time' ? 'individual' : (body.source ?? 'individual');
   const planValues = {
     organization_id: organizationId,
     member_id: body.memberId,
     trainer_id: assignment.data.trainer_id,
     type: body.type,
     training_format: body.trainingFormat,
+    source: planSource,
     base_amount:
-      !existingPlan.data || body.updateFuture ? body.amount : Number(existingPlan.data.base_amount),
+      planSource === 'individual' || !existingPlan.data || body.updateFuture
+        ? body.amount
+        : Number(existingPlan.data.base_amount),
     billing_day:
       body.type === 'monthly'
         ? new Date(`${body.dueDate}T12:00:00Z`).getUTCDate()

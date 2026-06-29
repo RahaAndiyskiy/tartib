@@ -1,6 +1,6 @@
 # Tartib Current State
 
-Last updated: 2026-06-24
+Last updated: 2026-06-28
 
 This document is the practical snapshot of the project after the MVP core stabilization pass. Use it together with:
 
@@ -13,12 +13,14 @@ This document is the practical snapshot of the project after the MVP core stabil
 - [design-system.md](./design-system.md)
 - [release-checklist.md](./release-checklist.md)
 - [dependency-audit.md](./dependency-audit.md)
+- [code-review.md](./code-review.md)
 
 ## Product State
 
 Tartib is a lightweight CRM for clubs, trainers and students. The current product focus is:
 
 - groups;
+- group payment defaults;
 - student onboarding through invite links;
 - trainer/member assignment;
 - billing plans;
@@ -52,13 +54,14 @@ Implemented flow:
 3. Owner or trainer creates a group.
 4. Trainer creates or reuses a group invite link.
 5. Student opens `/join/[token]`, creates login and password, and joins the selected group.
-6. Trainer assigns or edits the student's payment.
-7. Student sees the current payment.
-8. Student confirms payment or requests a delay.
-9. Trainer approves/rejects the payment or delay.
-10. Paid monthly payment atomically creates the next current payment.
-11. Owner/trainer/member see role-appropriate payment state.
-12. User can update basic profile data from settings.
+6. If the group has default payment settings, the student's monthly billing plan and first current invoice are created automatically.
+7. Trainer can adjust the student's payment if needed.
+8. Student sees the current payment.
+9. Student confirms payment or requests a delay.
+10. Trainer approves/rejects the payment or delay.
+11. Paid monthly payment atomically creates the next current payment.
+12. Owner/trainer/member see role-appropriate payment state.
+13. User can update basic profile data from settings.
 
 ## Roles
 
@@ -145,6 +148,11 @@ Important current rule:
 - A member currently belongs to one group.
 - A member can have only one `is_current = true` payment.
 - A group invite link can be reused as the stable recruitment link for that group.
+- A group can define default payment settings: amount and billing day.
+- Group default payment settings are copied into member `billing_plans` and current `payment_requests`.
+- `billing_plans.source` separates group-default plans from individual plans.
+- Editing a group's default payment settings reapplies defaults only to synced group-default plans.
+- Individual member payment conditions are not overwritten by group price changes.
 
 ## Authentication
 
@@ -180,11 +188,27 @@ The UI works for testing, but final polish should happen through a Figma pass or
 
 Reusable UI primitives and Figma mapping are documented in [design-system.md](./design-system.md).
 
+## Product Decision: Team vs Payments
+
+The product should not blindly merge `Team` and `Payments`.
+
+Current best model:
+
+- `Team` is the people registry and member profile hub: identity, role, group, trainer, contact and personal payment settings.
+- `Payments` is the money work queue: confirmations, overdue invoices, delay requests, current invoices and payment history.
+
+This avoids a double full people list. A member card in `Team` may show a compact payment signal, but detailed payment actions should stay in `Payments` or in a focused member detail surface.
+
+Future UX work should reduce duplication by making `Payments` action-first, not by moving all payment logic into `Team`.
+
 ## Technical Debt
 
 High priority:
 
 - rotate Supabase service-role key;
+- keep payment default propagation covered by tests before adding complex pricing;
+- expand the per-member override model only after real tariff scenarios are validated;
+- extract duplicated payment date helpers into shared utilities;
 - replace in-memory rate limiting with durable shared rate limiting if traffic grows;
 - extend CI with production-flow checks when test secrets are available;
 - resolve dependency audit items when safe upgrades exist;

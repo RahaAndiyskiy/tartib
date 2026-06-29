@@ -9,6 +9,7 @@ export type PaymentRequestStatus =
   | 'paid';
 export type BillingPlanType = 'monthly' | 'one_time';
 export type TrainingFormat = 'group' | 'individual';
+export type BillingPlanSource = 'group_default' | 'individual';
 
 export type Organization = {
   id: string;

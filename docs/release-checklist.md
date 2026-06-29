@@ -81,7 +81,7 @@ After deploy:
 - `/dashboard` opens after login.
 - mobile PWA opens after closing/reopening.
 - bottom navigation works.
-- notifications page opens.
+- notifications modal opens from the top notification button.
 - if VAPID env is set, `Включить push` asks for permission.
 
 ## 7. Product Flow Smoke Check

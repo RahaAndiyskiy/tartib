@@ -224,6 +224,7 @@ select
           'trainerId', bp.trainer_id,
           'type', bp.type,
           'trainingFormat', bp.training_format,
+          'source', bp.source,
           'baseAmount', bp.base_amount::numeric,
           'billingDay', bp.billing_day,
           'active', bp.active,

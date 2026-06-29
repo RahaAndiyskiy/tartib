@@ -66,6 +66,7 @@ create table if not exists public.billing_plans (
   trainer_id uuid not null references public.users(id) on delete restrict,
   type text not null check (type in ('monthly', 'one_time')),
   training_format text not null check (training_format in ('group', 'individual')),
+  source text not null default 'individual' check (source in ('group_default', 'individual')),
   base_amount numeric(12, 2) not null check (base_amount > 0),
   billing_day smallint check (billing_day between 1 and 31),
   active boolean not null default true,

@@ -239,6 +239,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
         trainer_id: activeInvite.trainer_id,
         type: 'monthly',
         training_format: 'group',
+        source: 'group_default',
         base_amount: defaultAmount,
         billing_day: defaultBillingDay,
         active: true

@@ -1,0 +1,175 @@
+# Code Review
+
+Last reviewed: 2026-06-28
+
+Related docs:
+
+- [current-state.md](./current-state.md)
+- [architecture.md](./architecture.md)
+- [database.md](./database.md)
+- [features.md](./features.md)
+- [rules.md](./rules.md)
+
+## Scope
+
+This review covers the code after the recent mobile UI, notification modal, group payment defaults, invite onboarding and group editing changes.
+
+The review is not a full security audit. It is a practical engineering snapshot for the next AI or developer working on Tartib.
+
+## Main Findings
+
+### 1. Group default payment propagation now has an override model
+
+File: `src/app/api/workspace/actions/_lib/groups.ts`
+
+When a group is saved with `defaultAmount` and `defaultBillingDay`, `applyGroupPaymentDefaults()` updates or creates the active billing plan and current payment for members who still follow group defaults.
+
+Current behavior:
+
+- `billing_plans.source = group_default` means the member follows the group price;
+- `billing_plans.source = individual` means the member has individual conditions;
+- individual plans are skipped during group-wide price edits;
+- confirmation, delay and paid payment states are not reset by group-wide price edits.
+
+Remaining risk:
+
+- the group-wide update is still implemented in server code, not a transaction;
+- there are not enough automated tests around source transitions yet.
+
+Recommended next step:
+
+- add focused tests for:
+  - group-default member follows group price edit;
+  - individual member is skipped;
+  - payment confirmation/delay state is preserved.
+
+### 2. Group pricing update is not transactional
+
+File: `src/app/api/workspace/actions/_lib/groups.ts`
+
+`applyGroupPaymentDefaults()` updates all members with `Promise.all()`. This is faster than sequential updates, but if one member fails after others succeed, the group may be partially updated.
+
+Risk:
+
+- some students receive the new price/current invoice;
+- others keep the old state;
+- the UI receives only the first error message.
+
+Recommended next step:
+
+- move this operation into a PostgreSQL RPC if group-wide pricing becomes core business logic;
+- or add a small consistency check after save and show an actionable warning if some members failed.
+
+### 3. Payment date helpers are duplicated
+
+Files:
+
+- `src/features/dashboard/DashboardApp.tsx`
+- `src/app/api/invitations/[token]/route.ts`
+- `src/app/api/workspace/actions/_lib/groups.ts`
+- `src/app/api/workspace/actions/_lib/utils.ts`
+
+Helpers such as `dueDateForBillingDay()` and `periodLabel()` exist in multiple places. Some use local time, others UTC-style dates.
+
+Risk:
+
+- client and server can produce slightly different due dates around timezone boundaries;
+- future billing changes may be fixed in one place but missed in another.
+
+Recommended next step:
+
+- keep server billing date logic in one server helper;
+- keep client-only display helpers separate;
+- document whether billing dates are organization-local, user-local or UTC-based.
+
+### 4. `DashboardApp.tsx` is still too large
+
+File: `src/features/dashboard/DashboardApp.tsx`
+
+The dashboard still contains navigation, local workspace behavior, remote mutations, forms, modals, notifications, groups, team, payments and settings in one file.
+
+Risk:
+
+- small UI changes can affect unrelated flows;
+- duplicated state and message handling are easier to introduce;
+- new AI agents need more context to make safe changes.
+
+Recommended next step:
+
+- do not rewrite it wholesale;
+- extract only around touched features:
+  - `NotificationsModal`
+  - `GroupFormModal`
+  - `TeamList`
+  - payment helpers/hooks
+  - message/toast helper
+
+### 5. Temporary notices are still global and fragile
+
+File: `src/features/dashboard/DashboardApp.tsx`
+
+The app uses a single global `message` string for many unrelated actions. Recent UX changes made notices auto-clear, but the pattern is still broad.
+
+Risk:
+
+- one action can clear another action's feedback;
+- messages can appear far away from the feature that caused them;
+- future modal flows may feel inconsistent.
+
+Recommended next step:
+
+- introduce a small toast/notice helper with type, timeout and scope;
+- keep feature-specific success states inside the relevant modal where possible.
+
+## Product UX Note: Team vs Payments
+
+Do not merge `Team` and `Payments` only because they both mention students.
+
+Recommended mental model:
+
+- `Team` answers "who is in the club and what is their setup?"
+- `Payments` answers "what money action needs to happen now?"
+
+Good direction:
+
+- keep compact payment status in `Team`;
+- keep full payment workflow in `Payments`;
+- make `Payments` less like a people list and more like an action queue;
+- eventually open a member detail view from either place.
+
+## Stable Decisions To Preserve
+
+- Login/password is used without real email confirmation for MVP.
+- Group invite links are reusable recruitment links.
+- Group payment defaults create initial member billing automatically.
+- Individual payment conditions are represented by `billing_plans.source = individual`.
+- Paid payment history must not be deleted.
+- Only one current payment per member is allowed.
+- Notification UI is a modal, not a bottom navigation page.
+- Mobile UI uses soft white/violet glass styling with `#8D70FE` as the main violet accent.
+
+## Verification Baseline
+
+For docs-only changes:
+
+```bash
+git diff --check
+```
+
+For code changes:
+
+```bash
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+```
+
+For payment/invite changes, also run a manual production-like smoke test:
+
+1. Create or edit a group with amount and billing day.
+2. Create/open group invite link.
+3. Register a member through the link.
+4. Verify the member has a billing plan and current payment.
+5. Confirm the payment as member.
+6. Approve it as trainer.
+7. Verify next monthly payment is created.

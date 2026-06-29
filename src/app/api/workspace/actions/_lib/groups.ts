@@ -52,11 +52,12 @@ async function applyGroupPaymentDefaults(
   const updateResults = await Promise.all((members.data ?? []).map(async (member): Promise<string | null> => {
     const existingPlan = await admin
       .from('billing_plans')
-      .select('id')
+      .select('id,source')
       .eq('member_id', member.member_id)
       .eq('active', true)
       .maybeSingle();
     if (existingPlan.error) return existingPlan.error.message;
+    if (existingPlan.data?.source === 'individual') return null;
 
     const planValues = {
       organization_id: organizationId,
@@ -64,6 +65,7 @@ async function applyGroupPaymentDefaults(
       trainer_id: trainerId,
       type: 'monthly' as const,
       training_format: 'group' as const,
+      source: 'group_default' as const,
       base_amount: amount,
       billing_day: billingDay,
       active: true,
@@ -77,11 +79,17 @@ async function applyGroupPaymentDefaults(
 
     const existingPayment = await admin
       .from('payment_requests')
-      .select('id')
+      .select('id,status')
       .eq('member_id', member.member_id)
       .eq('is_current', true)
       .maybeSingle();
     if (existingPayment.error) return existingPayment.error.message;
+    if (
+      existingPayment.data &&
+      ['payment_confirmation', 'delay_requested', 'paid'].includes(existingPayment.data.status)
+    ) {
+      return null;
+    }
 
     const paymentValues = {
       organization_id: organizationId,

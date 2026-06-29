@@ -1,5 +1,6 @@
 import type {
   AppUser,
+  BillingPlanSource,
   Organization,
   PaymentRequest,
   PaymentRequestStatus,
@@ -63,6 +64,7 @@ type BillingPlanRow = {
   trainer_id: string;
   type: 'monthly' | 'one_time';
   training_format: 'group' | 'individual';
+  source: BillingPlanSource;
   base_amount: number;
   billing_day: number | null;
   active: boolean;

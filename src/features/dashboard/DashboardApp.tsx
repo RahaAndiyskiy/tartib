@@ -83,6 +83,7 @@ type MemberInviteResult = {
 type PaymentEdit = {
   type: BillingPlanType;
   trainingFormat: TrainingFormat;
+  individualTerms: boolean;
   currentAmount: string;
   dueDate: string;
   updateFuture: boolean;
@@ -1193,6 +1194,7 @@ export function DashboardApp(): React.ReactElement {
           trainerId: effectiveTrainerId,
           type: personDraft.paymentType,
           trainingFormat: personDraft.trainingFormat,
+          source: 'individual',
           baseAmount: calculatedInitialAmount,
           billingDay:
             personDraft.paymentType === 'monthly'
@@ -1348,12 +1350,13 @@ export function DashboardApp(): React.ReactElement {
       const dueDate = hasDefaultPayment ? dueDateForBillingDay(defaultBillingDay) : '';
       const updatedPlans = hasDefaultPayment
         ? workspace.billingPlans.map((plan) =>
-            memberIds.includes(plan.memberId) && plan.active
+            memberIds.includes(plan.memberId) && plan.active && plan.source !== 'individual'
               ? {
                   ...plan,
                   trainerId,
                   type: 'monthly' as const,
                   trainingFormat: 'group' as const,
+                  source: 'group_default' as const,
                   baseAmount: defaultAmount,
                   billingDay: defaultBillingDay,
                   updatedAt: now
@@ -1373,6 +1376,7 @@ export function DashboardApp(): React.ReactElement {
                 trainerId,
                 type: 'monthly' as const,
                 trainingFormat: 'group' as const,
+                source: 'group_default' as const,
                 baseAmount: defaultAmount,
                 billingDay: defaultBillingDay,
                 active: true,
@@ -1390,6 +1394,8 @@ export function DashboardApp(): React.ReactElement {
             ...workspace.payments.map((payment) => {
               const plan = currentPlanByMemberId.get(payment.member_id);
               if (!payment.is_current || !memberIds.includes(payment.member_id) || !plan) return payment;
+              if (plan.source === 'individual') return payment;
+              if (['payment_confirmation', 'delay_requested', 'paid'].includes(payment.status)) return payment;
               return {
                 ...payment,
                 trainer_id: trainerId,
@@ -1658,6 +1664,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const calculatedAmount = Number(edit.currentAmount);
+    const planSource = edit.individualTerms || edit.type === 'one_time' ? 'individual' : 'group_default';
 
     if (calculatedAmount <= 0) {
       setMessage('Сумма оплаты должна быть больше нуля.');
@@ -1676,7 +1683,8 @@ export function DashboardApp(): React.ReactElement {
           trainingFormat: edit.trainingFormat,
           amount: calculatedAmount,
           dueDate: edit.dueDate,
-          updateFuture: edit.updateFuture
+          updateFuture: edit.updateFuture,
+          source: planSource
         },
         `save-payment:${memberId}`
       );
@@ -1713,7 +1721,7 @@ export function DashboardApp(): React.ReactElement {
     const now = new Date().toISOString();
     const planId = existingPlan?.id ?? createId();
     const baseAmount = Number(
-      edit.updateFuture || !existingPlan
+      edit.individualTerms || edit.updateFuture || !existingPlan
         ? edit.currentAmount
         : existingPlan.baseAmount || edit.currentAmount
     );
@@ -1723,6 +1731,7 @@ export function DashboardApp(): React.ReactElement {
       trainerId,
       type: edit.type,
       trainingFormat: edit.trainingFormat,
+      source: planSource,
       baseAmount,
       billingDay:
         edit.type === 'monthly' ? new Date(`${edit.dueDate}T12:00:00`).getDate() : null,
@@ -1731,7 +1740,11 @@ export function DashboardApp(): React.ReactElement {
       updatedAt: now
     };
     const shouldUpdatePlan =
-      !existingPlan || edit.updateFuture || existingPlan.type !== edit.type;
+      !existingPlan ||
+      edit.individualTerms ||
+      edit.updateFuture ||
+      existingPlan.type !== edit.type ||
+      existingPlan.source !== planSource;
     const nextPayment = existingPayment
       ? {
           ...existingPayment,
@@ -2655,6 +2668,7 @@ export function DashboardApp(): React.ReactElement {
     return {
       type: plan?.type ?? 'monthly',
       trainingFormat: plan?.trainingFormat ?? 'group',
+      individualTerms: plan?.source === 'individual',
       currentAmount: payment ? String(payment.amount) : '',
       dueDate: payment?.due_date ?? '',
       updateFuture: false
@@ -4103,6 +4117,16 @@ export function DashboardApp(): React.ReactElement {
                             </dd>
                           </div>
                           <div>
+                            <dt>Источник</dt>
+                            <dd>
+                              {selectedPaymentPlan?.source === 'individual'
+                                ? 'Индивидуальные'
+                                : selectedPaymentPlan
+                                  ? 'Условия группы'
+                                  : '—'}
+                            </dd>
+                          </div>
+                          <div>
                             <dt>Базовая сумма</dt>
                             <dd>
                               {selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : '—'}
@@ -4186,14 +4210,32 @@ export function DashboardApp(): React.ReactElement {
                               </label>
                             ) : null}
                             {paymentEditFor(selectedPaymentMember.id).type !== 'one_time' ? (
-                              <label className="payment-future-toggle">
-                                <input
-                                  checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
-                                  type="checkbox"
-                                  onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
-                                />
-                                Использовать эту сумму в следующих месяцах
-                              </label>
+                              <>
+                                <label className="payment-future-toggle">
+                                  <input
+                                    checked={paymentEditFor(selectedPaymentMember.id).individualTerms}
+                                    type="checkbox"
+                                    onChange={(event) =>
+                                      updatePaymentEdit(selectedPaymentMember.id, {
+                                        individualTerms: event.target.checked,
+                                        updateFuture: event.target.checked
+                                          ? true
+                                          : paymentEditFor(selectedPaymentMember.id).updateFuture
+                                      })
+                                    }
+                                  />
+                                  Индивидуальные условия оплаты
+                                </label>
+                                <label className="payment-future-toggle">
+                                  <input
+                                    checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
+                                    type="checkbox"
+                                    disabled={paymentEditFor(selectedPaymentMember.id).individualTerms}
+                                    onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
+                                  />
+                                  Использовать эту сумму в следующих месяцах
+                                </label>
+                              </>
                             ) : null}
                           </div>
                         </details>
