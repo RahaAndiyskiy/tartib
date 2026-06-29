@@ -96,6 +96,7 @@ import {
 import { NotificationsModal } from './NotificationsModal';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { GroupFormModal } from './GroupFormModal';
+import { InviteLinkModal } from './InviteLinkModal';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -2823,67 +2824,15 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
 
         {invitePickerOpen || (activeSection === 'overview' && memberInvite) ? (
-          <div className="modal-backdrop" role="presentation" onClick={closeOverviewInviteModal}>
-            <section
-              aria-labelledby="overview-invite-title"
-              aria-modal="true"
-              className="confirm-modal invite-picker-modal"
-              role="dialog"
-              onClick={(event) => event.stopPropagation()}
-            >
-              {memberInvite ? (
-                <>
-                  <div>
-                    <h2 id="overview-invite-title">Ссылка на вступление</h2>
-                    <p>Группа: {memberInvite.groupName}</p>
-                  </div>
-                  <input aria-label="Ссылка на вступление" readOnly value={memberInvite.inviteUrl} />
-                  <div className="confirm-modal-actions">
-                    <button className="primary-button" type="button" onClick={copyMemberInvite}>
-                      <Copy size={16} />
-                      Скопировать
-                    </button>
-                    <button className="small-button secondary" type="button" onClick={shareMemberInvite}>
-                      <Share2 size={16} />
-                      Поделиться
-                    </button>
-                    <button className="small-button secondary" type="button" onClick={closeOverviewInviteModal}>
-                      Закрыть
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <h2 id="overview-invite-title">Выберите группу</h2>
-                    <p>Для этой группы будет создана ссылка на вступление.</p>
-                  </div>
-                  <div className="invite-group-options">
-                    {visibleGroups.map((group) => (
-                      <button
-                        className="group-choice-button"
-                        disabled={isPendingAction(`create-invite:${group.id}`)}
-                        key={group.id}
-                        type="button"
-                        onClick={() => void createMemberInviteForGroup(group.id)}
-                      >
-                        <strong>{group.activity}</strong>
-                        <span>
-                          {group.defaultAmount && group.defaultBillingDay
-                            ? `${formatMoney(group.defaultAmount)} · ${group.defaultBillingDay} число`
-                            : 'Оплата не задана'}
-                        </span>
-                        <span>{group.days} · {group.time}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <button className="small-button secondary" type="button" onClick={closeOverviewInviteModal}>
-                    Отмена
-                  </button>
-                </>
-              )}
-            </section>
-          </div>
+          <InviteLinkModal
+            invite={memberInvite}
+            groups={visibleGroups}
+            isPendingGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
+            onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
+            onCopy={() => void copyMemberInvite()}
+            onShare={() => void shareMemberInvite()}
+            onClose={closeOverviewInviteModal}
+          />
         ) : null}
 
         {activeSection === 'overview' ? (

@@ -95,6 +95,7 @@ Recent progress:
 - role/date/payment helpers were moved to `src/features/dashboard/utils.ts`;
 - `NotificationsModal` and `LogoutConfirmModal` were extracted.
 - `GroupFormModal` was extracted.
+- `InviteLinkModal` was extracted for the overview group invite flow.
 
 Risk:
 
@@ -106,7 +107,6 @@ Recommended next step:
 
 - do not rewrite it wholesale;
 - extract only around touched features:
-  - invite picker/link modal
   - `TeamList`
   - payment helpers/hooks
   - message/toast helper

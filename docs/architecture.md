@@ -65,6 +65,7 @@ Dashboard support modules:
 - `src/features/dashboard/NotificationsModal.tsx` - notification modal UI.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
+- `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.
 
 `/api/workspace`
 
