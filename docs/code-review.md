@@ -94,6 +94,7 @@ Recent progress:
 - labels and empty drafts were moved to `src/features/dashboard/constants.ts`;
 - role/date/payment helpers were moved to `src/features/dashboard/utils.ts`;
 - `NotificationsModal` and `LogoutConfirmModal` were extracted.
+- `GroupFormModal` was extracted.
 
 Risk:
 
@@ -105,7 +106,7 @@ Recommended next step:
 
 - do not rewrite it wholesale;
 - extract only around touched features:
-  - `GroupFormModal`
+  - invite picker/link modal
   - `TeamList`
   - payment helpers/hooks
   - message/toast helper

@@ -64,6 +64,7 @@ Dashboard support modules:
 - `src/features/dashboard/utils.ts` - role/date/payment helper functions.
 - `src/features/dashboard/NotificationsModal.tsx` - notification modal UI.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
+- `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 
 `/api/workspace`
 

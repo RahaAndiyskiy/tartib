@@ -95,6 +95,7 @@ import {
 } from './utils';
 import { NotificationsModal } from './NotificationsModal';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
+import { GroupFormModal } from './GroupFormModal';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -4248,144 +4249,25 @@ export function DashboardApp(): React.ReactElement {
             </div>
 
             {hasRole(activeUser, 'trainer') ? (
-              <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={createGroup}>
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>Новая группа</h2>
-                    <p>Одно направление и расписание</p>
-                  </div>
-                  <button
-                    className="form-close-button"
-                    aria-label="Закрыть форму"
-                    type="button"
-                    onClick={() => (editingGroupId ? cancelGroupEdit() : setMobileFormOpen(false))}
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-                {hasRole(activeUser, 'owner') ? (
-                  <label>
-                    Ответственный тренер
-                    <select
-                      required
-                      value={groupDraft.trainerId}
-                      onChange={(event) =>
-                        setGroupDraft((current) => ({
-                          ...current,
-                          trainerId: event.target.value
-                        }))
-                      }
-                    >
-                      <option value="">Выберите тренера</option>
-                      {trainers.map((trainer) => (
-                        <option key={trainer.id} value={trainer.id}>
-                          {userName(trainer.id)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <label>
-                  Вид деятельности
-                  <input
-                    placeholder="Например, ММА или грепплинг"
-                    required
-                    value={groupDraft.activity}
-                    onChange={(event) =>
-                      setGroupDraft((current) => ({
-                        ...current,
-                        activity: event.target.value
-                      }))
-                    }
-                  />
-                </label>
-                <label>
-                  Дни
-                  <div className="weekday-grid">
-                    {weekDays.map((day) => {
-                      const selected = groupDraft.days.split(', ').includes(day);
-                      return (
-                        <label key={day} className={selected ? 'weekday-checkbox selected' : 'weekday-checkbox'}>
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleGroupDay(day)}
-                          />
-                          {day}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </label>
-                <label>
-                  Время
-                  <input
-                    type="time"
-                    required
-                    value={groupDraft.time}
-                    onChange={(event) =>
-                      setGroupDraft((current) => ({ ...current, time: event.target.value }))
-                    }
-                  />
-                </label>
-                <div className="split-fields">
-                  <label>
-                    Сумма абонемента <span className="optional-label">необязательно</span>
-                    <input
-                      min="1"
-                      step="0.01"
-                      type="number"
-                      placeholder="2500"
-                      value={groupDraft.defaultAmount}
-                      onChange={(event) =>
-                        setGroupDraft((current) => ({
-                          ...current,
-                          defaultAmount: event.target.value
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    День оплаты
-                    <input
-                      max="31"
-                      min="1"
-                      type="number"
-                      value={groupDraft.defaultBillingDay}
-                      onChange={(event) =>
-                        setGroupDraft((current) => ({
-                          ...current,
-                          defaultBillingDay: event.target.value
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-                <label>
-                  Комментарий <span className="optional-label">необязательно</span>
-                  <input
-                    placeholder="Зал, возраст или уровень"
-                    value={groupDraft.note}
-                    onChange={(event) =>
-                      setGroupDraft((current) => ({ ...current, note: event.target.value }))
-                    }
-                  />
-                </label>
-                <div className={editingGroupId ? 'form-actions full-width-actions group-form-actions editing' : 'form-actions full-width-actions group-form-actions'}>
-                  <button
-                    className="primary-button full-width-button"
-                    type="submit"
-                    disabled={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
-                  >
-                    {buttonLabel(`save-group:${editingGroupId || 'new'}`, editingGroupId ? 'Сохранить группу' : 'Создать группу')}
-                  </button>
-                  {editingGroupId ? (
-                    <button className="ghost-button group-cancel-button" type="button" onClick={cancelGroupEdit}>
-                      Отменить
-                    </button>
-                  ) : null}
-                </div>
-              </form>
+              <GroupFormModal
+                draft={groupDraft}
+                trainers={trainers}
+                weekDays={weekDays}
+                isOwner={hasRole(activeUser, 'owner')}
+                isEditing={Boolean(editingGroupId)}
+                isOpen={mobileFormOpen}
+                isPending={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
+                submitLabel={buttonLabel(
+                  `save-group:${editingGroupId || 'new'}`,
+                  editingGroupId ? 'Сохранить группу' : 'Создать группу'
+                )}
+                trainerName={userName}
+                onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
+                onToggleDay={toggleGroupDay}
+                onSubmit={createGroup}
+                onClose={() => setMobileFormOpen(false)}
+                onCancelEdit={cancelGroupEdit}
+              />
             ) : null}
           </section>
         ) : null}

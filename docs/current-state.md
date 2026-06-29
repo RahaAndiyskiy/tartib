@@ -107,6 +107,7 @@ Important modules:
 - `src/features/dashboard/DashboardApp.tsx` is still the main CRM shell and is large.
 - Dashboard helper modules now hold shared dashboard types, labels and date/payment helpers.
 - Notification and logout confirmation modals are extracted from `DashboardApp.tsx`.
+- Group create/edit form is extracted into `GroupFormModal`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.
 - `src/app/api/workspace/actions/_lib/` contains domain action handlers.
