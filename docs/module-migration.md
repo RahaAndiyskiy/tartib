@@ -23,7 +23,7 @@ Each module is considered migrated only when all layers are moved:
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, member assignment and member deletion actions are in `src/modules/people`; local member creation with initial payment stays in dashboard orchestration until `groups` and `payments` exist. |
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, basic permissions and group deletion are in `src/modules/groups`; local payment-default sync still lives in `DashboardApp.tsx`. |
-| `payments` | partial | partial | pending | pending | partial | `PaymentRegistryRow` and payment view selectors are extracted into `src/modules/payments`; payment mutations and cross-module group/payment sync still live in `DashboardApp.tsx`. |
+| `payments` | partial | partial | partial | pending | partial | `PaymentRegistryRow`, payment view selectors and payment workspace mutation helpers are extracted into `src/modules/payments`; API calls, form orchestration and cross-module group/payment sync still live in `DashboardApp.tsx`. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
 | `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
 | `schedule` | pending | pending | pending | pending | pending | Not a full module yet. |
@@ -45,6 +45,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/groups/actions/groupActions.ts` owns group deletion.
 - `src/modules/groups/actions/groupActions.ts` also owns remote group save and workspace group upsert/replace helpers.
 - `src/modules/payments/model/selectors.ts` owns visible payment selection, current payment maps, active plan maps, payment overview counts, registry filtering, selected payment details and member payment details.
+- `src/modules/payments/actions/paymentActions.ts` owns payment workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions.
 - `src/modules/payments/index.ts` exposes the current public payments module API.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
@@ -59,7 +60,7 @@ Each module is considered migrated only when all layers are moved:
    - keep only cross-module payment synchronization in `DashboardApp.tsx`;
    - keep payment-default synchronization at the boundary until `payments` owns its part.
 4. Continue `payments` module:
-   - move payment mutations in small groups;
+   - move API-call wrappers and form orchestration in small groups;
    - move group-default-to-payment synchronization after payment actions own plans/current invoices.
 
 ## Rule

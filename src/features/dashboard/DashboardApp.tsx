@@ -127,15 +127,27 @@ import {
   selectVisibleMembers
 } from '@/modules/people';
 import {
+  applyRemotePaymentDeletion,
+  applyRemotePaymentMutation,
   buildMemberPaymentDetails,
   buildPaymentOverview,
   buildPaymentRegistry,
   buildPaymentTasks,
   buildSelectedPaymentDetails,
+  decideLocalPaymentDelay,
+  decideLocalPaymentStatus,
+  deleteLocalPayment,
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
   paymentTaskHeadline,
+  requestLocalPaymentDelay,
   selectVisiblePayments,
+  submitLocalPaymentConfirmation,
+  submitLocalPrepayment,
+  upsertBillingPlan,
+  upsertPayment,
+  type RemotePaymentDeletionResult,
+  type RemotePaymentMutationResult,
   type PaymentView
 } from '@/modules/payments';
 
@@ -1241,21 +1253,7 @@ export function DashboardApp(): React.ReactElement {
       );
       if (data?.payment && data.billingPlan) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                billingPlans: current.billingPlans.some((plan) => plan.id === data.billingPlan.id)
-                  ? current.billingPlans.map((plan) =>
-                      plan.id === data.billingPlan.id ? data.billingPlan : plan
-                    )
-                  : [...current.billingPlans, data.billingPlan],
-                payments: current.payments.some((payment) => payment.id === data.payment.id)
-                  ? current.payments.map((payment) =>
-                      payment.id === data.payment.id ? data.payment : payment
-                    )
-                  : [...current.payments, data.payment]
-              }
-            : current
+          current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
         );
         setPaymentEdits((current) => {
           const next = { ...current };
@@ -1353,31 +1351,13 @@ export function DashboardApp(): React.ReactElement {
     if (!confirmed) return;
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        deletedPaymentId: string;
-        disabledPlanId: string | null;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentDeletionResult>(
         { action: 'delete_payment', paymentId: payment.id },
         `delete-payment:${payment.id}`
       );
       if (data?.deletedPaymentId) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: current.payments.filter((item) => item.id !== data.deletedPaymentId),
-                billingPlans: data.disabledPlanId
-                  ? current.billingPlans.map((plan) =>
-                      plan.id === data.disabledPlanId ? { ...plan, active: false } : plan
-                    )
-                  : current.billingPlans,
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentDeletion(current, data, activeUserId) : current
         );
         setPaymentEdits((current) => {
           const next = { ...current };
@@ -1390,23 +1370,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const now = new Date().toISOString();
-    saveWorkspace({
-      ...workspace,
-      payments: workspace.payments.filter((item) => item.id !== payment.id),
-      billingPlans: workspace.billingPlans.map((plan) =>
-        plan.id === payment.plan_id ? { ...plan, active: false, updatedAt: now } : plan
-      ),
-      notifications: [
-        ...workspace.notifications.filter((notification) => notification.paymentId !== payment.id),
-        {
-          id: createId(),
-          userId: payment.member_id,
-          message: `Счёт отменён: ${formatMoney(payment.amount)}.`,
-          createdAt: now,
-          read: false
-        }
-      ]
-    });
+    saveWorkspace(deleteLocalPayment({ workspace, payment, now, createId }));
     setPaymentEdits((current) => {
       const next = { ...current };
       delete next[payment.member_id];
@@ -1422,11 +1386,7 @@ export function DashboardApp(): React.ReactElement {
     if (!payment) return;
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment?: PaymentRequest;
-        nextPayment?: PaymentRequest;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
         {
           action: 'decide_payment',
           paymentId,
@@ -1436,26 +1396,13 @@ export function DashboardApp(): React.ReactElement {
       );
       if (data?.payment) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: [
-                  ...current.payments.map((item) =>
-                    item.id === data.payment?.id ? data.payment : item
-                  ),
-                  ...(data.nextPayment ? [data.nextPayment] : [])
-                ],
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
         );
         setMessage(status === 'paid' ? 'Оплата подтверждена.' : 'Подтверждение отклонено.');
       }
       return;
     }
+    const now = new Date().toISOString();
     const plan = workspace.billingPlans.find((item) => item.id === payment?.plan_id);
     const resolvedStatus =
       status === 'active' && payment.status === 'payment_confirmation'
@@ -1467,19 +1414,22 @@ export function DashboardApp(): React.ReactElement {
         : status === 'active' && payment.status === 'payment_confirmation'
           ? 'Подтверждение оплаты отклонено. Проверьте оплату и отправьте подтверждение повторно.'
           : null;
-    const shouldAdvance =
+    const activeRecurringPlan =
       resolvedStatus === 'paid' &&
       payment.is_current !== false &&
       plan?.active &&
-      plan.type !== 'one_time';
+      plan.type !== 'one_time'
+        ? plan
+        : null;
+    const shouldAdvance = Boolean(activeRecurringPlan);
     const nextDueDate =
-      shouldAdvance && payment
-        ? addMonthsDate(payment.due_date, plan.billingDay, payment.coverage_months ?? 1)
+      activeRecurringPlan
+        ? addMonthsDate(payment.due_date, activeRecurringPlan.billingDay, payment.coverage_months ?? 1)
         : null;
     const nextAmount =
-      Number(plan?.baseAmount ?? 0);
+      Number(activeRecurringPlan?.baseAmount ?? 0);
     const nextPayment: PaymentRequest | null =
-      shouldAdvance && payment && nextDueDate
+      activeRecurringPlan && nextDueDate
         ? {
             id: createId(),
             organization_id: payment.organization_id,
@@ -1488,8 +1438,8 @@ export function DashboardApp(): React.ReactElement {
             amount: nextAmount,
             due_date: nextDueDate,
             status: 'active',
-            created_at: new Date().toISOString(),
-            plan_id: plan.id,
+            created_at: now,
+            plan_id: activeRecurringPlan.id,
             period_label: periodLabel(nextDueDate),
             is_current: true,
             coverage_months: 1,
@@ -1497,36 +1447,18 @@ export function DashboardApp(): React.ReactElement {
           }
         : null;
 
-    saveWorkspace({
-      ...workspace,
-      payments: [
-        ...workspace.payments.map((item) =>
-          item.id === paymentId
-            ? {
-                ...item,
-                status: resolvedStatus,
-                paid_at: resolvedStatus === 'paid' ? new Date().toISOString() : item.paid_at,
-                is_current: shouldAdvance ? false : item.is_current
-              }
-            : item
-        ),
-        ...(nextPayment ? [nextPayment] : [])
-      ],
-      notifications:
-        notificationMessage && payment
-          ? [
-              ...workspace.notifications,
-              {
-                id: createId(),
-                userId: payment.member_id,
-                message: notificationMessage,
-                createdAt: new Date().toISOString(),
-                read: false,
-                paymentId: payment.id
-              }
-            ]
-          : workspace.notifications
-    });
+    saveWorkspace(
+      decideLocalPaymentStatus({
+        workspace,
+        payment,
+        resolvedStatus,
+        nextPayment,
+        shouldAdvance,
+        notificationMessage,
+        now,
+        createId
+      })
+    );
     if (payment) {
       setPaymentEdits((current) => {
         const next = { ...current };
@@ -1589,10 +1521,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment?: PaymentRequest;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
         {
           action: 'request_delay',
           paymentId,
@@ -1603,18 +1532,7 @@ export function DashboardApp(): React.ReactElement {
       );
       if (data?.payment) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: current.payments.map((item) =>
-                  item.id === data.payment?.id ? data.payment : item
-                ),
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
         );
         setMessage('Запрос отсрочки отправлен.');
       }
@@ -1622,34 +1540,17 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const now = new Date().toISOString();
-    saveWorkspace({
-      ...workspace,
-      payments: workspace.payments.map((item) =>
-        item.id === paymentId
-          ? {
-              ...item,
-              status: 'delay_requested',
-              delay_requested_date: draft.requestedDate,
-              delay_comment: draft.comment.trim() || null,
-              delay_status: 'pending',
-              delay_requested_at: now,
-              delay_decided_at: null,
-              delay_decided_by: null
-            }
-          : item
-      ),
-      notifications: [
-        ...workspace.notifications,
-        {
-          id: createId(),
-          userId: payment.trainer_id,
-          message: `${userName(payment.member_id)} запрашивает отсрочку до ${draft.requestedDate}${draft.comment.trim() ? `: ${draft.comment.trim()}` : '.'}`,
-          createdAt: now,
-          read: false,
-          paymentId
-        }
-      ]
-    });
+    saveWorkspace(
+      requestLocalPaymentDelay({
+        workspace,
+        payment,
+        requestedDate: draft.requestedDate,
+        comment: draft.comment,
+        now,
+        createId,
+        userName
+      })
+    );
     setMessage('Запрос отсрочки отправлен.');
   }
 
@@ -1662,10 +1563,7 @@ export function DashboardApp(): React.ReactElement {
     if (!payment || payment.status !== 'delay_requested') return;
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment?: PaymentRequest;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
         {
           action: 'decide_delay',
           paymentId,
@@ -1675,63 +1573,30 @@ export function DashboardApp(): React.ReactElement {
       );
       if (data?.payment) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: current.payments.map((item) =>
-                  item.id === data.payment?.id ? data.payment : item
-                ),
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
         );
         setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
       }
       return;
     }
     const now = new Date().toISOString();
-    const nextDueDate =
-      approved && payment.delay_requested_date ? payment.delay_requested_date : payment.due_date;
-    const nextStatus = approved
-      ? dateAtNoon(nextDueDate) < dateAtNoon(todayString())
-        ? 'overdue'
-        : 'delayed'
-      : dateAtNoon(payment.due_date) < dateAtNoon(todayString())
-        ? 'overdue'
-        : 'active';
-
-    saveWorkspace({
-      ...workspace,
-      payments: workspace.payments.map((item) =>
-        item.id === paymentId
-          ? {
-              ...item,
-              due_date: nextDueDate,
-              period_label: periodLabel(nextDueDate),
-              status: nextStatus,
-              delay_status: approved ? 'approved' : 'rejected',
-              delay_decided_at: now,
-              delay_decided_by: activeUser.id
-            }
-          : item
-      ),
-      notifications: [
-        ...workspace.notifications,
-        {
-          id: createId(),
-          userId: payment.member_id,
-          message: approved
-            ? `Отсрочка одобрена. Новый срок оплаты: ${nextDueDate}.`
-            : 'Запрос отсрочки отклонён.',
-          createdAt: now,
-          read: false,
-          paymentId
-        }
-      ]
-    });
+    saveWorkspace(
+      decideLocalPaymentDelay({
+        workspace,
+        payment,
+        approved,
+        actorId: activeUser.id,
+        now,
+        createId,
+        statusForDueDate: (dueDate) =>
+          dateAtNoon(dueDate) < dateAtNoon(todayString())
+            ? 'overdue'
+            : approved
+              ? 'delayed'
+              : 'active',
+        periodLabel
+      })
+    );
     setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
   }
 
@@ -1746,27 +1611,13 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment?: PaymentRequest;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
         { action: 'submit_payment', paymentId },
         `submit-payment:${paymentId}`
       );
       if (data?.payment) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: current.payments.map((item) =>
-                  item.id === data.payment?.id ? data.payment : item
-                ),
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
         );
         setMessage('Подтверждение отправлено ответственному лицу.');
       }
@@ -1774,23 +1625,7 @@ export function DashboardApp(): React.ReactElement {
     }
     const now = new Date().toISOString();
 
-    saveWorkspace({
-      ...workspace,
-      payments: workspace.payments.map((item) =>
-        item.id === paymentId ? { ...item, status: 'payment_confirmation' } : item
-      ),
-      notifications: [
-        ...workspace.notifications,
-        {
-          id: createId(),
-          userId: payment.trainer_id,
-          message: `${userName(payment.member_id)}: оплата ${formatMoney(payment.amount)}.`,
-          createdAt: now,
-          read: false,
-          paymentId
-        }
-      ]
-    });
+    saveWorkspace(submitLocalPaymentConfirmation({ workspace, payment, now, createId, userName }));
     setMessage('Подтверждение отправлено ответственному лицу.');
   }
 
@@ -1807,27 +1642,13 @@ export function DashboardApp(): React.ReactElement {
     const amount = Number(plan.baseAmount) * months;
 
     if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<{
-        payment?: PaymentRequest;
-        notification?: LocalNotification;
-      }>(
+      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
         { action: 'submit_prepayment', paymentId, months },
         `submit-prepayment:${paymentId}`
       );
       if (data?.payment) {
         setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                payments: current.payments.map((item) =>
-                  item.id === data.payment?.id ? data.payment : item
-                ),
-                notifications:
-                  data.notification && data.notification.userId === activeUserId
-                    ? [...current.notifications, data.notification]
-                    : current.notifications
-              }
-            : current
+          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
         );
         setMessage('Предоплата отправлена тренеру на подтверждение.');
       }
@@ -1835,31 +1656,18 @@ export function DashboardApp(): React.ReactElement {
     }
 
     const now = new Date().toISOString();
-    saveWorkspace({
-      ...workspace,
-      payments: workspace.payments.map((item) =>
-        item.id === paymentId
-          ? {
-              ...item,
-              status: 'payment_confirmation',
-              amount,
-              coverage_months: months,
-              period_label: prepaymentPeriodLabel(item.due_date, months)
-            }
-          : item
-      ),
-      notifications: [
-        ...workspace.notifications,
-        {
-          id: createId(),
-          userId: payment.trainer_id,
-          message: `${userName(payment.member_id)}: предоплата ${months} мес., ${formatMoney(amount)}.`,
-          createdAt: now,
-          read: false,
-          paymentId
-        }
-      ]
-    });
+    saveWorkspace(
+      submitLocalPrepayment({
+        workspace,
+        payment,
+        months,
+        amount,
+        periodLabel: prepaymentPeriodLabel(payment.due_date, months),
+        now,
+        createId,
+        userName
+      })
+    );
     setMessage('Предоплата отправлена тренеру на подтверждение.');
   }
 

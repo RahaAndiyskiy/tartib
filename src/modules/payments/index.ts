@@ -10,6 +10,18 @@ export {
   selectCurrentPayments,
   selectVisiblePayments
 } from './model/selectors';
+export {
+  applyRemotePaymentDeletion,
+  applyRemotePaymentMutation,
+  decideLocalPaymentDelay,
+  decideLocalPaymentStatus,
+  deleteLocalPayment,
+  requestLocalPaymentDelay,
+  submitLocalPaymentConfirmation,
+  submitLocalPrepayment,
+  upsertBillingPlan,
+  upsertPayment
+} from './actions/paymentActions';
 export type {
   MemberPaymentDetails,
   PaymentActionGroup,
@@ -20,3 +32,7 @@ export type {
   PaymentView,
   SelectedPaymentDetails
 } from './model/selectors';
+export type {
+  RemotePaymentDeletionResult,
+  RemotePaymentMutationResult
+} from './actions/paymentActions';

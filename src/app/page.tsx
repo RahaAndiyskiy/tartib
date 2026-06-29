@@ -31,7 +31,7 @@ export default function HomePage(): ReactElement {
   return (
     <main className="home-screen">
       <section className="home-hero">
-        <p className="eyebrow">Tartib v0.1</p>
+        <p className="eyebrow">Tartib v0.6</p>
         <h1>Tartib</h1>
         <p>
           Управляйте тренерами, учениками и оплатами внутри одной организации.
