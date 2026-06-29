@@ -115,6 +115,7 @@ Important modules:
 - People view selectors and permissions are extracted into `src/modules/people`.
 - Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.
+- Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Shared role checks and labels live in `src/core/roles.ts`.
 - `src/app/api/workspace/route.ts` loads the role-based workspace.
 - `src/app/api/workspace/actions/route.ts` dispatches protected mutations.

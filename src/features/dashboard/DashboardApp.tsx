@@ -59,6 +59,13 @@ import {
   roleLabel
 } from '@/core/roles';
 import {
+  canManageGroups,
+  canViewGroups,
+  GroupsPanel,
+  mapGroupsById,
+  selectVisibleGroups
+} from '@/modules/groups';
+import {
   emptyExpenseDraft,
   emptyGroupDraft,
   emptyPersonDraft,
@@ -410,20 +417,7 @@ export function DashboardApp(): React.ReactElement {
 
   const allMembers = useMemo(() => selectAllMembers(workspace), [workspace]);
 
-  const visibleGroups = useMemo(() => {
-    if (!workspace || !activeUser) return [];
-    if (hasRole(activeUser, 'owner')) return workspace.groups;
-    if (hasRole(activeUser, 'trainer')) {
-      return workspace.groups.filter((group) => group.trainerId === activeUser.id);
-    }
-
-    const groupIds = new Set(
-      workspace.groupMembers
-        .filter((assignment) => assignment.memberId === activeUser.id)
-        .map((assignment) => assignment.groupId)
-    );
-    return workspace.groups.filter((group) => groupIds.has(group.id));
-  }, [activeUser, workspace]);
+  const visibleGroups = useMemo(() => selectVisibleGroups(workspace, activeUser), [activeUser, workspace]);
 
   const visibleMembers = useMemo(
     () =>
@@ -455,10 +449,7 @@ export function DashboardApp(): React.ReactElement {
     [workspace?.assignments]
   );
 
-  const groupsById = useMemo(() => {
-    if (!workspace) return new Map<string, LocalTrainingGroup>();
-    return new Map(workspace.groups.map((group) => [group.id, group]));
-  }, [workspace]);
+  const groupsById = useMemo(() => mapGroupsById(workspace?.groups ?? []), [workspace?.groups]);
 
   const groupMembershipByMemberId = useMemo(
     () => mapGroupMembershipByMemberId(workspace?.groupMembers ?? []),
@@ -3778,88 +3769,21 @@ export function DashboardApp(): React.ReactElement {
           </section>
         ) : null}
 
-        {activeSection === 'groups' && !hasRole(activeUser, 'member') ? (
+        {activeSection === 'groups' && canViewGroups(activeUser) ? (
           <section className="crm-content-grid">
-            <div className="crm-panel">
-              <div className="crm-panel-header">
-                <div>
-                  <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Мои группы' : 'Группы клуба'}</h2>
-                  <p>Направление сразу определяет расписание учеников</p>
-                </div>
-              </div>
-              <div className="group-list">
-                {visibleGroups.map((group) => {
-                  const trainer = workspace.users.find((user) => user.id === group.trainerId);
-                  const memberCount = workspace.groupMembers.filter(
-                    (assignment) => assignment.groupId === group.id
-                  ).length;
-                  return (
-                    <article className="group-row" key={group.id}>
-                      <div className="group-activity">
-                        <span>
-                          {group.defaultAmount && group.defaultBillingDay
-                            ? `${formatMoney(group.defaultAmount)} · ${group.defaultBillingDay} число`
-                            : 'Оплата не задана'}
-                        </span>
-                        <strong>{group.activity}</strong>
-                        <span>{trainer ? `${trainer.first_name} ${trainer.last_name}` : 'Без тренера'}</span>
-                      </div>
-                      <div><span>Дни</span><strong>{group.days}</strong></div>
-                      <div><span>Время</span><strong>{group.time}</strong></div>
-                      <div><span>Ученики</span><strong>{memberCount}</strong></div>
-                      <div><span>Комментарий</span><strong>{group.note || '—'}</strong></div>
-                      {hasRole(activeUser, 'trainer') ? (
-                        <div className="row-actions">
-                          <button
-                            className="primary-button"
-                            type="button"
-                            disabled={isPendingAction(`create-invite:${group.id}`)}
-                            onClick={() => void createMemberInviteForGroup(group.id)}
-                          >
-                            {buttonLabel(`create-invite:${group.id}`, 'Ссылка')}
-                          </button>
-                          <button className="small-button secondary" type="button" onClick={() => startGroupEdit(group)}>
-                            Редактировать
-                          </button>
-                          <button
-                            className="small-button danger"
-                            type="button"
-                            disabled={isPendingAction(`delete-group:${group.id}`)}
-                            onClick={() => deleteGroup(group.id)}
-                          >
-                            {buttonLabel(`delete-group:${group.id}`, 'Удалить')}
-                          </button>
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
-                {visibleGroups.length === 0 ? (
-                  <div className="empty-state action-empty">
-                    <p>Групп пока нет.</p>
-                    <button className="small-button secondary" type="button" onClick={openCreateGroup}>
-                      Создать группу
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              {lastCreatedGroupId && visibleGroups.some((group) => group.id === lastCreatedGroupId) ? (
-                <div className="group-next-step">
-                  <div>
-                    <strong>Группа создана</strong>
-                    <span>Следующий шаг: дать ученикам ссылку для входа.</span>
-                  </div>
-                  <button
-                    className="small-button primary-soft"
-                    type="button"
-                    disabled={isPendingAction(`create-invite:${lastCreatedGroupId}`)}
-                    onClick={() => void createMemberInviteForGroup(lastCreatedGroupId)}
-                  >
-                    Ссылка
-                  </button>
-                </div>
-              ) : null}
-              {memberInvite ? (
+            <GroupsPanel
+              activeUser={activeUser}
+              workspace={workspace}
+              groups={visibleGroups}
+              lastCreatedGroupId={lastCreatedGroupId}
+              isPendingAction={isPendingAction}
+              buttonLabel={buttonLabel}
+              onCreateGroup={openCreateGroup}
+              onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
+              onEditGroup={startGroupEdit}
+              onDeleteGroup={(groupId) => void deleteGroup(groupId)}
+            />
+            {memberInvite ? (
                 <InviteResultCard
                   invite={memberInvite}
                   inputLabel="Ссылка для набора"
@@ -3869,9 +3793,8 @@ export function DashboardApp(): React.ReactElement {
                   onShare={() => void shareMemberInvite()}
                 />
               ) : null}
-            </div>
 
-            {hasRole(activeUser, 'trainer') ? (
+            {canManageGroups(activeUser) ? (
               <GroupFormModal
                 draft={groupDraft}
                 trainers={trainers}

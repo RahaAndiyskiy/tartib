@@ -22,7 +22,7 @@ Each module is considered migrated only when all layers are moved:
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, member assignment and member deletion actions are in `src/modules/people`; local member creation with initial payment stays in dashboard orchestration until `groups` and `payments` exist. |
-| `groups` | pending | pending | pending | pending | pending | Groups should become the next full domain after people. |
+| `groups` | partial | partial | pending | partial | partial | `GroupsPanel`, visible group selectors and basic group permissions are in `src/modules/groups`; create/update/delete group actions still live in `DashboardApp.tsx`. |
 | `payments` | partial | pending | pending | pending | partial | Some row UI is extracted, but payment logic mostly remains in `DashboardApp.tsx`. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
 | `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
@@ -38,6 +38,9 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/actions/peopleActions.ts` owns member group assignment and member deletion actions.
 - `src/modules/people/actions/peopleActions.ts` also owns remote trainer creation and member invite creation.
 - `src/modules/people/index.ts` exposes the current public people module API.
+- `src/modules/groups/components/GroupsPanel.tsx` owns the group list UI.
+- `src/modules/groups/model/selectors.ts` owns visible group selectors and group maps.
+- `src/modules/groups/permissions.ts` owns basic group access helpers.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
 ## Immediate Next Steps
@@ -47,7 +50,9 @@ Each module is considered migrated only when all layers are moved:
    - keep shared payment/group selectors out until those modules exist.
 2. Continue `people` actions:
    - local member creation path.
-3. Start `groups` module after this step. Keep local member creation with initial payment in dashboard orchestration until group/payment modules have owners for their parts.
+3. Continue `groups` module:
+   - move group create/update/delete actions carefully;
+   - keep payment-default synchronization at the boundary until `payments` owns its part.
 
 ## Rule
 
