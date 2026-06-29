@@ -99,7 +99,16 @@ import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { PaymentRegistryRow } from './PaymentRegistryRow';
-import { PeoplePanel } from '@/modules/people';
+import {
+  filterPeopleForView,
+  mapAssignmentsByMemberId,
+  mapGroupMembershipByMemberId,
+  PeoplePanel,
+  selectAllMembers,
+  selectPeopleForView,
+  selectTrainers,
+  selectVisibleMembers
+} from '@/modules/people';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -395,15 +404,9 @@ export function DashboardApp(): React.ReactElement {
     };
   }, [activeUserId, isLocalMode, refreshRemoteWorkspace, workspace?.organization.id]);
 
-  const trainers = useMemo(
-    () => workspace?.users.filter((user) => hasRole(user, 'trainer')) ?? [],
-    [workspace]
-  );
+  const trainers = useMemo(() => selectTrainers(workspace), [workspace]);
 
-  const allMembers = useMemo(
-    () => workspace?.users.filter((user) => user.role === 'member') ?? [],
-    [workspace]
-  );
+  const allMembers = useMemo(() => selectAllMembers(workspace), [workspace]);
 
   const visibleGroups = useMemo(() => {
     if (!workspace || !activeUser) return [];
@@ -420,19 +423,15 @@ export function DashboardApp(): React.ReactElement {
     return workspace.groups.filter((group) => groupIds.has(group.id));
   }, [activeUser, workspace]);
 
-  const visibleMembers = useMemo(() => {
-    if (!workspace || !activeUser) return [];
-    if (hasRole(activeUser, 'owner')) return allMembers;
-    if (activeUser.role === 'member') return allMembers.filter((member) => member.id === activeUser.id);
-
-    const memberIds = new Set(
-      workspace.assignments
-        .filter((assignment) => assignment.trainer_id === activeUser.id)
-        .map((assignment) => assignment.member_id)
-    );
-
-    return allMembers.filter((member) => memberIds.has(member.id));
-  }, [activeUser, allMembers, workspace]);
+  const visibleMembers = useMemo(
+    () =>
+      selectVisibleMembers({
+        activeUser,
+        allMembers,
+        assignments: workspace?.assignments ?? []
+      }),
+    [activeUser, allMembers, workspace?.assignments]
+  );
 
   const visiblePayments = useMemo(() => {
     if (!workspace || !activeUser) return [];
@@ -449,20 +448,20 @@ export function DashboardApp(): React.ReactElement {
     return new Map(workspace.users.map((user) => [user.id, user]));
   }, [workspace]);
 
-  const assignmentsByMemberId = useMemo(() => {
-    if (!workspace) return new Map<string, TrainerMember>();
-    return new Map(workspace.assignments.map((assignment) => [assignment.member_id, assignment]));
-  }, [workspace]);
+  const assignmentsByMemberId = useMemo(
+    () => mapAssignmentsByMemberId(workspace?.assignments ?? []),
+    [workspace?.assignments]
+  );
 
   const groupsById = useMemo(() => {
     if (!workspace) return new Map<string, LocalTrainingGroup>();
     return new Map(workspace.groups.map((group) => [group.id, group]));
   }, [workspace]);
 
-  const groupMembershipByMemberId = useMemo(() => {
-    if (!workspace) return new Map<string, LocalGroupMember>();
-    return new Map(workspace.groupMembers.map((assignment) => [assignment.memberId, assignment]));
-  }, [workspace]);
+  const groupMembershipByMemberId = useMemo(
+    () => mapGroupMembershipByMemberId(workspace?.groupMembers ?? []),
+    [workspace?.groupMembers]
+  );
 
   const currentPaymentByMemberId = useMemo(() => {
     if (!workspace) return new Map<string, PaymentRequest>();
@@ -2493,24 +2492,16 @@ export function DashboardApp(): React.ReactElement {
     }));
   }
 
-  const peopleForView =
-    activeUser && hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-      ? visibleMembers
-      : workspace?.users ?? [];
-  const filteredPeopleForView = peopleForView.filter((user) => {
-    const query = peopleSearch.trim().toLocaleLowerCase('ru-RU');
-    const group = user.role === 'member' ? groupFor(user.id) : null;
-    const matchesSearch =
-      !query ||
-      `${user.first_name} ${user.last_name}`.toLocaleLowerCase('ru-RU').includes(query) ||
-      (user.phone ?? '').toLocaleLowerCase('ru-RU').includes(query) ||
-      (user.email ?? '').toLocaleLowerCase('ru-RU').includes(query);
-    const matchesGroup =
-      peopleGroupFilter === 'all' ||
-      (peopleGroupFilter === 'no-group' && user.role === 'member' && !group) ||
-      (user.role === 'member' && group?.id === peopleGroupFilter);
-
-    return matchesSearch && matchesGroup;
+  const peopleForView = selectPeopleForView({
+    activeUser,
+    visibleMembers,
+    users: workspace?.users ?? []
+  });
+  const filteredPeopleForView = filterPeopleForView({
+    people: peopleForView,
+    search: peopleSearch,
+    groupFilter: peopleGroupFilter,
+    getMemberGroup: groupFor
   });
   const isMemberInviteForm =
     Boolean(activeUser) &&

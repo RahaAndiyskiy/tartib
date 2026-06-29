@@ -7,10 +7,11 @@ import type {
   LocalTrainingGroup
 } from '@shared/lib/localWorkspace';
 import type { AppUser } from '@shared/types/domain';
+import { roleLabel } from '@/core/roles';
 import {
-  hasRole,
-  roleLabel
-} from '@/core/roles';
+  canManagePeople,
+  isTrainerOnly
+} from '../permissions';
 
 type PeoplePanelProps = {
   activeUser: AppUser;
@@ -55,14 +56,14 @@ export function PeoplePanel({
   onCreateGroup,
   onOpenInviteFlow
 }: PeoplePanelProps): React.ReactElement {
-  const isTrainerOnly = hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner');
-  const canManagePeople = !hasRole(activeUser, 'member');
+  const trainerOnly = isTrainerOnly(activeUser);
+  const canManage = canManagePeople(activeUser);
 
   return (
     <div className="crm-panel">
       <div className="crm-panel-header people-panel-header">
         <div>
-          <h2>{isTrainerOnly ? 'Мои ученики' : 'Состав клуба'}</h2>
+          <h2>{trainerOnly ? 'Мои ученики' : 'Состав клуба'}</h2>
           <p>{filteredPeople.length} / {people.length}</p>
         </div>
         <select
@@ -172,12 +173,12 @@ export function PeoplePanel({
         {filteredPeople.length === 0 ? (
           <div className="empty-state action-empty">
             <p>{people.length === 0 ? 'Людей пока нет.' : 'По этому поиску никого нет.'}</p>
-            {canManagePeople && groups.length === 0 ? (
+            {canManage && groups.length === 0 ? (
               <button className="small-button secondary" type="button" onClick={onCreateGroup}>
                 Создать группу
               </button>
             ) : null}
-            {canManagePeople && groups.length > 0 ? (
+            {canManage && groups.length > 0 ? (
               <button
                 className="small-button secondary"
                 type="button"

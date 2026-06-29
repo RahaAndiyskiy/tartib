@@ -100,6 +100,7 @@ Recent progress:
 - `PaymentRegistryRow` was extracted for the compact payments registry list.
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
+- People view selectors and permissions were moved into `src/modules/people`.
 
 Risk:
 
