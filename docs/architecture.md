@@ -55,7 +55,15 @@ public/
 
 `DashboardApp.tsx`
 
-Main CRM client shell. It contains role navigation, overview, team, groups, payments and notifications. It is large and should be split gradually, not rewritten at once.
+Main CRM client shell. It contains role navigation, overview, team, groups, payments and settings. It is still large and should be split gradually, not rewritten at once.
+
+Dashboard support modules:
+
+- `src/features/dashboard/types.ts` - local dashboard form/view types.
+- `src/features/dashboard/constants.ts` - labels and empty draft values.
+- `src/features/dashboard/utils.ts` - role/date/payment helper functions.
+- `src/features/dashboard/NotificationsModal.tsx` - notification modal UI.
+- `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 
 `/api/workspace`
 

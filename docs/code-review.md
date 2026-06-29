@@ -86,7 +86,14 @@ Recommended next step:
 
 File: `src/features/dashboard/DashboardApp.tsx`
 
-The dashboard still contains navigation, local workspace behavior, remote mutations, forms, modals, notifications, groups, team, payments and settings in one file.
+The dashboard still contains navigation, local workspace behavior, remote mutations, forms, groups, team, payments and settings in one file.
+
+Recent progress:
+
+- dashboard types were moved to `src/features/dashboard/types.ts`;
+- labels and empty drafts were moved to `src/features/dashboard/constants.ts`;
+- role/date/payment helpers were moved to `src/features/dashboard/utils.ts`;
+- `NotificationsModal` and `LogoutConfirmModal` were extracted.
 
 Risk:
 
@@ -98,7 +105,6 @@ Recommended next step:
 
 - do not rewrite it wholesale;
 - extract only around touched features:
-  - `NotificationsModal`
   - `GroupFormModal`
   - `TeamList`
   - payment helpers/hooks

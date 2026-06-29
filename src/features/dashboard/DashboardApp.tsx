@@ -58,231 +58,43 @@ import type {
   TrainingFormat,
   TrainerMember
 } from '@shared/types/domain';
-
-type PersonDraft = {
-  role: 'trainer' | 'member';
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  username: string;
-  password: string;
-  groupId: string;
-  paymentType: BillingPlanType;
-  trainingFormat: TrainingFormat;
-  initialAmount: string;
-  initialDueDate: string;
-};
-
-type MemberInviteResult = {
-  inviteUrl: string;
-  expiresAt: string;
-  groupName: string;
-};
-
-type PaymentEdit = {
-  type: BillingPlanType;
-  trainingFormat: TrainingFormat;
-  individualTerms: boolean;
-  currentAmount: string;
-  dueDate: string;
-  updateFuture: boolean;
-};
-
-type ExpenseDraft = {
-  name: string;
-  amount: string;
-  dueDate: string;
-  type: 'recurring' | 'one_time';
-};
-
-type ScheduleEdit = {
-  days: string;
-  time: string;
-  note: string;
-};
-
-type GroupDraft = {
-  activity: string;
-  days: string;
-  time: string;
-  note: string;
-  trainerId: string;
-  defaultAmount: string;
-  defaultBillingDay: string;
-};
-
-type DelayDraft = {
-  requestedDate: string;
-  comment: string;
-};
-
-type SettingsDraft = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  organizationName: string;
-};
-
-type DashboardSection =
-  | 'overview'
-  | 'people'
-  | 'payments'
-  | 'groups'
-  | 'schedule'
-  | 'expenses'
-  | 'settings';
-
-type PaymentView = 'actions' | 'all' | 'overdue' | 'paid';
-
-const emptyPersonDraft: PersonDraft = {
-  role: 'trainer',
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  username: '',
-  password: '',
-  groupId: '',
-  paymentType: 'monthly',
-  trainingFormat: 'group',
-  initialAmount: '',
-  initialDueDate: ''
-};
-
-const emptyExpenseDraft: ExpenseDraft = {
-  name: '',
-  amount: '',
-  dueDate: '',
-  type: 'recurring'
-};
-
-const emptyGroupDraft: GroupDraft = {
-  activity: '',
-  days: '',
-  time: '',
-  note: '',
-  trainerId: '',
-  defaultAmount: '',
-  defaultBillingDay: '5'
-};
-
-const roleLabels = {
-  owner: 'Владелец',
-  trainer: 'Тренер',
-  member: 'Ученик'
-} as const;
-
-const statusLabels: Record<PaymentRequestStatus | 'not-set', string> = {
-  active: 'Активна',
-  delay_requested: 'Запрошена отсрочка',
-  delayed: 'Отсрочена',
-  payment_confirmation: 'Ожидает подтверждения',
-  paid: 'Оплачено',
-  overdue: 'Просрочено',
-  'not-set': 'Не назначена'
-};
-
-function hasRole(user: AppUser | null, role: AppUser['role']): boolean {
-  return Boolean(user && (user.role === role || user.roles?.includes(role)));
-}
-
-function roleLabel(user: AppUser): string {
-  return hasRole(user, 'owner') && hasRole(user, 'trainer')
-    ? 'Владелец + тренер'
-    : roleLabels[user.role];
-}
-
-function dateAtNoon(date: string): number {
-  return new Date(`${date}T12:00:00`).getTime();
-}
-
-function todayString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
-function statusAfterRejectedAction(payment: PaymentRequest): PaymentRequestStatus {
-  if (
-    payment.delay_status === 'approved' &&
-    payment.delay_requested_date &&
-    dateAtNoon(payment.delay_requested_date) >= dateAtNoon(todayString())
-  ) {
-    return 'delayed';
-  }
-
-  return dateAtNoon(payment.due_date) < dateAtNoon(todayString()) ? 'overdue' : 'active';
-}
-
-const planLabels: Record<BillingPlanType, string> = {
-  monthly: 'Абонемент',
-  one_time: 'Разовая оплата'
-};
-
-const formatLabels: Record<TrainingFormat, string> = {
-  group: 'Группа',
-  individual: 'Индивидуально'
-};
-
-function nextMonthDate(date: string, billingDay: number | null): string {
-  return addMonthsDate(date, billingDay, 1);
-}
-
-function addMonthsDate(date: string, billingDay: number | null, monthCount: number): string {
-  const source = new Date(`${date}T12:00:00`);
-  const target = new Date(source.getFullYear(), source.getMonth() + monthCount, 1);
-  const year = target.getFullYear();
-  const month = target.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const day = Math.min(billingDay ?? source.getDate(), lastDay);
-
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
-function periodLabel(date: string): string {
-  return new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(
-    new Date(`${date}T12:00:00`)
-  );
-}
-
-function dueDateForBillingDay(billingDay: number): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const targetMonth = now.getDate() > billingDay ? month + 1 : month;
-  const lastDay = new Date(year, targetMonth + 1, 0).getDate();
-  const day = Math.min(billingDay, lastDay);
-  const target = new Date(year, targetMonth, day);
-  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
-}
-
-function prepaymentPeriodLabel(date: string, months: number): string {
-  const start = periodLabel(date);
-  if (months <= 1) return `Предоплата: ${start}`;
-  const end = periodLabel(addMonthsDate(date, null, months - 1));
-  return `Предоплата: ${start} - ${end}`;
-}
-
-function formatShortDate(date?: string | null): string {
-  if (!date) return '—';
-  return new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short'
-  });
-}
-
-function isPaymentDue(payment: PaymentRequest): boolean {
-  return payment.status === 'overdue' || dateAtNoon(payment.due_date) <= dateAtNoon(todayString());
-}
-
-function canSubmitPayment(payment: PaymentRequest): boolean {
-  return ['active', 'overdue', 'delayed'].includes(payment.status) && isPaymentDue(payment);
-}
-
-function paymentLockedText(payment: PaymentRequest): string | null {
-  if (canSubmitPayment(payment) || !['active', 'delayed'].includes(payment.status)) return null;
-  return `Счёт откроется ${formatShortDate(payment.due_date)}. Если хотите закрыть его заранее, используйте `;
-}
+import {
+  emptyExpenseDraft,
+  emptyGroupDraft,
+  emptyPersonDraft,
+  formatLabels,
+  planLabels,
+  statusLabels
+} from './constants';
+import type {
+  DashboardSection,
+  DelayDraft,
+  ExpenseDraft,
+  GroupDraft,
+  MemberInviteResult,
+  PaymentEdit,
+  PaymentView,
+  PersonDraft,
+  ScheduleEdit,
+  SettingsDraft
+} from './types';
+import {
+  addMonthsDate,
+  canSubmitPayment,
+  dateAtNoon,
+  dueDateForBillingDay,
+  formatShortDate,
+  hasRole,
+  nextMonthDate,
+  paymentLockedText,
+  periodLabel,
+  prepaymentPeriodLabel,
+  roleLabel,
+  statusAfterRejectedAction,
+  todayString
+} from './utils';
+import { NotificationsModal } from './NotificationsModal';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -2986,127 +2798,27 @@ export function DashboardApp(): React.ReactElement {
         {message ? <p className="notice success">{message}</p> : null}
 
         {notificationsOpen ? (
-          <div className="modal-backdrop notification-modal-backdrop" role="presentation" onClick={() => setNotificationsOpen(false)}>
-            <section
-              aria-labelledby="notifications-modal-title"
-              aria-modal="true"
-              className="confirm-modal notifications-modal"
-              role="dialog"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="notifications-modal-header">
-                <div>
-                  <h2 id="notifications-modal-title">Уведомления</h2>
-                  <p>События и действия, которые можно обработать сразу</p>
-                </div>
-                <button className="icon-button" aria-label="Закрыть уведомления" type="button" onClick={() => setNotificationsOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="notification-header-actions">
-                {pushStatus === 'granted' ? (
-                  <span className="status-pill active">Push включены</span>
-                ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
-                  <button className="small-button secondary" type="button" onClick={() => void enablePush()}>
-                    Включить push
-                  </button>
-                ) : null}
-                {unreadNotifications.length > 0 ? <button className="small-button secondary" type="button" onClick={markNotificationsRead}>Отметить прочитанными</button> : null}
-              </div>
-              <div className="notification-list">
-                {[...userNotifications].reverse().map((notification) => {
-                  const payment = notificationPayment(notification);
-                  const canDecide = payment ? canDecideNotificationPayment(payment) : false;
-                  return (
-                    <article className={notification.read ? 'notification-row' : 'notification-row unread'} key={notification.id}>
-                      <Bell size={18} />
-                      <div>
-                        <strong>{notification.message}</strong>
-                        <span>{new Date(notification.createdAt).toLocaleString('ru-RU')}</span>
-                      </div>
-                      {payment ? (
-                        <div className="notification-actions">
-                          {canDecide && payment.status === 'payment_confirmation' ? (
-                            <>
-                              <button
-                                className="small-button"
-                                type="button"
-                                disabled={isPendingAction(`decide-payment:${payment.id}`)}
-                                onClick={() => updatePaymentStatus(payment.id, 'paid')}
-                              >
-                                Подтвердить
-                              </button>
-                              <button
-                                className="small-button secondary"
-                                type="button"
-                                disabled={isPendingAction(`decide-payment:${payment.id}`)}
-                                onClick={() => updatePaymentStatus(payment.id, 'active')}
-                              >
-                                Отклонить
-                              </button>
-                            </>
-                          ) : null}
-                          {canDecide && payment.status === 'delay_requested' ? (
-                            <>
-                              <button
-                                className="small-button"
-                                type="button"
-                                disabled={isPendingAction(`decide-delay:${payment.id}`)}
-                                onClick={() => decidePaymentDelay(payment.id, true)}
-                              >
-                                Одобрить
-                              </button>
-                              <button
-                                className="small-button secondary"
-                                type="button"
-                                disabled={isPendingAction(`decide-delay:${payment.id}`)}
-                                onClick={() => decidePaymentDelay(payment.id, false)}
-                              >
-                                Отклонить
-                              </button>
-                            </>
-                          ) : null}
-                          <button
-                            className="small-button secondary"
-                            type="button"
-                            onClick={() => openNotificationPayment(notification.paymentId)}
-                          >
-                            Открыть счёт
-                          </button>
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
-                {userNotifications.length === 0 ? <p className="empty-state">Уведомлений пока нет.</p> : null}
-              </div>
-            </section>
-          </div>
+          <NotificationsModal
+            notifications={userNotifications}
+            unreadCount={unreadNotifications.length}
+            pushStatus={pushStatus}
+            paymentForNotification={notificationPayment}
+            canDecidePayment={canDecideNotificationPayment}
+            isPendingAction={isPendingAction}
+            onClose={() => setNotificationsOpen(false)}
+            onEnablePush={() => void enablePush()}
+            onMarkRead={() => void markNotificationsRead()}
+            onDecidePayment={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
+            onDecideDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
+            onOpenPayment={openNotificationPayment}
+          />
         ) : null}
 
         {logoutConfirmOpen ? (
-          <div className="modal-backdrop" role="presentation" onClick={() => setLogoutConfirmOpen(false)}>
-            <section
-              aria-labelledby="logout-confirm-title"
-              aria-modal="true"
-              className="confirm-modal"
-              role="dialog"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div>
-                <h2 id="logout-confirm-title">Выйти из аккаунта?</h2>
-                <p>После выхода нужно будет снова ввести логин и пароль.</p>
-              </div>
-              <div className="confirm-modal-actions">
-                <button className="primary-button danger-soft" type="button" onClick={() => void signOut()}>
-                  Выйти
-                </button>
-                <button className="small-button secondary" type="button" onClick={() => setLogoutConfirmOpen(false)}>
-                  Отмена
-                </button>
-              </div>
-            </section>
-          </div>
+          <LogoutConfirmModal
+            onCancel={() => setLogoutConfirmOpen(false)}
+            onConfirm={() => void signOut()}
+          />
         ) : null}
 
         {invitePickerOpen || (activeSection === 'overview' && memberInvite) ? (
