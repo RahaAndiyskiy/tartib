@@ -111,15 +111,24 @@ Current preferred direction:
 
 ## Verification
 
-For normal code changes:
+Use risk-based verification to avoid wasting time and context.
+
+For small behavior-preserving refactors or UI extractions:
 
 ```bash
 npm.cmd run typecheck
+```
+
+After 2-3 low-risk related changes, or before commit/push:
+
+```bash
+npm.cmd run typecheck
+npm.cmd run lint
 npm.cmd run build
 git diff --check
 ```
 
-For core flow changes, also run or update:
+For schema, auth, payment, invite or core flow changes, also run or update:
 
 ```bash
 node scripts/verify-production-flow.mjs

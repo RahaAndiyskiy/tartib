@@ -238,15 +238,24 @@ Later:
 
 ## Current Verification Baseline
 
-Before shipping core changes, run:
+Use risk-based verification.
+
+After a small behavior-preserving UI/code extraction, `typecheck` is enough for the immediate micro-step:
 
 ```bash
 npm.cmd run typecheck
+```
+
+Before commit/push, or after a batch of 2-3 related low-risk changes, run:
+
+```bash
+npm.cmd run typecheck
+npm.cmd run lint
 npm.cmd run build
 git diff --check
 ```
 
-For important production-flow changes, also run or update:
+For schema, auth, payment, invite or important production-flow changes, also run or update:
 
 ```bash
 node scripts/verify-production-flow.mjs

@@ -114,7 +114,15 @@ CRM dashboard не является индексируемым маркетин�
 
 ## Проверка изменений
 
-Минимум:
+Проверки должны быть риск-ориентированными, чтобы не тратить контекст и время на полный build после каждого маленького шага.
+
+После маленького behavior-preserving refactor или UI extraction:
+
+```powershell
+npm.cmd run typecheck
+```
+
+После 2-3 связанных низкорисковых изменений или перед commit/push:
 
 ```powershell
 npm.cmd run typecheck
@@ -123,7 +131,7 @@ npm.cmd run build
 git diff --check
 ```
 
-При изменении core flow:
+При изменении schema/auth/payments/invites/core flow:
 
 ```powershell
 node scripts/verify-production-flow.mjs
