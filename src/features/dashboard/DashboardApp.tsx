@@ -127,6 +127,7 @@ import {
   selectVisibleMembers
 } from '@/modules/people';
 import {
+  applyGroupDefaultPaymentToMembers,
   applyRemotePaymentDeletion,
   applyRemotePaymentMutation,
   buildMemberPaymentDetails,
@@ -1050,92 +1051,28 @@ export function DashboardApp(): React.ReactElement {
       const memberIds = workspace.groupMembers
         .filter((assignment) => assignment.groupId === editingGroupId)
         .map((assignment) => assignment.memberId);
-      const dueDate = defaults.hasDefaultPayment ? dueDateForBillingDay(defaults.defaultBillingDay) : '';
-      const updatedPlans = defaults.hasDefaultPayment
-        ? workspace.billingPlans.map((plan) =>
-            memberIds.includes(plan.memberId) && plan.active && plan.source !== 'individual'
-              ? {
-                  ...plan,
-                  trainerId,
-                  type: 'monthly' as const,
-                  trainingFormat: 'group' as const,
-                  source: 'group_default' as const,
-                  baseAmount: defaults.defaultAmount,
-                  billingDay: defaults.defaultBillingDay,
-                  updatedAt: now
-                }
-              : plan
-          )
-        : workspace.billingPlans;
-      const planMemberIds = new Set(updatedPlans.filter((plan) => plan.active).map((plan) => plan.memberId));
-      const nextPlans = defaults.hasDefaultPayment
-        ? [
-            ...updatedPlans,
-            ...memberIds
-              .filter((memberId) => !planMemberIds.has(memberId))
-              .map((memberId) => ({
-                id: createId(),
-                memberId,
-                trainerId,
-                type: 'monthly' as const,
-                trainingFormat: 'group' as const,
-                source: 'group_default' as const,
-                baseAmount: defaults.defaultAmount,
-                billingDay: defaults.defaultBillingDay,
-                active: true,
-                createdAt: now,
-                updatedAt: now
-              }))
-          ]
-        : workspace.billingPlans;
-      const currentPlanByMemberId = new Map(nextPlans.filter((plan) => plan.active).map((plan) => [plan.memberId, plan]));
-      const currentPaymentMemberIds = new Set(
-        workspace.payments.filter((payment) => payment.is_current).map((payment) => payment.member_id)
-      );
-      const nextPayments = defaults.hasDefaultPayment
-        ? [
-            ...workspace.payments.map((payment) => {
-              const plan = currentPlanByMemberId.get(payment.member_id);
-              if (!payment.is_current || !memberIds.includes(payment.member_id) || !plan) return payment;
-              if (plan.source === 'individual') return payment;
-              if (['payment_confirmation', 'delay_requested', 'paid'].includes(payment.status)) return payment;
-              return {
-                ...payment,
-                trainer_id: trainerId,
-                amount: defaults.defaultAmount,
-                due_date: dueDate,
-                status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
-                plan_id: plan.id,
-                period_label: periodLabel(dueDate),
-                coverage_months: 1
-              };
-            }),
-            ...memberIds
-              .filter((memberId) => !currentPaymentMemberIds.has(memberId))
-              .map((memberId) => {
-                const plan = currentPlanByMemberId.get(memberId);
-                return {
-                  id: createId(),
-                  organization_id: workspace.organization.id,
-                  member_id: memberId,
-                  trainer_id: trainerId,
-                  amount: defaults.defaultAmount,
-                  due_date: dueDate,
-                  status: (dateAtNoon(dueDate) < dateAtNoon(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus,
-                  created_at: now,
-                  plan_id: plan?.id,
-                  period_label: periodLabel(dueDate),
-                  is_current: true,
-                  coverage_months: 1,
-                  paid_at: null
-                };
-              })
-          ]
-        : workspace.payments;
+      const paymentSync = defaults.hasDefaultPayment
+        ? applyGroupDefaultPaymentToMembers({
+            workspace,
+            memberIds,
+            trainerId,
+            amount: defaults.defaultAmount,
+            billingDay: defaults.defaultBillingDay,
+            dueDate: dueDateForBillingDay(defaults.defaultBillingDay),
+            now,
+            createId,
+            periodLabel,
+            statusForDueDate: (date) =>
+              dateAtNoon(date) < dateAtNoon(todayString()) ? 'overdue' : 'active'
+          })
+        : {
+            billingPlans: workspace.billingPlans,
+            payments: workspace.payments
+          };
       saveWorkspace({
         ...replaceGroupInWorkspace(workspace, editingGroupId, group),
-        billingPlans: nextPlans,
-        payments: nextPayments
+        billingPlans: paymentSync.billingPlans,
+        payments: paymentSync.payments
       });
       setMessage('Группа обновлена.');
     } else {

@@ -19,6 +19,7 @@ export {
 export {
   applyRemotePaymentDeletion,
   applyRemotePaymentMutation,
+  applyGroupDefaultPaymentToMembers,
   decideLocalPaymentDelay,
   decideLocalPaymentStatus,
   deleteLocalPayment,

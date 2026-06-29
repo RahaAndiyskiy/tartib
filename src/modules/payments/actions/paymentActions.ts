@@ -201,6 +201,113 @@ export function saveLocalMemberPayment({
   };
 }
 
+export function applyGroupDefaultPaymentToMembers({
+  workspace,
+  memberIds,
+  trainerId,
+  amount,
+  billingDay,
+  dueDate,
+  now,
+  createId,
+  periodLabel,
+  statusForDueDate
+}: {
+  workspace: LocalWorkspace;
+  memberIds: string[];
+  trainerId: string;
+  amount: number;
+  billingDay: number;
+  dueDate: string;
+  now: string;
+  createId: () => string;
+  periodLabel: (date: string) => string;
+  statusForDueDate: (date: string) => Extract<PaymentRequestStatus, 'active' | 'overdue'>;
+}): Pick<LocalWorkspace, 'billingPlans' | 'payments'> {
+  const memberIdSet = new Set(memberIds);
+  const updatedPlans = workspace.billingPlans.map((plan) =>
+    memberIdSet.has(plan.memberId) && plan.active && plan.source !== 'individual'
+      ? {
+          ...plan,
+          trainerId,
+          type: 'monthly' as const,
+          trainingFormat: 'group' as const,
+          source: 'group_default' as const,
+          baseAmount: amount,
+          billingDay,
+          updatedAt: now
+        }
+      : plan
+  );
+  const planMemberIds = new Set(updatedPlans.filter((plan) => plan.active).map((plan) => plan.memberId));
+  const billingPlans = [
+    ...updatedPlans,
+    ...memberIds
+      .filter((memberId) => !planMemberIds.has(memberId))
+      .map((memberId) => ({
+        id: createId(),
+        memberId,
+        trainerId,
+        type: 'monthly' as const,
+        trainingFormat: 'group' as const,
+        source: 'group_default' as const,
+        baseAmount: amount,
+        billingDay,
+        active: true,
+        createdAt: now,
+        updatedAt: now
+      }))
+  ];
+  const currentPlanByMemberId = new Map(
+    billingPlans.filter((plan) => plan.active).map((plan) => [plan.memberId, plan])
+  );
+  const currentPaymentMemberIds = new Set(
+    workspace.payments.filter((payment) => payment.is_current).map((payment) => payment.member_id)
+  );
+  const lockedStatuses: PaymentRequestStatus[] = ['payment_confirmation', 'delay_requested', 'paid'];
+  const payments = [
+    ...workspace.payments.map((payment) => {
+      const plan = currentPlanByMemberId.get(payment.member_id);
+      if (!payment.is_current || !memberIdSet.has(payment.member_id) || !plan) return payment;
+      if (plan.source === 'individual') return payment;
+      if (lockedStatuses.includes(payment.status)) return payment;
+
+      return {
+        ...payment,
+        trainer_id: trainerId,
+        amount,
+        due_date: dueDate,
+        status: statusForDueDate(dueDate),
+        plan_id: plan.id,
+        period_label: periodLabel(dueDate),
+        coverage_months: 1
+      };
+    }),
+    ...memberIds
+      .filter((memberId) => !currentPaymentMemberIds.has(memberId))
+      .map((memberId) => {
+        const plan = currentPlanByMemberId.get(memberId);
+        return {
+          id: createId(),
+          organization_id: workspace.organization.id,
+          member_id: memberId,
+          trainer_id: trainerId,
+          amount,
+          due_date: dueDate,
+          status: statusForDueDate(dueDate),
+          created_at: now,
+          plan_id: plan?.id,
+          period_label: periodLabel(dueDate),
+          is_current: true,
+          coverage_months: 1,
+          paid_at: null
+        };
+      })
+  ];
+
+  return { billingPlans, payments };
+}
+
 export function upsertBillingPlan(
   workspace: LocalWorkspace,
   billingPlan: LocalBillingPlan
