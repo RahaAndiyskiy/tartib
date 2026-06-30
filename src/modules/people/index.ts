@@ -17,5 +17,6 @@ export {
   createLocalPersonAction,
   createMemberInviteAction,
   createTrainerAction,
-  deleteMemberAction
+  deleteMemberAction,
+  submitPersonDraftAction
 } from './actions/peopleActions';

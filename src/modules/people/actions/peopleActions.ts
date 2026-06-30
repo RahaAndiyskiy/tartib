@@ -11,6 +11,7 @@ import type {
   TrainerMember,
   TrainingFormat
 } from '@shared/types/domain';
+import { hasRole } from '@/core/roles';
 
 type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
 
@@ -31,10 +32,14 @@ type CreateTrainerParams = {
 };
 
 type LocalPersonDraftLike = {
+  role: 'trainer' | 'member';
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+  username: string;
+  password: string;
+  groupId: string;
   initialAmount: string;
   initialDueDate: string;
   paymentType: BillingPlanType;
@@ -141,6 +146,89 @@ export function createLocalPersonAction({
   }
 
   return { workspace: nextWorkspace, person };
+}
+
+export type SubmitPersonDraftResult =
+  | { kind: 'idle' }
+  | { kind: 'validation_error'; message: string }
+  | { kind: 'create_member_invite'; groupId: string }
+  | { kind: 'remote_trainer_created'; message: string }
+  | { kind: 'local_person_created'; workspace: LocalWorkspace; message: string };
+
+export async function submitPersonDraftAction({
+  workspace,
+  activeUser,
+  draft,
+  isLocalMode,
+  runRemoteAction,
+  now,
+  periodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  activeUser: AppUser | null;
+  draft: LocalPersonDraftLike;
+  isLocalMode: boolean;
+  runRemoteAction: RunRemoteAction;
+  now: string;
+  periodLabel: (date: string) => string;
+}): Promise<SubmitPersonDraftResult> {
+  if (!workspace || !activeUser) return { kind: 'idle' };
+
+  const effectiveRole =
+    hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'member' : draft.role;
+  const selectedGroup = workspace.groups.find((group) => group.id === draft.groupId);
+  const effectiveTrainerId = selectedGroup?.trainerId ?? '';
+
+  if (effectiveRole === 'member' && !selectedGroup) {
+    return {
+      kind: 'validation_error',
+      message: 'Выберите группу для ученика.'
+    };
+  }
+
+  if (!isLocalMode) {
+    if (effectiveRole === 'member') {
+      return {
+        kind: 'create_member_invite',
+        groupId: draft.groupId
+      };
+    }
+
+    const success = await createTrainerAction({
+      firstName: draft.firstName,
+      lastName: draft.lastName,
+      username: draft.username,
+      password: draft.password,
+      phone: draft.phone,
+      runRemoteAction
+    });
+
+    return success
+      ? {
+          kind: 'remote_trainer_created',
+          message: 'Тренер создан.'
+        }
+      : { kind: 'idle' };
+  }
+
+  const result = createLocalPersonAction({
+    workspace,
+    draft,
+    role: effectiveRole,
+    selectedGroup: selectedGroup ?? null,
+    trainerId: effectiveTrainerId,
+    now,
+    periodLabel
+  });
+
+  return {
+    kind: 'local_person_created',
+    workspace: result.workspace,
+    message:
+      result.person.role === 'member'
+        ? 'Ученик создан и назначен тренеру.'
+        : 'Тренер создан. Теперь к нему можно добавлять учеников.'
+  };
 }
 
 export async function createTrainerAction({

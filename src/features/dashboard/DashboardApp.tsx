@@ -103,9 +103,7 @@ import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import {
   assignMemberToGroupAction,
-  createLocalPersonAction,
   createMemberInviteAction,
-  createTrainerAction,
   deleteMemberAction,
   filterPeopleForView,
   mapAssignmentsByMemberId,
@@ -114,7 +112,8 @@ import {
   selectAllMembers,
   selectPeopleForView,
   selectTrainers,
-  selectVisibleMembers
+  selectVisibleMembers,
+  submitPersonDraftAction
 } from '@/modules/people';
 import {
   applyGroupDefaultPaymentToMembers,
@@ -838,66 +837,45 @@ export function DashboardApp(): React.ReactElement {
 
   async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!workspace || !activeUser) return;
 
-    const effectiveRole =
-      hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'member' : personDraft.role;
-    const selectedGroup = workspace.groups.find((group) => group.id === personDraft.groupId);
-    const effectiveTrainerId = selectedGroup?.trainerId ?? '';
-
-    if (effectiveRole === 'member' && !selectedGroup) {
-      setMessage('Выберите группу для ученика.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      if (effectiveRole === 'member') {
-        await createMemberInviteForGroup(personDraft.groupId);
-        if (selectedGroup) {
-          setPersonDraft((current) => ({
-            ...emptyPersonDraft,
-            role: 'member',
-            groupId: current.groupId
-          }));
-        }
-        return;
-      }
-
-      const success = await createTrainerAction({
-        firstName: personDraft.firstName,
-        lastName: personDraft.lastName,
-        username: personDraft.username,
-        password: personDraft.password,
-        phone: personDraft.phone,
-        runRemoteAction
-      });
-      if (success) {
-        setPersonDraft(emptyPersonDraft);
-        setMobileFormOpen(false);
-        setMessage('Тренер создан.');
-      }
-      return;
-    }
-
-    const result = createLocalPersonAction({
+    const result = await submitPersonDraftAction({
       workspace,
+      activeUser,
       draft: personDraft,
-      role: effectiveRole,
-      selectedGroup: selectedGroup ?? null,
-      trainerId: effectiveTrainerId,
+      isLocalMode,
+      runRemoteAction,
       now: new Date().toISOString(),
       periodLabel
     });
 
+    if (result.kind === 'idle') return;
+
+    if (result.kind === 'validation_error') {
+      setMessage(result.message);
+      return;
+    }
+
+    if (result.kind === 'create_member_invite') {
+      await createMemberInviteForGroup(result.groupId);
+      setPersonDraft((current) => ({
+        ...emptyPersonDraft,
+        role: 'member',
+        groupId: current.groupId
+      }));
+      return;
+    }
+
+    if (result.kind === 'remote_trainer_created') {
+      setPersonDraft(emptyPersonDraft);
+      setMobileFormOpen(false);
+      setMessage(result.message);
+      return;
+    }
+
     saveWorkspace(result.workspace);
     setPersonDraft(emptyPersonDraft);
-    setMessage(
-      result.person.role === 'member'
-        ? 'Ученик создан и назначен тренеру.'
-        : 'Тренер создан. Теперь к нему можно добавлять учеников.'
-    );
+    setMessage(result.message);
   }
-
   async function copyMemberInvite(): Promise<void> {
     if (!memberInvite) return;
     await navigator.clipboard.writeText(memberInvite.inviteUrl);
