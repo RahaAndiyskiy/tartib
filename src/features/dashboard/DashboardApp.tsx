@@ -86,6 +86,7 @@ import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
 import { OverviewSection } from './components/OverviewSection';
+import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import {
   markNotificationsReadAction,
@@ -1907,97 +1908,19 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
 
         {activeSection === 'schedule' ? (
-          <section className="crm-panel">
-            <div className="crm-panel-header">
-              <div>
-                <h2>{activeUser.role === 'member' ? 'РњРѕС‘ СЂР°СЃРїРёСЃР°РЅРёРµ' : 'Р Р°СЃРїРёСЃР°РЅРёРµ СѓС‡РµРЅРёРєРѕРІ'}</h2>
-                <p>
-                  {activeUser.role === 'member'
-                    ? 'РђРєС‚СѓР°Р»СЊРЅС‹Рµ РґРЅРё Рё РІСЂРµРјСЏ С‚СЂРµРЅРёСЂРѕРІРѕРє'
-                    : 'РћРґРЅР° РїРѕРЅСЏС‚РЅР°СЏ СЃС‚СЂРѕРєР° СЂР°СЃРїРёСЃР°РЅРёСЏ РЅР° СѓС‡РµРЅРёРєР°'}
-                </p>
-              </div>
-            </div>
-
-            {activeUser.role === 'member' ? (
-              <div className="member-schedule-detail">
-                <div>
-                  <span>РќР°РїСЂР°РІР»РµРЅРёРµ</span>
-                  <strong>{activeMemberGroup?.activity ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅРѕ'}</strong>
-                </div>
-                <div>
-                  <span>Р”РЅРё</span>
-                  <strong>{activeMemberSchedule?.days ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅС‹'}</strong>
-                </div>
-                <div>
-                  <span>Р’СЂРµРјСЏ</span>
-                  <strong>{activeMemberSchedule?.time ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅРѕ'}</strong>
-                </div>
-                <div>
-                  <span>РўСЂРµРЅРµСЂ</span>
-                  <strong>
-                    {activeMemberTrainer
-                      ? `${activeMemberTrainer.first_name} ${activeMemberTrainer.last_name}`
-                      : 'РќРµ РЅР°Р·РЅР°С‡РµРЅ'}
-                  </strong>
-                </div>
-                <div>
-                  <span>РљРѕРјРјРµРЅС‚Р°СЂРёР№</span>
-                  <strong>{activeMemberSchedule?.note || 'РќРµС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ'}</strong>
-                </div>
-              </div>
-            ) : (
-              <div className="schedule-table">
-                <div className="schedule-head">
-                  <span>РЈС‡РµРЅРёРє</span><span>Р”РЅРё</span><span>Р’СЂРµРјСЏ</span><span>РљРѕРјРјРµРЅС‚Р°СЂРёР№</span><span>Р”РµР№СЃС‚РІРёРµ</span>
-                </div>
-                {visibleMembers.map((member) => {
-                  const edit = scheduleEditFor(member.id);
-                  return (
-                    <div className="schedule-row" key={member.id}>
-                      <div>
-                        <strong>{userName(member.id)}</strong>
-                        <span>{trainerFor(member.id)?.first_name ?? 'Р‘РµР· С‚СЂРµРЅРµСЂР°'}</span>
-                      </div>
-                      <input
-                        placeholder="РџРЅ, РЎСЂ, РџС‚"
-                        value={edit.days}
-                        onChange={(event) =>
-                          updateScheduleEdit(member.id, { days: event.target.value })
-                        }
-                      />
-                      <input
-                        placeholder="18:00"
-                        value={edit.time}
-                        onChange={(event) =>
-                          updateScheduleEdit(member.id, { time: event.target.value })
-                        }
-                      />
-                      <input
-                        placeholder="Р—Р°Р» РёР»Рё РіСЂСѓРїРїР°"
-                        value={edit.note}
-                        onChange={(event) =>
-                          updateScheduleEdit(member.id, { note: event.target.value })
-                        }
-                      />
-                      <button
-                        className="small-button"
-                        type="button"
-                        onClick={() => saveSchedule(member.id)}
-                      >
-                        РЎРѕС…СЂР°РЅРёС‚СЊ
-                      </button>
-                    </div>
-                  );
-                })}
-                {visibleMembers.length === 0 ? (
-                  <p className="empty-state">РЈС‡РµРЅРёРєРё РµС‰С‘ РЅРµ РґРѕР±Р°РІР»РµРЅС‹.</p>
-                ) : null}
-              </div>
-            )}
-          </section>
+          <ScheduleSection
+            activeUser={activeUser}
+            visibleMembers={visibleMembers}
+            activeMemberGroup={activeMemberGroup}
+            activeMemberSchedule={activeMemberSchedule}
+            activeMemberTrainer={activeMemberTrainer}
+            userName={userName}
+            trainerFor={trainerFor}
+            scheduleEditFor={scheduleEditFor}
+            updateScheduleEdit={updateScheduleEdit}
+            saveSchedule={saveSchedule}
+          />
         ) : null}
-
         {activeSection === 'expenses' && activeUser.role === 'owner' ? (
           <ExpensesSection
             workspace={workspace}

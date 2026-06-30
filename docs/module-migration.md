@@ -26,7 +26,7 @@ Each module is considered migrated only when all layers are moved:
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
 | `account` | partial | pending | partial | pending | partial | Profile and organization settings save actions are in `src/modules/account`; settings page UI is in `src/features/dashboard/components/SettingsSection.tsx`; dashboard still owns draft state and orchestration. |
-| `schedule` | pending | partial | partial | pending | partial | Schedule edit helpers and save action are in `src/modules/schedule`; dashboard still owns schedule UI and draft state. |
+| `schedule` | partial | partial | partial | pending | partial | Schedule page UI is in `src/features/dashboard/components/ScheduleSection.tsx`; schedule edit helpers and save action are in `src/modules/schedule`; dashboard still owns draft state and orchestration. |
 | `expenses` | partial | pending | partial | pending | partial | Expense page UI is in `src/features/dashboard/components/ExpensesSection.tsx`; expense create and mark-paid actions are in `src/modules/expenses`; dashboard still owns draft state and orchestration. |
 
 ## Completed Migration Work
@@ -62,6 +62,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/expenses/actions/expenseActions.ts` owns expense creation and mark-paid action.
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
 - `src/features/dashboard/components/OverviewSection.tsx` owns the owner/trainer overview and member overview UI.
+- `src/features/dashboard/components/ScheduleSection.tsx` owns schedule page UI.
 - `src/features/dashboard/components/SettingsSection.tsx` owns settings page UI.
 - `src/features/dashboard/components/ExpensesSection.tsx` owns expenses page UI.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
