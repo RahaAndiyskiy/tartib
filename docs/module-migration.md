@@ -61,6 +61,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/schedule/actions/scheduleActions.ts` owns schedule edit helpers and schedule save action.
 - `src/modules/expenses/actions/expenseActions.ts` owns expense creation and mark-paid action.
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
+- `src/features/dashboard/components/DashboardOverlays.tsx` owns global dashboard overlays wiring for notifications, logout confirmation and overview invite link modal.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the dashboard visual shell: sidebar, mobile topbar, header and navigation.
 - `src/features/dashboard/components/OverviewSection.tsx` owns the owner/trainer overview and member overview UI.
 - `src/features/dashboard/components/ScheduleSection.tsx` owns schedule page UI.

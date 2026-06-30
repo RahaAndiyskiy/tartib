@@ -66,19 +66,15 @@ import {
   prepaymentPeriodLabel,
   todayString
 } from './utils';
-import { LogoutConfirmModal } from './LogoutConfirmModal';
+import { DashboardOverlays } from './components/DashboardOverlays';
 import { DashboardShell } from './components/DashboardShell';
 import { GroupFormModal } from './GroupFormModal';
-import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
 import { OverviewSection } from './components/OverviewSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
-import {
-  markNotificationsReadAction,
-  NotificationsModal
-} from '@/modules/notifications';
+import { markNotificationsReadAction } from '@/modules/notifications';
 import {
   saveOrganizationSettingsAction,
   saveProfileSettingsAction
@@ -1323,42 +1319,32 @@ export function DashboardApp(): React.ReactElement {
     >
         {message ? <p className="notice success">{message}</p> : null}
 
-        {notificationsOpen ? (
-          <NotificationsModal
-            notifications={userNotifications}
-            unreadCount={unreadNotifications.length}
-            pushStatus={pushStatus}
-            paymentForNotification={notificationPayment}
-            canDecidePayment={canDecideNotificationPayment}
-            isPendingAction={isPendingAction}
-            onClose={() => setNotificationsOpen(false)}
-            onEnablePush={() => void enablePush()}
-            onMarkRead={() => void markNotificationsRead()}
-            onDecidePayment={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
-            onDecideDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
-            onOpenPayment={openNotificationPayment}
-          />
-        ) : null}
-
-        {logoutConfirmOpen ? (
-          <LogoutConfirmModal
-            onCancel={() => setLogoutConfirmOpen(false)}
-            onConfirm={() => void signOut()}
-          />
-        ) : null}
-
-        {invitePickerOpen || (activeSection === 'overview' && memberInvite) ? (
-          <InviteLinkModal
-            invite={memberInvite}
-            groups={visibleGroups}
-            isPendingGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
-            onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
-            onCopy={() => void copyMemberInvite()}
-            onShare={() => void shareMemberInvite()}
-            onClose={closeOverviewInviteModal}
-          />
-        ) : null}
-
+        <DashboardOverlays
+          notificationsOpen={notificationsOpen}
+          logoutConfirmOpen={logoutConfirmOpen}
+          inviteModalOpen={invitePickerOpen || (activeSection === 'overview' && Boolean(memberInvite))}
+          notifications={userNotifications}
+          unreadCount={unreadNotifications.length}
+          pushStatus={pushStatus}
+          invite={memberInvite}
+          groups={visibleGroups}
+          paymentForNotification={notificationPayment}
+          canDecidePayment={canDecideNotificationPayment}
+          isPendingAction={isPendingAction}
+          isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
+          onCloseNotifications={() => setNotificationsOpen(false)}
+          onEnablePush={() => void enablePush()}
+          onMarkNotificationsRead={() => void markNotificationsRead()}
+          onDecidePayment={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
+          onDecideDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
+          onOpenNotificationPayment={openNotificationPayment}
+          onCancelLogout={() => setLogoutConfirmOpen(false)}
+          onConfirmLogout={() => void signOut()}
+          onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
+          onCopyInvite={() => void copyMemberInvite()}
+          onShareInvite={() => void shareMemberInvite()}
+          onCloseInvite={closeOverviewInviteModal}
+        />
         {activeSection === 'overview' ? (
           <OverviewSection
             activeUser={activeUser}

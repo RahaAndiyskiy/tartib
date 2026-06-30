@@ -108,6 +108,7 @@ Important modules:
 - `src/features/dashboard/components/DashboardShell.tsx` owns the visual dashboard shell: sidebar, mobile topbar, header and navigation.
 - Dashboard helper modules now hold shared dashboard types, labels and date/payment helpers.
 - Notification and logout confirmation modals are extracted from `DashboardApp.tsx`.
+- Global dashboard overlay wiring is extracted into `src/features/dashboard/components/DashboardOverlays.tsx`.
 - Group create/edit form is extracted into `GroupFormModal`.
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.
 - Repeated invite result UI is extracted into `InviteResultCard`.
@@ -128,7 +129,7 @@ Important modules:
 - Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
-- Overview, schedule, settings, expenses and the visual dashboard shell are extracted into dashboard components.
+- Overview, schedule, settings, expenses, global overlays and the visual dashboard shell are extracted into dashboard components.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.
