@@ -62,7 +62,6 @@ Dashboard support modules:
 - `src/features/dashboard/types.ts` - local dashboard form/view types.
 - `src/features/dashboard/constants.ts` - labels and empty draft values.
 - `src/features/dashboard/utils.ts` - dashboard date/payment helper functions.
-- `src/features/dashboard/NotificationsModal.tsx` - notification modal UI.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.

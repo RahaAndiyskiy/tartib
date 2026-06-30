@@ -93,7 +93,8 @@ Recent progress:
 - dashboard types were moved to `src/features/dashboard/types.ts`;
 - labels and empty drafts were moved to `src/features/dashboard/constants.ts`;
 - role/date/payment helpers were moved to `src/features/dashboard/utils.ts`;
-- `NotificationsModal` and `LogoutConfirmModal` were extracted.
+- `LogoutConfirmModal` was extracted inside dashboard support UI.
+- `NotificationsModal` and mark-read action were moved into `src/modules/notifications`.
 - `GroupFormModal` was extracted.
 - `InviteLinkModal` was extracted for the overview group invite flow.
 - `InviteResultCard` was extracted for repeated invite link output.

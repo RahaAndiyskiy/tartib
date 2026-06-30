@@ -91,11 +91,14 @@ import {
   prepaymentPeriodLabel,
   todayString
 } from './utils';
-import { NotificationsModal } from './NotificationsModal';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
+import {
+  markNotificationsReadAction,
+  NotificationsModal
+} from '@/modules/notifications';
 import {
   assignMemberToGroupAction,
   createMemberInviteAction,
@@ -1358,30 +1361,14 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function markNotificationsRead(): Promise<void> {
-    if (!workspace || unreadNotifications.length === 0) return;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionData<{ success?: boolean }>({ action: 'mark_notifications_read' });
-      if (data?.success) {
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                notifications: current.notifications.map((notification) =>
-                  notification.userId === activeUserId ? { ...notification, read: true } : notification
-                )
-              }
-            : current
-        );
-      }
-      return;
-    }
-
-    saveWorkspace({
-      ...workspace,
-      notifications: workspace.notifications.map((notification) =>
-        notification.userId === activeUserId ? { ...notification, read: true } : notification
-      )
+    await markNotificationsReadAction({
+      workspace,
+      unreadCount: unreadNotifications.length,
+      activeUserId,
+      isLocalMode,
+      runRemoteActionData,
+      saveWorkspace,
+      setWorkspace
     });
   }
 
