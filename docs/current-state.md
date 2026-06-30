@@ -116,6 +116,7 @@ Important modules:
 - Member-facing payment page UI is extracted into `src/modules/payments/components/MemberPaymentPanel.tsx`.
 - Owner/trainer payment registry, tabs, search, action groups and paid history list are extracted into `src/modules/payments/components/PaymentWorkspaceRegistryPanel.tsx`.
 - Payment drawer, edit form, decisions, prepayment controls, history and delete UI are extracted into `src/modules/payments/components/PaymentDrawer.tsx`.
+- Owner/trainer payment workspace composition is extracted into `src/features/dashboard/components/PaymentWorkspaceSection.tsx`.
 - Payment UI state for view/search/selection/edit drafts/delay drafts/prepayment months is extracted into `src/modules/payments/model/usePaymentUiState.ts`.
 - Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
 - Add-person form UI is extracted into `src/features/dashboard/components/PersonFormPanel.tsx`.

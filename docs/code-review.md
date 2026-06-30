@@ -102,6 +102,7 @@ Recent progress:
 - `MemberPaymentPanel` was extracted for the member-facing payment page.
 - `PaymentWorkspaceRegistryPanel` was extracted for owner/trainer payment tabs, search, action groups and paid history list.
 - `PaymentDrawer` was extracted for payment details, edit form, decisions, prepayment, history and delete UI.
+- `PaymentWorkspaceSection` was extracted for dashboard-level owner/trainer payments composition.
 - `usePaymentUiState` was extracted for payment UI view/search/selection/edit drafts/delay drafts/prepayment months.
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
 - `PersonFormPanel` was extracted for the add-person form UI.

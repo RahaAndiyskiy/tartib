@@ -72,6 +72,7 @@ import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
 import { OverviewSection } from './components/OverviewSection';
 import { PersonFormPanel } from './components/PersonFormPanel';
+import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import { markNotificationsReadAction } from '@/modules/notifications';
@@ -101,8 +102,6 @@ import {
   decidePaymentStatusAction,
   deleteMemberPaymentAction,
   MemberPaymentPanel,
-  PaymentDrawer,
-  PaymentWorkspaceRegistryPanel,
   requestPaymentDelayAction,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
@@ -1453,75 +1452,62 @@ export function DashboardApp(): React.ReactElement {
           />
         ) : null}
         {activeSection === 'payments' && !hasRole(activeUser, 'member') ? (
-          <section className="payments-workspace">
-            <PaymentWorkspaceRegistryPanel
-              paymentView={paymentView}
-              paymentSearch={paymentSearch}
-              visibleMembers={visibleMembers}
-              filteredPaymentMembers={filteredPaymentMembers}
-              visiblePaymentActionGroups={visiblePaymentActionGroups}
-              paidPaymentResults={paidPaymentResults}
-              paymentActionCount={paymentActionCount}
-              overduePaymentCount={overduePayments.length}
-              paymentActionGroupsOpen={paymentActionGroupsOpen}
-              currentPaymentByMemberId={currentPaymentByMemberId}
-              activePlanByMemberId={activePlanByMemberId}
-              selectedPaymentMemberId={selectedPaymentMemberId}
-              planLabels={planLabels}
-              statusLabels={statusLabels}
-              userName={userName}
-              groupFor={groupFor}
-              formatShortDate={formatShortDate}
-              setPaymentView={setPaymentView}
-              setPaymentSearch={setPaymentSearch}
-              setPaymentActionGroupsOpen={setPaymentActionGroupsOpen}
-              setSelectedPaymentMemberId={setSelectedPaymentMemberId}
-              setPaymentEditOpen={setPaymentEditOpen}
-            />
-            {selectedPaymentMember ? (
-              <PaymentDrawer
-                activeUser={activeUser}
-                selectedPaymentMember={selectedPaymentMember}
-                selectedPayment={selectedPayment}
-                selectedPaymentPlan={selectedPaymentPlan}
-                selectedPaymentGroup={selectedPaymentGroup}
-                selectedPaymentTrainer={selectedPaymentTrainer}
-                selectedPaymentHistory={selectedPaymentHistory}
-                selectedPaymentHistoryOpen={selectedPaymentHistoryOpen}
-                paymentEditOpen={paymentEditOpen}
-                paymentEdit={paymentEditFor(selectedPaymentMember.id)}
-                statusLabels={statusLabels}
-                planLabels={planLabels}
-                formatLabels={formatLabels}
-                userName={userName}
-                formatShortDate={formatShortDate}
-                todayString={todayString}
-                prepaymentPeriodLabel={prepaymentPeriodLabel}
-                canManagePayments={hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')}
-                canSubmitPayment={canSubmitPayment}
-                canSubmitPrepayment={canSubmitPrepayment}
-                paymentLockedText={paymentLockedText}
-                delayDraftFor={delayDraftFor}
-                updateDelayDraft={updateDelayDraft}
-                prepaymentMonthsFor={prepaymentMonthsFor}
-                setPrepaymentMonths={setPrepaymentMonths}
-                setHistoryOpenByMember={setHistoryOpenByMember}
-                isPendingAction={isPendingAction}
-                buttonLabel={buttonLabel}
-                onClose={() => setSelectedPaymentMemberId('')}
-                onEditOpenChange={setPaymentEditOpen}
-                onEditChange={updatePaymentEdit}
-                onSavePayment={(memberId) => void saveMemberPayment(memberId)}
-                onUpdatePaymentStatus={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
-                onDecidePaymentDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
-                onSubmitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
-                onRequestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
-                onOpenPrepayment={openPrepayment}
-                onSubmitPrepayment={(paymentId) => void submitPrepayment(paymentId)}
-                onDeletePayment={(payment) => void deleteMemberPayment(payment)}
-              />
-            ) : null}
-          </section>
+          <PaymentWorkspaceSection
+            activeUser={activeUser}
+            paymentView={paymentView}
+            paymentSearch={paymentSearch}
+            visibleMembers={visibleMembers}
+            filteredPaymentMembers={filteredPaymentMembers}
+            visiblePaymentActionGroups={visiblePaymentActionGroups}
+            paidPaymentResults={paidPaymentResults}
+            paymentActionCount={paymentActionCount}
+            overduePaymentCount={overduePayments.length}
+            paymentActionGroupsOpen={paymentActionGroupsOpen}
+            currentPaymentByMemberId={currentPaymentByMemberId}
+            activePlanByMemberId={activePlanByMemberId}
+            selectedPaymentMemberId={selectedPaymentMemberId}
+            selectedPaymentMember={selectedPaymentMember}
+            selectedPayment={selectedPayment}
+            selectedPaymentPlan={selectedPaymentPlan}
+            selectedPaymentGroup={selectedPaymentGroup}
+            selectedPaymentTrainer={selectedPaymentTrainer}
+            selectedPaymentHistory={selectedPaymentHistory}
+            selectedPaymentHistoryOpen={selectedPaymentHistoryOpen}
+            paymentEditOpen={paymentEditOpen}
+            statusLabels={statusLabels}
+            planLabels={planLabels}
+            formatLabels={formatLabels}
+            userName={userName}
+            groupFor={groupFor}
+            formatShortDate={formatShortDate}
+            todayString={todayString}
+            prepaymentPeriodLabel={prepaymentPeriodLabel}
+            canSubmitPayment={canSubmitPayment}
+            canSubmitPrepayment={canSubmitPrepayment}
+            paymentLockedText={paymentLockedText}
+            delayDraftFor={delayDraftFor}
+            updateDelayDraft={updateDelayDraft}
+            prepaymentMonthsFor={prepaymentMonthsFor}
+            setPrepaymentMonths={setPrepaymentMonths}
+            setHistoryOpenByMember={setHistoryOpenByMember}
+            setPaymentView={setPaymentView}
+            setPaymentSearch={setPaymentSearch}
+            setPaymentActionGroupsOpen={setPaymentActionGroupsOpen}
+            setSelectedPaymentMemberId={setSelectedPaymentMemberId}
+            setPaymentEditOpen={setPaymentEditOpen}
+            isPendingAction={isPendingAction}
+            buttonLabel={buttonLabel}
+            paymentEditFor={paymentEditFor}
+            updatePaymentEdit={updatePaymentEdit}
+            saveMemberPayment={(memberId) => void saveMemberPayment(memberId)}
+            updatePaymentStatus={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
+            decidePaymentDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
+            submitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
+            requestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
+            openPrepayment={openPrepayment}
+            submitPrepayment={(paymentId) => void submitPrepayment(paymentId)}
+            deleteMemberPayment={(payment) => void deleteMemberPayment(payment)}
+          />
         ) : null}
         {activeSection === 'groups' && canViewGroups(activeUser) ? (
           <section className="crm-content-grid">
