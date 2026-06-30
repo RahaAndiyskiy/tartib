@@ -39,6 +39,8 @@ export {
   validateSavePaymentDraft
 } from './actions/paymentActions';
 export { MemberPaymentPanel } from './components/MemberPaymentPanel';
+export { PaymentRegistryRow } from './components/PaymentRegistryRow';
+export { PaymentWorkspaceRegistryPanel } from './components/PaymentWorkspaceRegistryPanel';
 export type {
   MemberPaymentDetails,
   PaymentActionGroup,

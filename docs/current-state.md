@@ -110,8 +110,9 @@ Important modules:
 - Group create/edit form is extracted into `GroupFormModal`.
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.
 - Repeated invite result UI is extracted into `InviteResultCard`.
-- Compact payment registry rows are extracted into `PaymentRegistryRow`.
+- Compact payment registry rows are extracted into `src/modules/payments/components/PaymentRegistryRow.tsx`.
 - Member-facing payment page UI is extracted into `src/modules/payments/components/MemberPaymentPanel.tsx`.
+- Owner/trainer payment registry, tabs, search, action groups and paid history list are extracted into `src/modules/payments/components/PaymentWorkspaceRegistryPanel.tsx`.
 - Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
 - People view selectors and permissions are extracted into `src/modules/people`.
 - Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.

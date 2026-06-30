@@ -97,8 +97,9 @@ Recent progress:
 - `GroupFormModal` was extracted.
 - `InviteLinkModal` was extracted for the overview group invite flow.
 - `InviteResultCard` was extracted for repeated invite link output.
-- `PaymentRegistryRow` was extracted for the compact payments registry list.
+- `PaymentRegistryRow` was moved into `src/modules/payments` for compact payments registry rows.
 - `MemberPaymentPanel` was extracted for the member-facing payment page.
+- `PaymentWorkspaceRegistryPanel` was extracted for owner/trainer payment tabs, search, action groups and paid history list.
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 - People view selectors and permissions were moved into `src/modules/people`.

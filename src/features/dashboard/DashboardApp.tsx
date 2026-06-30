@@ -13,7 +13,6 @@ import {
   MoreHorizontal,
   Plus,
   RotateCcw,
-  Search,
   Settings,
   Share2,
   CalendarDays,
@@ -109,7 +108,6 @@ import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
-import { PaymentRegistryRow } from './PaymentRegistryRow';
 import {
   assignMemberToGroupAction,
   createMemberInviteAction,
@@ -138,6 +136,7 @@ import {
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
   MemberPaymentPanel,
+  PaymentWorkspaceRegistryPanel,
   mergeDelayDraft,
   mergePaymentEdit,
   paymentEditForMember,
@@ -1705,27 +1704,6 @@ export function DashboardApp(): React.ReactElement {
     return user ? `${user.first_name} ${user.last_name}` : 'Неизвестно';
   }
 
-  function renderPaymentRow(member: AppUser): React.ReactElement {
-    const payment = currentPaymentByMemberId.get(member.id);
-    const plan = activePlanByMemberId.get(member.id);
-    const group = groupFor(member.id);
-
-    return (
-      <PaymentRegistryRow
-        key={member.id}
-        memberName={userName(member.id)}
-        payment={payment}
-        plan={plan}
-        group={group}
-        isSelected={selectedPaymentMemberId === member.id}
-        onSelect={() => {
-          setSelectedPaymentMemberId(member.id);
-          setPaymentEditOpen(false);
-        }}
-      />
-    );
-  }
-
   function paymentEditFor(memberId: string): PaymentEdit {
     const payment = currentPaymentByMemberId.get(memberId);
     const plan = activePlanByMemberId.get(memberId);
@@ -2480,138 +2458,30 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
         {activeSection === 'payments' && !hasRole(activeUser, 'member') ? (
           <section className="payments-workspace">
-            <div className="crm-panel payments-registry">
-              <div className="payments-toolbar">
-                <div className="payment-view-tabs" role="tablist" aria-label="Фильтр оплат">
-                  <button className={paymentView === 'all' ? 'active' : ''} type="button" onClick={() => setPaymentView('all')}>
-                    Все <span>{visibleMembers.length}</span>
-                  </button>
-                  <button className={paymentView === 'actions' ? 'active' : ''} type="button" onClick={() => setPaymentView('actions')}>
-                    Действия <span>{paymentActionCount}</span>
-                  </button>
-                  <button className={paymentView === 'overdue' ? 'active' : ''} type="button" onClick={() => setPaymentView('overdue')}>
-                    Просрочено <span>{overduePayments.length}</span>
-                  </button>
-                  <button className={paymentView === 'paid' ? 'active' : ''} type="button" onClick={() => setPaymentView('paid')}>
-                    История
-                  </button>
-                </div>
-                <label className="payments-search">
-                  <Search size={17} />
-                  <input
-                    aria-label="Поиск ученика"
-                    placeholder="Найти ученика"
-                    value={paymentSearch}
-                    onChange={(event) => setPaymentSearch(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              {paymentView === 'paid' ? (
-                <div className="payments-history-list">
-                  {paidPaymentResults.map((payment) => (
-                      <button
-                        className="payment-registry-row history"
-                        key={payment.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPaymentMemberId(payment.member_id);
-                          setPaymentEditOpen(false);
-                        }}
-                      >
-                        <div className="payment-person">
-                          <strong>{userName(payment.member_id)}</strong>
-                          <span>{payment.period_label ?? payment.due_date}</span>
-                        </div>
-                        <strong className="payment-amount">{formatMoney(payment.amount)}</strong>
-                        <span className="payment-due">{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('ru-RU') : 'Подтверждено'}</span>
-                        <span className="status-pill paid">Оплачено</span>
-                        <ChevronRight className="payment-row-arrow" size={18} />
-                      </button>
-                    ))}
-                  {paidPaymentResults.length === 0 ? (
-                    <div className="empty-state action-empty">
-                      <p>
-                        {paymentSearch.trim()
-                          ? 'По этому поиску подтверждённых оплат нет.'
-                          : 'Подтверждённых оплат пока нет.'}
-                      </p>
-                      <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
-                        Все оплаты
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : paymentView === 'actions' ? (
-                <div className="payment-action-groups">
-                  {visiblePaymentActionGroups.map((group) => {
-                    const groupOpen = paymentActionGroupsOpen[group.id] ?? group.members.length > 0;
-                    return (
-                      <section className={`payment-action-group ${groupOpen ? 'open' : ''}`} key={group.id}>
-                        <button
-                          className="payment-action-group-header"
-                          type="button"
-                          onClick={() =>
-                            setPaymentActionGroupsOpen((current) => ({
-                              ...current,
-                              [group.id]: !groupOpen
-                            }))
-                          }
-                        >
-                          <ChevronRight className={groupOpen ? 'open' : ''} size={18} />
-                          <div>
-                            <h3>{group.title}</h3>
-                            <p>{group.description}</p>
-                          </div>
-                          <strong>{group.members.length}</strong>
-                        </button>
-                        {groupOpen && group.members.length > 0 ? (
-                        <div className="payment-registry-list compact">
-                          {group.members.map((member) => renderPaymentRow(member))}
-                        </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
-                  {visiblePaymentActionGroups.length === 0 ? (
-                    <div className="empty-state action-empty">
-                      <p>
-                        {paymentSearch.trim()
-                          ? 'По этому поиску задач по оплатам нет.'
-                          : 'Сейчас нет задач по оплатам.'}
-                      </p>
-                      <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
-                        Все оплаты
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="payment-registry-list">
-                  <div className="payment-registry-head">
-                    <span>Ученик</span>
-                    <span>Сумма</span>
-                    <span>Срок</span>
-                    <span>Статус</span>
-                    <span />
-                  </div>
-                  {filteredPaymentMembers.map((member) => renderPaymentRow(member))}
-                  {filteredPaymentMembers.length === 0 ? (
-                    <div className="empty-state action-empty">
-                      <p>
-                        {visibleMembers.length === 0 ? 'Ученики ещё не добавлены.' : 'По этому фильтру оплат нет.'}
-                      </p>
-                      {paymentView !== 'all' ? (
-                        <button className="small-button secondary" type="button" onClick={() => setPaymentView('all')}>
-                          Все оплаты
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
+            <PaymentWorkspaceRegistryPanel
+              paymentView={paymentView}
+              paymentSearch={paymentSearch}
+              visibleMembers={visibleMembers}
+              filteredPaymentMembers={filteredPaymentMembers}
+              visiblePaymentActionGroups={visiblePaymentActionGroups}
+              paidPaymentResults={paidPaymentResults}
+              paymentActionCount={paymentActionCount}
+              overduePaymentCount={overduePayments.length}
+              paymentActionGroupsOpen={paymentActionGroupsOpen}
+              currentPaymentByMemberId={currentPaymentByMemberId}
+              activePlanByMemberId={activePlanByMemberId}
+              selectedPaymentMemberId={selectedPaymentMemberId}
+              planLabels={planLabels}
+              statusLabels={statusLabels}
+              userName={userName}
+              groupFor={groupFor}
+              formatShortDate={formatShortDate}
+              setPaymentView={setPaymentView}
+              setPaymentSearch={setPaymentSearch}
+              setPaymentActionGroupsOpen={setPaymentActionGroupsOpen}
+              setSelectedPaymentMemberId={setSelectedPaymentMemberId}
+              setPaymentEditOpen={setPaymentEditOpen}
+            />
             {selectedPaymentMember ? (
               <>
                 <button
