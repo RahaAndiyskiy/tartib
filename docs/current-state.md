@@ -111,6 +111,7 @@ Important modules:
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.
 - Repeated invite result UI is extracted into `InviteResultCard`.
 - Compact payment registry rows are extracted into `PaymentRegistryRow`.
+- Member-facing payment page UI is extracted into `src/modules/payments/components/MemberPaymentPanel.tsx`.
 - Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
 - People view selectors and permissions are extracted into `src/modules/people`.
 - Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.

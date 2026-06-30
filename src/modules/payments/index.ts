@@ -38,6 +38,7 @@ export {
   upsertPayment,
   validateSavePaymentDraft
 } from './actions/paymentActions';
+export { MemberPaymentPanel } from './components/MemberPaymentPanel';
 export type {
   MemberPaymentDetails,
   PaymentActionGroup,
