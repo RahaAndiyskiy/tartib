@@ -127,6 +127,7 @@ Important modules:
 - Schedule edit/save logic is extracted into `src/modules/schedule`; dashboard still renders the schedule UI.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
+- Settings and expenses page UI are extracted into dashboard section components.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.

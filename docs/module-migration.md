@@ -61,6 +61,8 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/schedule/actions/scheduleActions.ts` owns schedule edit helpers and schedule save action.
 - `src/modules/expenses/actions/expenseActions.ts` owns expense creation and mark-paid action.
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
+- `src/features/dashboard/components/SettingsSection.tsx` owns settings page UI.
+- `src/features/dashboard/components/ExpensesSection.tsx` owns expenses page UI.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
 ## Immediate Next Steps

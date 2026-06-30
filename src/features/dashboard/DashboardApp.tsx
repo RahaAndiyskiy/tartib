@@ -90,6 +90,8 @@ import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
+import { ExpensesSection } from './components/ExpensesSection';
+import { SettingsSection } from './components/SettingsSection';
 import {
   markNotificationsReadAction,
   NotificationsModal
@@ -2167,285 +2169,31 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
 
         {activeSection === 'expenses' && activeUser.role === 'owner' ? (
-          <section className="crm-content-grid">
-            <div className="crm-panel">
-              <div className="crm-panel-header">
-                <div>
-                  <h2>Расходы клуба</h2>
-                  <p>К оплате: {formatMoney(pendingExpenses)}</p>
-                </div>
-              </div>
-              <div className="expense-table">
-                <div className="expense-head">
-                  <span>Расход</span><span>Тип</span><span>Сумма</span><span>Срок</span><span>Статус</span>
-                </div>
-                {currentExpenses.map((expense) => (
-                  <div className="expense-row" key={expense.id}>
-                    <div>
-                      <strong>{expense.name}</strong>
-                      <span>{expense.periodLabel}</span>
-                    </div>
-                    <span>{expense.type === 'recurring' ? 'Базовый ежемесячный' : 'Разовый'}</span>
-                    <strong>{formatMoney(expense.amount)}</strong>
-                    <span>{expense.dueDate}</span>
-                    <button className="small-button" type="button" onClick={() => markExpensePaid(expense.id)}>
-                      Отметить оплаченным
-                    </button>
-                  </div>
-                ))}
-                {currentExpenses.length === 0 ? (
-                  <p className="empty-state">Текущих расходов пока нет.</p>
-                ) : null}
-              </div>
-
-              <div className="payment-history">
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>История расходов</h2>
-                    <p>Всего оплачено: {formatMoney(paidExpenses)}</p>
-                  </div>
-                </div>
-                {[...workspace.expenses]
-                  .filter((expense) => expense.status === 'paid')
-                  .reverse()
-                  .map((expense) => (
-                    <div className="payment-history-row" key={expense.id}>
-                      <div>
-                        <strong>{expense.name}</strong>
-                        <span>{expense.periodLabel}</span>
-                      </div>
-                      <strong>{formatMoney(expense.amount)}</strong>
-                      <span>
-                        {expense.paidAt
-                          ? new Date(expense.paidAt).toLocaleDateString('ru-RU')
-                          : 'Оплачено'}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            <form className="crm-panel crm-side-form form-stack" onSubmit={createExpense}>
-              <div className="crm-panel-header">
-                <div>
-                  <h2>Новый расход</h2>
-                  <p>Добавить обязательство клуба</p>
-                </div>
-                <Plus size={20} />
-              </div>
-              <label>
-                Название
-                <input
-                  placeholder="Например, аренда"
-                  required
-                  value={expenseDraft.name}
-                  onChange={(event) =>
-                    setExpenseDraft((current) => ({ ...current, name: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Сумма
-                <input
-                  min="1"
-                  required
-                  step="0.01"
-                  type="number"
-                  value={expenseDraft.amount}
-                  onChange={(event) =>
-                    setExpenseDraft((current) => ({ ...current, amount: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Срок оплаты
-                <input
-                  required
-                  type="date"
-                  value={expenseDraft.dueDate}
-                  onChange={(event) =>
-                    setExpenseDraft((current) => ({ ...current, dueDate: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Тип расхода
-                <select
-                  value={expenseDraft.type}
-                  onChange={(event) =>
-                    setExpenseDraft((current) => ({
-                      ...current,
-                      type: event.target.value as ExpenseDraft['type']
-                    }))
-                  }
-                >
-                  <option value="recurring">Базовый ежемесячный</option>
-                  <option value="one_time">Разовый</option>
-                </select>
-              </label>
-              <button className="primary-button" type="submit">
-                Добавить расход
-              </button>
-            </form>
-          </section>
+          <ExpensesSection
+            workspace={workspace}
+            currentExpenses={currentExpenses}
+            paidExpenses={paidExpenses}
+            pendingExpenses={pendingExpenses}
+            expenseDraft={expenseDraft}
+            onExpenseDraftChange={setExpenseDraft}
+            onCreateExpense={createExpense}
+            onMarkExpensePaid={markExpensePaid}
+          />
         ) : null}
-
         {activeSection === 'settings' ? (
-          <section className="settings-grid">
-            <form className="crm-panel settings-card form-stack" onSubmit={saveProfileSettings}>
-              <div className="crm-panel-header">
-                <div>
-                  <h2>Профиль</h2>
-                  <p>Имя, контакт и данные для входа</p>
-                </div>
-                <Settings size={20} />
-              </div>
-              <div className="settings-card-body">
-                <div className="settings-avatar-preview">
-                  <span aria-hidden="true">
-                    {activeUser.first_name.slice(0, 1)}
-                    {activeUser.last_name.slice(0, 1)}
-                  </span>
-                  <div>
-                    <strong>Фото профиля</strong>
-                    <p>Загрузку аватара добавим после подключения Storage и правил доступа.</p>
-                  </div>
-                </div>
-                <div className="split-fields">
-                  <label>
-                    Имя
-                    <input
-                      required
-                      value={settingsDraft.firstName}
-                      onChange={(event) =>
-                        setSettingsDraft((current) => ({ ...current, firstName: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Фамилия
-                    <input
-                      required
-                      value={settingsDraft.lastName}
-                      onChange={(event) =>
-                        setSettingsDraft((current) => ({ ...current, lastName: event.target.value }))
-                      }
-                    />
-                  </label>
-                </div>
-                <label>
-                  Телефон
-                  <input
-                    inputMode="tel"
-                    placeholder="Номер для связи"
-                    value={settingsDraft.phone}
-                    onChange={(event) =>
-                      setSettingsDraft((current) => ({ ...current, phone: event.target.value }))
-                    }
-                  />
-                </label>
-                <div className="settings-readonly-list">
-                  <div>
-                    <span>Логин</span>
-                    <strong>{activeUser.username ?? 'Не указан'}</strong>
-                  </div>
-                  <div>
-                    <span>Email</span>
-                    <strong>{activeUser.email ?? 'Не используется'}</strong>
-                  </div>
-                  <div>
-                    <span>Роль</span>
-                    <strong>{roleLabel(activeUser)}</strong>
-                  </div>
-                </div>
-                <button className="primary-button" type="submit" disabled={isPendingAction('update-profile')}>
-                  {isPendingAction('update-profile') ? 'Сохраняем...' : 'Сохранить профиль'}
-                </button>
-              </div>
-            </form>
-
-            <div className="settings-side-stack">
-              {hasRole(activeUser, 'owner') ? (
-                <form className="crm-panel settings-card form-stack" onSubmit={saveOrganizationSettings}>
-                  <div className="crm-panel-header">
-                    <div>
-                      <h2>Клуб</h2>
-                      <p>Название, которое видят тренеры и ученики</p>
-                    </div>
-                  </div>
-                  <div className="settings-card-body">
-                    <label>
-                      Название клуба
-                      <input
-                        required
-                        value={settingsDraft.organizationName}
-                        onChange={(event) =>
-                          setSettingsDraft((current) => ({ ...current, organizationName: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <button
-                      className="primary-button"
-                      type="submit"
-                      disabled={isPendingAction('update-organization')}
-                    >
-                      {isPendingAction('update-organization') ? 'Сохраняем...' : 'Сохранить клуб'}
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-
-              <section className="crm-panel settings-card">
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>Уведомления</h2>
-                    <p>Push для важных оплат и запросов</p>
-                  </div>
-                  <Bell size={20} />
-                </div>
-                <div className="settings-card-body">
-                  <div className="settings-status-row">
-                    <span>Статус</span>
-                    <strong>
-                      {pushStatus === 'granted'
-                        ? 'Включены'
-                        : pushStatus === 'blocked'
-                          ? 'Заблокированы'
-                          : pushStatus === 'disabled'
-                            ? 'Не настроены'
-                            : pushStatus === 'unsupported'
-                              ? 'Не поддерживаются'
-                              : 'Выключены'}
-                    </strong>
-                  </div>
-                  {pushStatus === 'granted' ? (
-                    <p className="inline-note">Вы будете получать важные события по оплатам, когда браузер разрешает push.</p>
-                  ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
-                    <button className="primary-button" type="button" onClick={() => void enablePush()}>
-                      Включить push
-                    </button>
-                  ) : (
-                    <p className="inline-note">
-                      Проверьте разрешения браузера или откройте приложение как PWA, если push недоступен.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {!isLocalMode ? (
-                <section className="crm-panel settings-card">
-                  <div className="settings-card-body">
-                    <button className="small-button secondary settings-logout-button" type="button" onClick={() => void signOut()}>
-                      <LogOut size={16} />
-                      Выйти из аккаунта
-                    </button>
-                  </div>
-                </section>
-              ) : null}
-            </div>
-          </section>
+          <SettingsSection
+            activeUser={activeUser}
+            settingsDraft={settingsDraft}
+            pushStatus={pushStatus}
+            isLocalMode={isLocalMode}
+            isPendingAction={isPendingAction}
+            onSettingsDraftChange={setSettingsDraft}
+            onSaveProfile={saveProfileSettings}
+            onSaveOrganization={saveOrganizationSettings}
+            onEnablePush={() => void enablePush()}
+            onSignOut={() => void signOut()}
+          />
         ) : null}
-
       </main>
     </div>
   );
