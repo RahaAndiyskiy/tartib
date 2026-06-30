@@ -121,6 +121,7 @@ Important modules:
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.
 - Local person creation is extracted into `src/modules/people/actions`; it covers local trainer/member creation, member group assignment and optional initial payment creation.
 - Add-person submit decisions are extracted into `src/modules/people/actions`; dashboard now reacts to result objects instead of owning the full remote/local branch.
+- Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.

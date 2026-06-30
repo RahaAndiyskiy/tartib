@@ -22,7 +22,7 @@ Each module is considered migrated only when all layers are moved:
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are in `src/modules/people`; dashboard still owns form state and cross-module UI reactions. |
-| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, basic permissions and group deletion are in `src/modules/groups`; dashboard still orchestrates the local group save boundary. |
+| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are in `src/modules/groups`; dashboard still owns cross-module payment-sync callback and UI reactions. |
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
 | `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
@@ -46,6 +46,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/groups/permissions.ts` owns basic group access helpers.
 - `src/modules/groups/actions/groupActions.ts` owns group deletion.
 - `src/modules/groups/actions/groupActions.ts` also owns remote group save and workspace group upsert/replace helpers.
+- `src/modules/groups/actions/groupActions.ts` owns group submit decisions for create/edit, while payment default synchronization remains injected from the payments module.
 - `src/modules/payments/model/selectors.ts` owns visible payment selection, current payment maps, active plan maps, payment overview counts, registry filtering, selected payment details, member payment details and payment form-state helpers.
 - `src/modules/payments/actions/paymentActions.ts` owns save-payment validation/build, remote save wrapper, group-default payment synchronization, high-level payment action wrappers, and payment workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions.
 - `src/modules/payments/components/MemberPaymentPanel.tsx` owns the member-facing payment page UI.
@@ -66,7 +67,7 @@ Each module is considered migrated only when all layers are moved:
    - leave cross-module UI effects and form modal state in the dashboard shell until a dedicated people form module exists.
 3. Continue `groups` module:
    - keep only cross-module orchestration in `DashboardApp.tsx`;
-   - move remaining local group-save wrapper code when the group boundary is stable.
+   - keep payment default synchronization explicit instead of importing payment ownership into `groups`.
 4. Continue `payments` module:
    - move remaining payment callback adapters out of `DashboardApp.tsx` only when it can be done without hiding cross-module dependencies;
    - keep group-default payment sync inside `payments/actions` and add tests before extending tariff rules.

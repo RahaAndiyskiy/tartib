@@ -2,9 +2,17 @@ import type {
   LocalTrainingGroup,
   LocalWorkspace
 } from '@shared/lib/localWorkspace';
+import type { AppUser } from '@shared/types/domain';
+import { hasRole } from '@/core/roles';
 import type {
   GroupDraftLike,
   GroupPaymentDefaults
+} from '../model/draft';
+import {
+  buildLocalTrainingGroup,
+  parseGroupPaymentDefaults,
+  resolveGroupTrainerId,
+  validateGroupDraft
 } from '../model/draft';
 
 type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
@@ -30,6 +38,27 @@ type SaveRemoteGroupParams = {
   defaults: GroupPaymentDefaults;
   runRemoteActionWithPending: RunRemoteActionWithPending;
 };
+
+type GroupPaymentSync = (params: {
+  workspace: LocalWorkspace;
+  memberIds: string[];
+  trainerId: string;
+  amount: number;
+  billingDay: number;
+  now: string;
+}) => Pick<LocalWorkspace, 'billingPlans' | 'payments'>;
+
+export type SubmitGroupDraftResult =
+  | { kind: 'idle' }
+  | { kind: 'validation_error'; message: string }
+  | {
+      kind: 'saved';
+      workspace?: LocalWorkspace;
+      group: LocalTrainingGroup;
+      wasEditing: boolean;
+      message: string;
+      refreshRemote: boolean;
+    };
 
 export async function saveRemoteGroupAction({
   editingGroupId,
@@ -57,6 +86,119 @@ export async function saveRemoteGroupAction({
   );
 
   return data?.group ?? null;
+}
+
+export async function submitGroupDraftAction({
+  workspace,
+  activeUser,
+  editingGroupId,
+  draft,
+  isLocalMode,
+  now,
+  createId,
+  runRemoteActionWithPending,
+  syncDefaultPayments
+}: {
+  workspace: LocalWorkspace | null;
+  activeUser: AppUser | null;
+  editingGroupId: string;
+  draft: GroupDraftLike;
+  isLocalMode: boolean;
+  now: string;
+  createId: () => string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  syncDefaultPayments: GroupPaymentSync;
+}): Promise<SubmitGroupDraftResult> {
+  if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return { kind: 'idle' };
+
+  const trainerId = resolveGroupTrainerId(activeUser, draft);
+  const defaults = parseGroupPaymentDefaults(draft);
+  const validationError = validateGroupDraft(draft, trainerId, defaults);
+
+  if (validationError === 'missing_required') {
+    return {
+      kind: 'validation_error',
+      message: 'Укажите направление, дни и время.'
+    };
+  }
+
+  if (validationError === 'invalid_payment_defaults') {
+    return {
+      kind: 'validation_error',
+      message: 'Укажите корректную сумму и день оплаты группы.'
+    };
+  }
+
+  if (!isLocalMode) {
+    const savedGroup = await saveRemoteGroupAction({
+      editingGroupId,
+      trainerId,
+      draft,
+      defaults,
+      runRemoteActionWithPending
+    });
+
+    return savedGroup
+      ? {
+          kind: 'saved',
+          group: savedGroup,
+          wasEditing: Boolean(editingGroupId),
+          message: editingGroupId
+            ? 'Группа обновлена.'
+            : 'Группа создана. Теперь можно создать ссылку для набора.',
+          refreshRemote: true
+        }
+      : { kind: 'idle' };
+  }
+
+  const group = buildLocalTrainingGroup({
+    id: createId(),
+    trainerId,
+    draft,
+    defaults,
+    now
+  });
+
+  if (!editingGroupId) {
+    return {
+      kind: 'saved',
+      workspace: upsertGroupInWorkspace(workspace, group),
+      group,
+      wasEditing: false,
+      message: 'Группа создана. Теперь можно создать ссылку для набора.',
+      refreshRemote: false
+    };
+  }
+
+  const memberIds = workspace.groupMembers
+    .filter((assignment) => assignment.groupId === editingGroupId)
+    .map((assignment) => assignment.memberId);
+  const paymentSync = defaults.hasDefaultPayment
+    ? syncDefaultPayments({
+        workspace,
+        memberIds,
+        trainerId,
+        amount: defaults.defaultAmount,
+        billingDay: defaults.defaultBillingDay,
+        now
+      })
+    : {
+        billingPlans: workspace.billingPlans,
+        payments: workspace.payments
+      };
+
+  return {
+    kind: 'saved',
+    workspace: {
+      ...replaceGroupInWorkspace(workspace, editingGroupId, group),
+      billingPlans: paymentSync.billingPlans,
+      payments: paymentSync.payments
+    },
+    group,
+    wasEditing: true,
+    message: 'Группа обновлена.',
+    refreshRemote: false
+  };
 }
 
 export function upsertGroupInWorkspace(

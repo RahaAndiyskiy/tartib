@@ -19,6 +19,7 @@ export {
 export {
   deleteGroupAction,
   replaceGroupInWorkspace,
+  submitGroupDraftAction,
   upsertGroupInWorkspace,
   saveRemoteGroupAction
 } from './actions/groupActions';

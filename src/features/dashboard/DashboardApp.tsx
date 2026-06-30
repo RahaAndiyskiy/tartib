@@ -53,19 +53,14 @@ import {
 } from '@/core/roles';
 import {
   buildGroupDraftFromGroup,
-  buildLocalTrainingGroup,
   canManageGroups,
   canViewGroups,
   deleteGroupAction,
   GroupsPanel,
   mapGroupsById,
-  parseGroupPaymentDefaults,
-  replaceGroupInWorkspace,
-  resolveGroupTrainerId,
-  saveRemoteGroupAction,
   selectVisibleGroups,
-  upsertGroupInWorkspace,
-  validateGroupDraft
+  submitGroupDraftAction,
+  upsertGroupInWorkspace
 } from '@/modules/groups';
 import {
   emptyExpenseDraft,
@@ -897,91 +892,54 @@ export function DashboardApp(): React.ReactElement {
 
   async function createGroup(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return;
 
-    const trainerId = resolveGroupTrainerId(activeUser, groupDraft);
-    const defaults = parseGroupPaymentDefaults(groupDraft);
-    const validationError = validateGroupDraft(groupDraft, trainerId, defaults);
-
-    if (validationError === 'missing_required') {
-      setMessage('Укажите направление, дни и время.');
-      return;
-    }
-    if (validationError === 'invalid_payment_defaults') {
-      setMessage('Укажите корректную сумму и день оплаты группы.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      const savedGroup = await saveRemoteGroupAction({
-        editingGroupId,
-        trainerId,
-        draft: groupDraft,
-        defaults,
-        runRemoteActionWithPending
-      });
-      if (savedGroup) {
-        const wasEditingGroup = Boolean(editingGroupId);
-        setWorkspace((current) =>
-          current ? upsertGroupInWorkspace(current, savedGroup) : current
-        );
-        setGroupDraft(emptyGroupDraft);
-        setEditingGroupId('');
-        setMobileFormOpen(false);
-        setLastCreatedGroupId(wasEditingGroup ? '' : savedGroup.id);
-        void refreshRemoteWorkspace('group-save', 0);
-        setMessage(wasEditingGroup ? 'Группа обновлена.' : 'Группа создана. Теперь можно создать ссылку для набора.');
-      }
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const group = buildLocalTrainingGroup({
-      id: createId(),
-      trainerId,
+    const result = await submitGroupDraftAction({
+      workspace,
+      activeUser,
+      editingGroupId,
       draft: groupDraft,
-      defaults,
-      now
+      isLocalMode,
+      now: new Date().toISOString(),
+      createId,
+      runRemoteActionWithPending,
+      syncDefaultPayments: ({ workspace: syncWorkspace, memberIds, trainerId, amount, billingDay, now }) =>
+        applyGroupDefaultPaymentToMembers({
+          workspace: syncWorkspace,
+          memberIds,
+          trainerId,
+          amount,
+          billingDay,
+          dueDate: dueDateForBillingDay(billingDay),
+          now,
+          createId,
+          periodLabel,
+          statusForDueDate: (date) =>
+            dateAtNoon(date) < dateAtNoon(todayString()) ? 'overdue' : 'active'
+        })
     });
 
-    if (editingGroupId) {
-      const memberIds = workspace.groupMembers
-        .filter((assignment) => assignment.groupId === editingGroupId)
-        .map((assignment) => assignment.memberId);
-      const paymentSync = defaults.hasDefaultPayment
-        ? applyGroupDefaultPaymentToMembers({
-            workspace,
-            memberIds,
-            trainerId,
-            amount: defaults.defaultAmount,
-            billingDay: defaults.defaultBillingDay,
-            dueDate: dueDateForBillingDay(defaults.defaultBillingDay),
-            now,
-            createId,
-            periodLabel,
-            statusForDueDate: (date) =>
-              dateAtNoon(date) < dateAtNoon(todayString()) ? 'overdue' : 'active'
-          })
-        : {
-            billingPlans: workspace.billingPlans,
-            payments: workspace.payments
-          };
-      saveWorkspace({
-        ...replaceGroupInWorkspace(workspace, editingGroupId, group),
-        billingPlans: paymentSync.billingPlans,
-        payments: paymentSync.payments
-      });
-      setMessage('Группа обновлена.');
+    if (result.kind === 'idle') return;
+
+    if (result.kind === 'validation_error') {
+      setMessage(result.message);
+      return;
+    }
+
+    if (result.workspace) {
+      saveWorkspace(result.workspace);
     } else {
-      saveWorkspace(upsertGroupInWorkspace(workspace, group));
-      setLastCreatedGroupId(group.id);
-      setMessage('Группа создана. Теперь можно создать ссылку для набора.');
+      setWorkspace((current) => (current ? upsertGroupInWorkspace(current, result.group) : current));
     }
 
     setGroupDraft(emptyGroupDraft);
     setEditingGroupId('');
+    setMobileFormOpen(false);
+    setLastCreatedGroupId(result.wasEditing ? '' : result.group.id);
+    if (result.refreshRemote) {
+      void refreshRemoteWorkspace('group-save', 0);
+    }
+    setMessage(result.message);
   }
-
   function startGroupEdit(group: LocalTrainingGroup): void {
     if (!activeUser || !hasRole(activeUser, 'trainer')) return;
 
