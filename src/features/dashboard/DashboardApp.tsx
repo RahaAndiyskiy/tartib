@@ -100,6 +100,10 @@ import {
   NotificationsModal
 } from '@/modules/notifications';
 import {
+  saveOrganizationSettingsAction,
+  saveProfileSettingsAction
+} from '@/modules/account';
+import {
   assignMemberToGroupAction,
   createMemberInviteAction,
   deleteMemberAction,
@@ -1399,109 +1403,35 @@ export function DashboardApp(): React.ReactElement {
 
   async function saveProfileSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!workspace || !activeUser) return;
 
-    const firstName = settingsDraft.firstName.trim();
-    const lastName = settingsDraft.lastName.trim();
-    const phone = settingsDraft.phone.trim();
-    if (!firstName || !lastName) {
-      setMessage('Укажите имя и фамилию.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      setPendingAction('update-profile');
-      try {
-        const data = await runRemoteActionData<{ user: AppUser }>({
-          action: 'update_profile',
-          firstName,
-          lastName,
-          phone
-        });
-        if (data?.user) {
-          setWorkspace((current) =>
-            current
-              ? {
-                  ...current,
-                  users: current.users.map((user) =>
-                    user.id === data.user.id
-                      ? {
-                          ...data.user,
-                          roles: user.roles
-                        }
-                      : user
-                  )
-                }
-              : current
-          );
-          setMessage('Профиль сохранён.');
-        }
-      } finally {
-        setPendingAction(null);
-      }
-      return;
-    }
-
-    saveWorkspace({
-      ...workspace,
-      users: workspace.users.map((user) =>
-        user.id === activeUser.id
-          ? {
-              ...user,
-              first_name: firstName,
-              last_name: lastName,
-              phone: phone || null
-            }
-          : user
-      )
+    await saveProfileSettingsAction({
+      workspace,
+      activeUser,
+      draft: settingsDraft,
+      isLocalMode,
+      runRemoteActionData,
+      saveWorkspace,
+      setWorkspace,
+      setPendingAction,
+      setMessage
     });
-    setMessage('Профиль сохранён.');
   }
 
   async function saveOrganizationSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!workspace || !activeUser || !hasRole(activeUser, 'owner')) return;
 
-    const name = settingsDraft.organizationName.trim();
-    if (!name) {
-      setMessage('Укажите название клуба.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      setPendingAction('update-organization');
-      try {
-        const data = await runRemoteActionData<{ organization: LocalWorkspace['organization'] }>({
-          action: 'update_organization',
-          name
-        });
-        if (data?.organization) {
-          setWorkspace((current) =>
-            current
-              ? {
-                  ...current,
-                  organization: data.organization
-                }
-              : current
-          );
-          setMessage('Настройки клуба сохранены.');
-        }
-      } finally {
-        setPendingAction(null);
-      }
-      return;
-    }
-
-    saveWorkspace({
-      ...workspace,
-      organization: {
-        ...workspace.organization,
-        name
-      }
+    await saveOrganizationSettingsAction({
+      workspace,
+      activeUser,
+      draft: settingsDraft,
+      isLocalMode,
+      runRemoteActionData,
+      saveWorkspace,
+      setWorkspace,
+      setPendingAction,
+      setMessage
     });
-    setMessage('Настройки клуба сохранены.');
   }
-
   function handleReset(): void {
     const nextWorkspace = resetWorkspace();
     const owner = nextWorkspace.users[0];

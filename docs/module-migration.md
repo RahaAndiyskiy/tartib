@@ -25,7 +25,7 @@ Each module is considered migrated only when all layers are moved:
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are in `src/modules/groups`; dashboard still owns cross-module payment-sync callback and UI reactions. |
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
-| `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
+| `account` | pending | pending | partial | pending | partial | Profile and organization settings save actions are in `src/modules/account`; dashboard still owns settings UI and draft state. |
 | `schedule` | pending | pending | pending | pending | pending | Not a full module yet. |
 | `expenses` | pending | pending | pending | pending | pending | Postponed from MVP core, but code exists and should be modularized later. |
 
@@ -57,6 +57,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/payments/index.ts` exposes the current public payments module API.
 - `src/modules/notifications/components/NotificationsModal.tsx` owns notification modal UI.
 - `src/modules/notifications/actions/notificationActions.ts` owns marking notifications as read.
+- `src/modules/account/actions/accountActions.ts` owns profile and organization settings save actions.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
 ## Immediate Next Steps
