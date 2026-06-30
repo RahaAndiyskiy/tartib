@@ -55,13 +55,18 @@ public/
 
 `DashboardApp.tsx`
 
-Main CRM client shell. It contains role navigation, overview, team, groups, payments and settings. It is still large and should be split gradually, not rewritten at once.
+Main dashboard runtime/controller. It still owns workspace loading, local/remote orchestration, drafts and cross-module callbacks. Visual shell and several sections are extracted, but the file is still large and should be split gradually, not rewritten at once.
 
 Dashboard support modules:
 
 - `src/features/dashboard/types.ts` - local dashboard form/view types.
 - `src/features/dashboard/constants.ts` - labels and empty draft values.
 - `src/features/dashboard/utils.ts` - dashboard date/payment helper functions.
+- `src/features/dashboard/components/DashboardShell.tsx` - visual dashboard shell: sidebar, mobile topbar, header and navigation.
+- `src/features/dashboard/components/OverviewSection.tsx` - owner/trainer overview and member overview UI.
+- `src/features/dashboard/components/ScheduleSection.tsx` - schedule page UI.
+- `src/features/dashboard/components/SettingsSection.tsx` - settings page UI.
+- `src/features/dashboard/components/ExpensesSection.tsx` - expenses page UI.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.

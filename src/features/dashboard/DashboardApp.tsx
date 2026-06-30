@@ -2,20 +2,7 @@
 
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Bell,
-  CreditCard,
-  ExternalLink,
-  LayoutDashboard,
-  LogOut,
-  Plus,
-  RotateCcw,
-  Settings,
-  CalendarDays,
-  Layers3,
-  UserRound,
-  Users
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   createId,
   reconcileWorkspace,
@@ -39,8 +26,7 @@ import type {
   PaymentRequest,
 } from '@shared/types/domain';
 import {
-  hasRole,
-  roleLabel
+  hasRole
 } from '@/core/roles';
 import {
   buildGroupDraftFromGroup,
@@ -81,6 +67,7 @@ import {
   todayString
 } from './utils';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
+import { DashboardShell } from './components/DashboardShell';
 import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
@@ -1309,216 +1296,31 @@ export function DashboardApp(): React.ReactElement {
   }
 
   return (
-    <div className="crm-shell">
-      <aside className="crm-sidebar">
-        <div className="crm-brand">
-          <span className="crm-brand-mark">T</span>
-          <div>
-            <strong>Tartib</strong>
-            <span>РЈРїСЂР°РІР»РµРЅРёРµ РєР»СѓР±РѕРј</span>
-          </div>
-        </div>
-
-        <div className="crm-organization">
-          <span>РћСЂРіР°РЅРёР·Р°С†РёСЏ</span>
-          <strong>{workspace.organization.name}</strong>
-        </div>
-
-        <nav className="crm-nav" aria-label="Р Р°Р·РґРµР»С‹">
-          <NavButton
-            active={activeSection === 'overview'}
-            icon={<LayoutDashboard size={18} />}
-            label="РћР±Р·РѕСЂ"
-            onClick={() => openSection('overview')}
-          />
-          {!hasRole(activeUser, 'member') ? (
-            <NavButton
-              active={activeSection === 'people'}
-              icon={<Users size={18} />}
-              label={
-                hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-                  ? 'РњРѕРё СѓС‡РµРЅРёРєРё'
-                  : 'РљРѕРјР°РЅРґР°'
-              }
-              onClick={() => openSection('people')}
-            />
-          ) : null}
-          <NavButton
-            active={activeSection === 'payments'}
-            icon={<CreditCard size={18} />}
-            label="РћРїР»Р°С‚С‹"
-            onClick={() => openSection('payments')}
-          />
-          {hasRole(activeUser, 'member') ? (
-            <NavButton
-              active={activeSection === 'schedule'}
-              icon={<CalendarDays size={18} />}
-              label="Р Р°СЃРїРёСЃР°РЅРёРµ"
-              onClick={() => openSection('schedule')}
-            />
-          ) : (
-            <NavButton
-              active={activeSection === 'groups'}
-              icon={<Layers3 size={18} />}
-              label="Р“СЂСѓРїРїС‹"
-              onClick={() => openSection('groups')}
-            />
-          )}
-          <NavButton
-            active={activeSection === 'settings'}
-            icon={<Settings size={18} />}
-            label="РќР°СЃС‚СЂРѕР№РєРё"
-            mobileHidden
-            onClick={() => openSection('settings')}
-          />
-        </nav>
-
-        <div className="crm-sidebar-footer">
-          {isLocalMode ? (
-            <label className="crm-role-select">
-              Р Р°Р±РѕС‚Р°С‚СЊ РєР°Рє
-              <select value={activeUser.id} onChange={(event) => selectActiveUser(event.target.value)}>
-                {workspace.users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.first_name} {user.last_name} В· {roleLabel(user)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          <button className="crm-sidebar-action" type="button" onClick={openNewWindow}>
-            <ExternalLink size={16} />
-            РќРѕРІРѕРµ РѕРєРЅРѕ
-          </button>
-          {isLocalMode ? (
-            <button className="crm-sidebar-action danger" type="button" onClick={handleReset}>
-              <RotateCcw size={16} />
-              РЎР±СЂРѕСЃРёС‚СЊ РґР°РЅРЅС‹Рµ
-            </button>
-          ) : (
-            <button className="crm-sidebar-action" type="button" onClick={() => void signOut()}>
-              <LogOut size={16} />
-              Р’С‹Р№С‚Рё
-            </button>
-          )}
-        </div>
-      </aside>
-
-      <main className="crm-main">
-        {mobileAccountOpen ? (
-          <button
-            aria-label="Р—Р°РєСЂС‹С‚СЊ РјРµРЅСЋ Р°РєРєР°СѓРЅС‚Р°"
-            className="mobile-account-dismiss"
-            type="button"
-            onClick={() => setMobileAccountOpen(false)}
-          />
-        ) : null}
-        {mobileFormOpen ? (
-          <button
-            aria-label="Р—Р°РєСЂС‹С‚СЊ С„РѕСЂРјСѓ РґРѕР±Р°РІР»РµРЅРёСЏ"
-            className="mobile-form-backdrop"
-            type="button"
-            onClick={() => setMobileFormOpen(false)}
-          />
-        ) : null}
-        <div className={mobileAccountOpen ? 'mobile-topbar account-open' : 'mobile-topbar'}>
-          <div className="mobile-account-cluster">
-            <button
-              aria-expanded={mobileAccountOpen}
-              aria-label="РњРµРЅСЋ Р°РєРєР°СѓРЅС‚Р°"
-              className="mobile-avatar-button"
-              type="button"
-              onClick={() => setMobileAccountOpen((current) => !current)}
-            >
-              <span>
-                {activeUser.first_name.slice(0, 1)}
-                {activeUser.last_name.slice(0, 1)}
-              </span>
-            </button>
-            <button
-              aria-label="РђРєРєР°СѓРЅС‚"
-              className="mobile-account-action action-account"
-              type="button"
-              tabIndex={mobileAccountOpen ? 0 : -1}
-              onClick={() => openSection('settings')}
-            >
-              <UserRound size={18} />
-            </button>
-            <button
-              aria-label="РќР°СЃС‚СЂРѕР№РєРё"
-              className="mobile-account-action action-settings"
-              type="button"
-              tabIndex={mobileAccountOpen ? 0 : -1}
-              onClick={() => openSection('settings')}
-            >
-              <Settings size={18} />
-            </button>
-            {!isLocalMode ? (
-              <button
-                aria-label="Р’С‹Р№С‚Рё"
-                className="mobile-account-action action-logout"
-                type="button"
-                tabIndex={mobileAccountOpen ? 0 : -1}
-                onClick={() => {
-                  setMobileAccountOpen(false);
-                  setLogoutConfirmOpen(true);
-                }}
-              >
-                <LogOut size={18} />
-              </button>
-            ) : null}
-          </div>
-          <div className="mobile-title">
-            <strong>{workspace.organization.name}</strong>
-            <span>{roleLabel(activeUser)}</span>
-          </div>
-          <button
-            aria-label="РЈРІРµРґРѕРјР»РµРЅРёСЏ"
-            aria-expanded={notificationsOpen}
-            className="mobile-notification-button"
-            type="button"
-            onClick={openNotifications}
-          >
-            <Bell size={18} />
-            {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
-          </button>
-        </div>
-        <header className="crm-header">
-          <div>
-            <h1>{sectionMeta[activeSection].title}</h1>
-            <p>{sectionMeta[activeSection].description}</p>
-          </div>
-          <div className="crm-header-actions">
-            <button
-              aria-label="РЈРІРµРґРѕРјР»РµРЅРёСЏ"
-              aria-expanded={notificationsOpen}
-              className="header-notification-button desktop-notification-button"
-              type="button"
-              onClick={openNotifications}
-            >
-              <Bell size={19} />
-              {unreadNotifications.length > 0 ? <strong>{unreadNotifications.length}</strong> : null}
-            </button>
-            {!hasRole(activeUser, 'member') &&
-            (activeSection === 'people' || activeSection === 'groups') ? (
-              <button
-                aria-expanded={mobileFormOpen}
-                aria-label="Р”РѕР±Р°РІРёС‚СЊ"
-                className="mobile-create-button"
-                type="button"
-                onClick={() => setMobileFormOpen(true)}
-              >
-                <Plus size={18} />
-                {activeSection === 'groups' ? 'РќРѕРІР°СЏ РіСЂСѓРїРїР°' : 'Р”РѕР±Р°РІРёС‚СЊ'}
-              </button>
-            ) : null}
-            <div className="crm-user-badge">
-              <span>{roleLabel(activeUser)}</span>
-              <strong>{activeUser.first_name} {activeUser.last_name}</strong>
-            </div>
-          </div>
-        </header>
-
+    <DashboardShell
+      workspace={workspace}
+      activeUser={activeUser}
+      activeSection={activeSection}
+      sectionMeta={sectionMeta}
+      isLocalMode={isLocalMode}
+      mobileAccountOpen={mobileAccountOpen}
+      mobileFormOpen={mobileFormOpen}
+      notificationsOpen={notificationsOpen}
+      unreadNotificationCount={unreadNotifications.length}
+      onOpenSection={openSection}
+      onSelectActiveUser={selectActiveUser}
+      onOpenNewWindow={openNewWindow}
+      onReset={handleReset}
+      onSignOut={() => void signOut()}
+      onRequestLogout={() => {
+        setMobileAccountOpen(false);
+        setLogoutConfirmOpen(true);
+      }}
+      onToggleMobileAccount={() => setMobileAccountOpen((current) => !current)}
+      onCloseMobileAccount={() => setMobileAccountOpen(false)}
+      onOpenMobileForm={() => setMobileFormOpen(true)}
+      onCloseMobileForm={() => setMobileFormOpen(false)}
+      onOpenNotifications={openNotifications}
+    >
         {message ? <p className="notice success">{message}</p> : null}
 
         {notificationsOpen ? (
@@ -1947,56 +1749,6 @@ export function DashboardApp(): React.ReactElement {
             onSignOut={() => void signOut()}
           />
         ) : null}
-      </main>
-    </div>
-  );
-}
-
-
-function NavButton({
-  active,
-  count,
-  icon,
-  label,
-  mobileHidden,
-  onClick
-}: {
-  active: boolean;
-  count?: number;
-  icon: React.ReactNode;
-  label: string;
-  mobileHidden?: boolean;
-  onClick: () => void;
-}): React.ReactElement {
-  const ignoreNextClickRef = useRef(false);
-
-  function handleTouchEnd(event: React.TouchEvent<HTMLButtonElement>): void {
-    event.preventDefault();
-    ignoreNextClickRef.current = true;
-    onClick();
-    window.setTimeout(() => {
-      ignoreNextClickRef.current = false;
-    }, 350);
-  }
-
-  function handleClick(): void {
-    if (ignoreNextClickRef.current) {
-      ignoreNextClickRef.current = false;
-      return;
-    }
-    onClick();
-  }
-
-  return (
-    <button
-      className={`${active ? 'crm-nav-button active' : 'crm-nav-button'}${mobileHidden ? ' mobile-hidden' : ''}`}
-      type="button"
-      onClick={handleClick}
-      onTouchEnd={handleTouchEnd}
-    >
-      {icon}
-      <span>{label}</span>
-      {count ? <strong>{count}</strong> : null}
-    </button>
+    </DashboardShell>
   );
 }

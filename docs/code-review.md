@@ -86,7 +86,7 @@ Recommended next step:
 
 File: `src/features/dashboard/DashboardApp.tsx`
 
-The dashboard still contains navigation, local workspace behavior, remote mutations, forms, groups, team, payments and settings in one file.
+The dashboard still contains local workspace behavior, remote mutations, forms, groups, team, payments and settings orchestration in one file.
 
 Recent progress:
 
@@ -115,7 +115,7 @@ Recent progress:
 - Schedule edit/save logic was moved into `src/modules/schedule/actions`.
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
 - Dashboard derived data and payment UI model wiring were moved into `src/features/dashboard/model/useDashboardData.ts`.
-- Overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
+- Dashboard visual shell plus overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.
