@@ -1,11 +1,9 @@
-'use client';
+﻿'use client';
 
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  AlertTriangle,
   Bell,
-  ChevronRight,
   CreditCard,
   ExternalLink,
   LayoutDashboard,
@@ -13,12 +11,9 @@ import {
   Plus,
   RotateCcw,
   Settings,
-  Share2,
   CalendarDays,
-  Clock3,
   Layers3,
   UserRound,
-  Wallet,
   Users
 } from 'lucide-react';
 import {
@@ -40,7 +35,6 @@ import {
   pushSupported,
   type PushAvailability
 } from '@shared/lib/pushClient';
-import { formatMoney } from '@shared/constants/app';
 import type {
   PaymentRequest,
 } from '@shared/types/domain';
@@ -91,6 +85,7 @@ import { GroupFormModal } from './GroupFormModal';
 import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
+import { OverviewSection } from './components/OverviewSection';
 import { SettingsSection } from './components/SettingsSection';
 import {
   markNotificationsReadAction,
@@ -173,7 +168,7 @@ export function DashboardApp(): React.ReactElement {
   const remoteRefreshInFlightRef = useRef(false);
   const lastRemoteRefreshAtRef = useRef(0);
 
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  const weekDays = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ'];
 
   const toggleGroupDay = (day: string): void => {
     setGroupDraft((current) => {
@@ -237,7 +232,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!response.ok || !data.workspace || !data.activeUserId) {
-      const nextError = data.error ?? 'Не удалось загрузить данные клуба.';
+      const nextError = data.error ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґР°РЅРЅС‹Рµ РєР»СѓР±Р°.';
       setWorkspaceLoadError(nextError);
       if (!options.silent) {
         setMessage(nextError);
@@ -464,10 +459,10 @@ export function DashboardApp(): React.ReactElement {
   const buttonLabel = (key: string, defaultLabel: string): string =>
     isPendingAction(key)
       ? key.startsWith('create-invite:')
-        ? 'Готовим ссылку...'
-        : defaultLabel.toLowerCase().includes('удал')
-          ? 'Удаляем...'
-          : 'Сохраняем...'
+        ? 'Р“РѕС‚РѕРІРёРј СЃСЃС‹Р»РєСѓ...'
+        : defaultLabel.toLowerCase().includes('СѓРґР°Р»')
+          ? 'РЈРґР°Р»СЏРµРј...'
+          : 'РЎРѕС…СЂР°РЅСЏРµРј...'
       : defaultLabel;
   const runRemoteActionWithPending = async <T,>(
     payload: Record<string, unknown>,
@@ -529,7 +524,7 @@ export function DashboardApp(): React.ReactElement {
     }
 
     if (!response.ok) {
-      setMessage(data.error ?? 'Не удалось выполнить действие.');
+      setMessage(data.error ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ РґРµР№СЃС‚РІРёРµ.');
       return null;
     }
 
@@ -643,7 +638,7 @@ export function DashboardApp(): React.ReactElement {
 
   function openOverviewInviteFlow(): void {
     if (visibleGroups.length === 0) {
-      setMessage('Сначала создайте группу, чтобы дать ссылку на вступление.');
+      setMessage('РЎРЅР°С‡Р°Р»Р° СЃРѕР·РґР°Р№С‚Рµ РіСЂСѓРїРїСѓ, С‡С‚РѕР±С‹ РґР°С‚СЊ СЃСЃС‹Р»РєСѓ РЅР° РІСЃС‚СѓРїР»РµРЅРёРµ.');
       return;
     }
 
@@ -680,7 +675,7 @@ export function DashboardApp(): React.ReactElement {
       setMemberInvite(result.invite);
       setMemberInvitesByGroup((current) => ({ ...current, [groupId]: result.invite }));
       setLastCreatedGroupId('');
-      setMessage(result.localMode ? 'В локальном режиме ссылка показана для проверки интерфейса.' : '');
+      setMessage(result.localMode ? 'Р’ Р»РѕРєР°Р»СЊРЅРѕРј СЂРµР¶РёРјРµ СЃСЃС‹Р»РєР° РїРѕРєР°Р·Р°РЅР° РґР»СЏ РїСЂРѕРІРµСЂРєРё РёРЅС‚РµСЂС„РµР№СЃР°.' : '');
     }
   }
 
@@ -733,15 +728,15 @@ export function DashboardApp(): React.ReactElement {
   async function copyMemberInvite(): Promise<void> {
     if (!memberInvite) return;
     await navigator.clipboard.writeText(memberInvite.inviteUrl);
-    setMessage('Ссылка скопирована.');
+    setMessage('РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°.');
   }
 
   async function shareMemberInvite(): Promise<void> {
     if (!memberInvite) return;
     if (navigator.share) {
       await navigator.share({
-        title: `Приглашение в группу ${memberInvite.groupName}`,
-        text: 'Завершите регистрацию в Tartib и присоединитесь к группе.',
+        title: `РџСЂРёРіР»Р°С€РµРЅРёРµ РІ РіСЂСѓРїРїСѓ ${memberInvite.groupName}`,
+        text: 'Р—Р°РІРµСЂС€РёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ РІ Tartib Рё РїСЂРёСЃРѕРµРґРёРЅРёС‚РµСЃСЊ Рє РіСЂСѓРїРїРµ.',
         url: memberInvite.inviteUrl
       });
       return;
@@ -807,7 +802,7 @@ export function DashboardApp(): React.ReactElement {
     setMemberInvite(null);
     setGroupDraft(buildGroupDraftFromGroup(group));
     setMobileFormOpen(true);
-    setMessage('Редактирование группы. Внесите изменения и сохраните.');
+    setMessage('Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РіСЂСѓРїРїС‹. Р’РЅРµСЃРёС‚Рµ РёР·РјРµРЅРµРЅРёСЏ Рё СЃРѕС…СЂР°РЅРёС‚Рµ.');
   }
 
   function cancelGroupEdit(): void {
@@ -837,7 +832,7 @@ export function DashboardApp(): React.ReactElement {
       setLastCreatedGroupId('');
     }
 
-    setMessage('Группа удалена.');
+    setMessage('Р“СЂСѓРїРїР° СѓРґР°Р»РµРЅР°.');
   }
 
   async function assignMemberToGroup(memberId: string, groupId: string): Promise<void> {
@@ -878,15 +873,15 @@ export function DashboardApp(): React.ReactElement {
 
     const validation = validateSavePaymentDraft({ edit, trainerId });
     if (!validation.ok && validation.reason === 'missing_trainer') {
-      setMessage('У этого ученика не назначен тренер.');
+      setMessage('РЈ СЌС‚РѕРіРѕ СѓС‡РµРЅРёРєР° РЅРµ РЅР°Р·РЅР°С‡РµРЅ С‚СЂРµРЅРµСЂ.');
       return;
     }
     if (!validation.ok && validation.reason === 'missing_due_date') {
-      setMessage('Укажите сумму и срок оплаты.');
+      setMessage('РЈРєР°Р¶РёС‚Рµ СЃСѓРјРјСѓ Рё СЃСЂРѕРє РѕРїР»Р°С‚С‹.');
       return;
     }
     if (!validation.ok && validation.reason === 'invalid_amount') {
-      setMessage('Сумма оплаты должна быть больше нуля.');
+      setMessage('РЎСѓРјРјР° РѕРїР»Р°С‚С‹ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РЅСѓР»СЏ.');
       return;
     }
     if (!edit || !trainerId || !validation.ok) return;
@@ -904,7 +899,7 @@ export function DashboardApp(): React.ReactElement {
           current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
         );
         clearPaymentEdit(memberId);
-        setMessage('Оплата сохранена.');
+        setMessage('РћРїР»Р°С‚Р° СЃРѕС…СЂР°РЅРµРЅР°.');
       }
       return;
     }
@@ -926,7 +921,7 @@ export function DashboardApp(): React.ReactElement {
     });
     saveWorkspace(result.workspace);
     clearPaymentEdit(memberId);
-    setMessage(result.paymentExisted ? 'Оплата обновлена.' : 'Оплата назначена.');
+    setMessage(result.paymentExisted ? 'РћРїР»Р°С‚Р° РѕР±РЅРѕРІР»РµРЅР°.' : 'РћРїР»Р°С‚Р° РЅР°Р·РЅР°С‡РµРЅР°.');
   }
 
   async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {
@@ -1182,7 +1177,7 @@ export function DashboardApp(): React.ReactElement {
   async function enablePush(): Promise<void> {
     if (!pushSupported()) {
       setPushStatus('unsupported');
-      setMessage('Push-уведомления не поддерживаются этим браузером.');
+      setMessage('Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЌС‚РёРј Р±СЂР°СѓР·РµСЂРѕРј.');
       return;
     }
 
@@ -1191,16 +1186,16 @@ export function DashboardApp(): React.ReactElement {
       setPushStatus(nextStatus);
       setMessage(
         nextStatus === 'granted'
-          ? 'Push-уведомления включены.'
+          ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РІРєР»СЋС‡РµРЅС‹.'
           : nextStatus === 'disabled'
-            ? 'Push-уведомления пока не настроены на сервере.'
+            ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РїРѕРєР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹ РЅР° СЃРµСЂРІРµСЂРµ.'
             : nextStatus === 'blocked'
-              ? 'Push-уведомления заблокированы в настройках браузера.'
-              : 'Push-уведомления не включены.'
+              ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅС‹ РІ РЅР°СЃС‚СЂРѕР№РєР°С… Р±СЂР°СѓР·РµСЂР°.'
+              : 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РІРєР»СЋС‡РµРЅС‹.'
       );
     } catch (error) {
       console.warn('[push] enable failed', error);
-      setMessage(error instanceof Error ? error.message : 'Не удалось включить push-уведомления.');
+      setMessage(error instanceof Error ? error.message : 'РќРµ СѓРґР°Р»РѕСЃСЊ РІРєР»СЋС‡РёС‚СЊ push-СѓРІРµРґРѕРјР»РµРЅРёСЏ.');
     }
   }
 
@@ -1240,7 +1235,7 @@ export function DashboardApp(): React.ReactElement {
     const owner = nextWorkspace.users[0];
     setWorkspace(nextWorkspace);
     setActiveUserId(owner.id);
-    setMessage('Тестовые данные сброшены.');
+    setMessage('РўРµСЃС‚РѕРІС‹Рµ РґР°РЅРЅС‹Рµ СЃР±СЂРѕС€РµРЅС‹.');
   }
 
   function openNewWindow(): void {
@@ -1254,38 +1249,38 @@ export function DashboardApp(): React.ReactElement {
 
   const sectionMeta: Record<DashboardSection, { title: string; description: string }> = {
     overview: {
-      title: 'Обзор',
-      description: 'Главные показатели и текущая ситуация в клубе'
+      title: 'РћР±Р·РѕСЂ',
+      description: 'Р“Р»Р°РІРЅС‹Рµ РїРѕРєР°Р·Р°С‚РµР»Рё Рё С‚РµРєСѓС‰Р°СЏ СЃРёС‚СѓР°С†РёСЏ РІ РєР»СѓР±Рµ'
     },
     people: {
       title:
         activeUser && hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-          ? 'Мои ученики'
-          : 'Команда',
-      description: 'Тренеры, ученики и распределение ответственности'
+          ? 'РњРѕРё СѓС‡РµРЅРёРєРё'
+          : 'РљРѕРјР°РЅРґР°',
+      description: 'РўСЂРµРЅРµСЂС‹, СѓС‡РµРЅРёРєРё Рё СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕСЃС‚Рё'
     },
     payments: {
-      title: activeUser?.role === 'member' ? 'Моя оплата' : 'Оплаты',
-      description: 'Текущие суммы, сроки и подтверждения учеников'
+      title: activeUser?.role === 'member' ? 'РњРѕСЏ РѕРїР»Р°С‚Р°' : 'РћРїР»Р°С‚С‹',
+      description: 'РўРµРєСѓС‰РёРµ СЃСѓРјРјС‹, СЃСЂРѕРєРё Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ СѓС‡РµРЅРёРєРѕРІ'
     },
     groups: {
-      title: 'Группы',
-      description: 'Направления, дни и время занятий тренеров'
+      title: 'Р“СЂСѓРїРїС‹',
+      description: 'РќР°РїСЂР°РІР»РµРЅРёСЏ, РґРЅРё Рё РІСЂРµРјСЏ Р·Р°РЅСЏС‚РёР№ С‚СЂРµРЅРµСЂРѕРІ'
     },
     schedule: {
-      title: activeUser?.role === 'member' ? 'Моё расписание' : 'Расписание',
+      title: activeUser?.role === 'member' ? 'РњРѕС‘ СЂР°СЃРїРёСЃР°РЅРёРµ' : 'Р Р°СЃРїРёСЃР°РЅРёРµ',
       description:
         activeUser?.role === 'member'
-          ? 'Дни и время ваших тренировок'
-          : 'Расписание тренировок учеников'
+          ? 'Р”РЅРё Рё РІСЂРµРјСЏ РІР°С€РёС… С‚СЂРµРЅРёСЂРѕРІРѕРє'
+          : 'Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє СѓС‡РµРЅРёРєРѕРІ'
     },
     expenses: {
-      title: 'Расходы',
-      description: 'Аренда, коммунальные и другие затраты клуба'
+      title: 'Р Р°СЃС…РѕРґС‹',
+      description: 'РђСЂРµРЅРґР°, РєРѕРјРјСѓРЅР°Р»СЊРЅС‹Рµ Рё РґСЂСѓРіРёРµ Р·Р°С‚СЂР°С‚С‹ РєР»СѓР±Р°'
     },
     settings: {
-      title: 'Настройки',
-      description: 'Профиль, уведомления и параметры клуба'
+      title: 'РќР°СЃС‚СЂРѕР№РєРё',
+      description: 'РџСЂРѕС„РёР»СЊ, СѓРІРµРґРѕРјР»РµРЅРёСЏ Рё РїР°СЂР°РјРµС‚СЂС‹ РєР»СѓР±Р°'
     }
   };
 
@@ -1293,16 +1288,16 @@ export function DashboardApp(): React.ReactElement {
     return (
       <main className="app-shell loading-state">
         <section className="loading-card">
-          <strong>Загружаем клуб...</strong>
+          <strong>Р—Р°РіСЂСѓР¶Р°РµРј РєР»СѓР±...</strong>
           {workspaceLoadError ? (
             <>
               <p>{workspaceLoadError}</p>
               <div>
                 <button className="primary-button" type="button" onClick={() => void refreshRemoteWorkspace('manual', 0)}>
-                  Повторить
+                  РџРѕРІС‚РѕСЂРёС‚СЊ
                 </button>
                 <button className="ghost-button" type="button" onClick={() => { window.location.href = '/login'; }}>
-                  Войти заново
+                  Р’РѕР№С‚Рё Р·Р°РЅРѕРІРѕ
                 </button>
               </div>
             </>
@@ -1319,20 +1314,20 @@ export function DashboardApp(): React.ReactElement {
           <span className="crm-brand-mark">T</span>
           <div>
             <strong>Tartib</strong>
-            <span>Управление клубом</span>
+            <span>РЈРїСЂР°РІР»РµРЅРёРµ РєР»СѓР±РѕРј</span>
           </div>
         </div>
 
         <div className="crm-organization">
-          <span>Организация</span>
+          <span>РћСЂРіР°РЅРёР·Р°С†РёСЏ</span>
           <strong>{workspace.organization.name}</strong>
         </div>
 
-        <nav className="crm-nav" aria-label="Разделы">
+        <nav className="crm-nav" aria-label="Р Р°Р·РґРµР»С‹">
           <NavButton
             active={activeSection === 'overview'}
             icon={<LayoutDashboard size={18} />}
-            label="Обзор"
+            label="РћР±Р·РѕСЂ"
             onClick={() => openSection('overview')}
           />
           {!hasRole(activeUser, 'member') ? (
@@ -1341,8 +1336,8 @@ export function DashboardApp(): React.ReactElement {
               icon={<Users size={18} />}
               label={
                 hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-                  ? 'Мои ученики'
-                  : 'Команда'
+                  ? 'РњРѕРё СѓС‡РµРЅРёРєРё'
+                  : 'РљРѕРјР°РЅРґР°'
               }
               onClick={() => openSection('people')}
             />
@@ -1350,28 +1345,28 @@ export function DashboardApp(): React.ReactElement {
           <NavButton
             active={activeSection === 'payments'}
             icon={<CreditCard size={18} />}
-            label="Оплаты"
+            label="РћРїР»Р°С‚С‹"
             onClick={() => openSection('payments')}
           />
           {hasRole(activeUser, 'member') ? (
             <NavButton
               active={activeSection === 'schedule'}
               icon={<CalendarDays size={18} />}
-              label="Расписание"
+              label="Р Р°СЃРїРёСЃР°РЅРёРµ"
               onClick={() => openSection('schedule')}
             />
           ) : (
             <NavButton
               active={activeSection === 'groups'}
               icon={<Layers3 size={18} />}
-              label="Группы"
+              label="Р“СЂСѓРїРїС‹"
               onClick={() => openSection('groups')}
             />
           )}
           <NavButton
             active={activeSection === 'settings'}
             icon={<Settings size={18} />}
-            label="Настройки"
+            label="РќР°СЃС‚СЂРѕР№РєРё"
             mobileHidden
             onClick={() => openSection('settings')}
           />
@@ -1380,11 +1375,11 @@ export function DashboardApp(): React.ReactElement {
         <div className="crm-sidebar-footer">
           {isLocalMode ? (
             <label className="crm-role-select">
-              Работать как
+              Р Р°Р±РѕС‚Р°С‚СЊ РєР°Рє
               <select value={activeUser.id} onChange={(event) => selectActiveUser(event.target.value)}>
                 {workspace.users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.first_name} {user.last_name} · {roleLabel(user)}
+                    {user.first_name} {user.last_name} В· {roleLabel(user)}
                   </option>
                 ))}
               </select>
@@ -1392,17 +1387,17 @@ export function DashboardApp(): React.ReactElement {
           ) : null}
           <button className="crm-sidebar-action" type="button" onClick={openNewWindow}>
             <ExternalLink size={16} />
-            Новое окно
+            РќРѕРІРѕРµ РѕРєРЅРѕ
           </button>
           {isLocalMode ? (
             <button className="crm-sidebar-action danger" type="button" onClick={handleReset}>
               <RotateCcw size={16} />
-              Сбросить данные
+              РЎР±СЂРѕСЃРёС‚СЊ РґР°РЅРЅС‹Рµ
             </button>
           ) : (
             <button className="crm-sidebar-action" type="button" onClick={() => void signOut()}>
               <LogOut size={16} />
-              Выйти
+              Р’С‹Р№С‚Рё
             </button>
           )}
         </div>
@@ -1411,7 +1406,7 @@ export function DashboardApp(): React.ReactElement {
       <main className="crm-main">
         {mobileAccountOpen ? (
           <button
-            aria-label="Закрыть меню аккаунта"
+            aria-label="Р—Р°РєСЂС‹С‚СЊ РјРµРЅСЋ Р°РєРєР°СѓРЅС‚Р°"
             className="mobile-account-dismiss"
             type="button"
             onClick={() => setMobileAccountOpen(false)}
@@ -1419,7 +1414,7 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
         {mobileFormOpen ? (
           <button
-            aria-label="Закрыть форму добавления"
+            aria-label="Р—Р°РєСЂС‹С‚СЊ С„РѕСЂРјСѓ РґРѕР±Р°РІР»РµРЅРёСЏ"
             className="mobile-form-backdrop"
             type="button"
             onClick={() => setMobileFormOpen(false)}
@@ -1429,7 +1424,7 @@ export function DashboardApp(): React.ReactElement {
           <div className="mobile-account-cluster">
             <button
               aria-expanded={mobileAccountOpen}
-              aria-label="Меню аккаунта"
+              aria-label="РњРµРЅСЋ Р°РєРєР°СѓРЅС‚Р°"
               className="mobile-avatar-button"
               type="button"
               onClick={() => setMobileAccountOpen((current) => !current)}
@@ -1440,7 +1435,7 @@ export function DashboardApp(): React.ReactElement {
               </span>
             </button>
             <button
-              aria-label="Аккаунт"
+              aria-label="РђРєРєР°СѓРЅС‚"
               className="mobile-account-action action-account"
               type="button"
               tabIndex={mobileAccountOpen ? 0 : -1}
@@ -1449,7 +1444,7 @@ export function DashboardApp(): React.ReactElement {
               <UserRound size={18} />
             </button>
             <button
-              aria-label="Настройки"
+              aria-label="РќР°СЃС‚СЂРѕР№РєРё"
               className="mobile-account-action action-settings"
               type="button"
               tabIndex={mobileAccountOpen ? 0 : -1}
@@ -1459,7 +1454,7 @@ export function DashboardApp(): React.ReactElement {
             </button>
             {!isLocalMode ? (
               <button
-                aria-label="Выйти"
+                aria-label="Р’С‹Р№С‚Рё"
                 className="mobile-account-action action-logout"
                 type="button"
                 tabIndex={mobileAccountOpen ? 0 : -1}
@@ -1477,7 +1472,7 @@ export function DashboardApp(): React.ReactElement {
             <span>{roleLabel(activeUser)}</span>
           </div>
           <button
-            aria-label="Уведомления"
+            aria-label="РЈРІРµРґРѕРјР»РµРЅРёСЏ"
             aria-expanded={notificationsOpen}
             className="mobile-notification-button"
             type="button"
@@ -1494,7 +1489,7 @@ export function DashboardApp(): React.ReactElement {
           </div>
           <div className="crm-header-actions">
             <button
-              aria-label="Уведомления"
+              aria-label="РЈРІРµРґРѕРјР»РµРЅРёСЏ"
               aria-expanded={notificationsOpen}
               className="header-notification-button desktop-notification-button"
               type="button"
@@ -1507,13 +1502,13 @@ export function DashboardApp(): React.ReactElement {
             (activeSection === 'people' || activeSection === 'groups') ? (
               <button
                 aria-expanded={mobileFormOpen}
-                aria-label="Добавить"
+                aria-label="Р”РѕР±Р°РІРёС‚СЊ"
                 className="mobile-create-button"
                 type="button"
                 onClick={() => setMobileFormOpen(true)}
               >
                 <Plus size={18} />
-                {activeSection === 'groups' ? 'Новая группа' : 'Добавить'}
+                {activeSection === 'groups' ? 'РќРѕРІР°СЏ РіСЂСѓРїРїР°' : 'Р”РѕР±Р°РІРёС‚СЊ'}
               </button>
             ) : null}
             <div className="crm-user-badge">
@@ -1562,196 +1557,31 @@ export function DashboardApp(): React.ReactElement {
         ) : null}
 
         {activeSection === 'overview' ? (
-          <>
-            {hasRole(activeUser, 'member') ? (
-              <section className="member-overview">
-                <div className="crm-panel member-primary-card">
-                  <div className="member-card-label">Текущая оплата</div>
-                  <strong className="member-payment-amount">
-                    {activeMemberPayment
-                      ? formatMoney(activeMemberPayment.amount)
-                      : 'Не назначена'}
-                  </strong>
-                  <div className="member-payment-meta">
-                    <span>
-                      Срок: {activeMemberPayment?.due_date ?? 'не указан'}
-                    </span>
-                    <span className={`status-pill ${activeMemberPayment?.status ?? 'not-set'}`}>
-                      {statusLabels[activeMemberPayment?.status ?? 'not-set']}
-                    </span>
-                  </div>
-                  {activeMemberPayment && canSubmitPayment(activeMemberPayment) ? (
-                    <div className="member-payment-actions">
-                      <button
-                        className="primary-button"
-                        type="button"
-                        onClick={() => submitPaymentConfirmation(activeMemberPayment.id)}
-                      >
-                        Я оплатил
-                      </button>
-                      <div className="delay-request-form">
-                        <input
-                          aria-label="Новая дата оплаты"
-                          min={todayString()}
-                          type="date"
-                          value={delayDraftFor(activeMemberPayment).requestedDate}
-                          onChange={(event) =>
-                            updateDelayDraft(activeMemberPayment.id, {
-                              requestedDate: event.target.value
-                            })
-                          }
-                        />
-                        <input
-                          aria-label="Комментарий к отсрочке"
-                          placeholder="Причина, необязательно"
-                          value={delayDraftFor(activeMemberPayment).comment}
-                          onChange={(event) =>
-                            updateDelayDraft(activeMemberPayment.id, {
-                              comment: event.target.value
-                            })
-                          }
-                        />
-                        <button
-                          className="small-button secondary"
-                          type="button"
-                          onClick={() => requestPaymentDelay(activeMemberPayment.id)}
-                        >
-                          Запросить отсрочку
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                  {activeMemberPayment && paymentLockedText(activeMemberPayment) ? (
-                    <p className="payment-locked-note">
-                      {paymentLockedText(activeMemberPayment)}
-                      <button type="button" onClick={() => openPrepayment(activeMemberPayment)}>
-                        предоплату
-                      </button>
-                      .
-                    </p>
-                  ) : null}
-                  {activeMemberPayment?.status === 'delay_requested' ? (
-                    <p className="inline-note">
-                      Запрос до {activeMemberPayment.delay_requested_date} отправлен тренеру.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="crm-panel member-info-card">
-                  <div className="member-card-label">Мой тренер</div>
-                  <strong>
-                    {activeMemberTrainer
-                      ? `${activeMemberTrainer.first_name} ${activeMemberTrainer.last_name}`
-                      : 'Не назначен'}
-                  </strong>
-                  <span>{activeMemberTrainer?.phone ?? activeMemberTrainer?.email ?? 'Контакт не указан'}</span>
-                </div>
-
-                <div className="crm-panel member-info-card">
-                  <div className="member-card-label">Расписание</div>
-                  <strong>{activeMemberGroup?.activity ?? 'Не назначено'}</strong>
-                  <span>
-                    {activeMemberSchedule
-                      ? `${activeMemberSchedule.days} · ${activeMemberSchedule.time}${activeMemberSchedule.note ? ` · ${activeMemberSchedule.note}` : ''}`
-                      : 'Тренер пока не добавил расписание'}
-                  </span>
-                </div>
-              </section>
-            ) : (
-              <>
-              <section className="today-card">
-                <div className="today-card-heading">
-                  <span className="today-card-icon"><CalendarDays size={20} /></span>
-                  <strong>Сегодня</strong>
-                </div>
-                <h2>
-                  {todayTaskCount > 0 ? todayTaskHeadline : 'Сегодня всё спокойно'}
-                </h2>
-                {todayTasks.length > 0 ? (
-                  <div className="today-task-list">
-                    {todayTasks.map((task) => (
-                      <button key={task.id} type="button" onClick={task.onClick}>
-                        <span>
-                          <strong>{task.count}</strong>
-                          <small>{task.label}</small>
-                        </span>
-                        <span className="today-task-action">
-                          Открыть <ChevronRight size={18} />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="today-calm">
-                    <span>Новых подтверждений, отсрочек и просрочек нет.</span>
-                  </div>
-                )}
-              </section>
-
-              <section className="quick-actions-panel overview-invite-panel">
-                <div>
-                  <span>Основное действие</span>
-                  <strong>Ссылка на вступление</strong>
-                </div>
-                <div className="quick-actions single-action">
-                  <button
-                    className="quick-action-card"
-                    type="button"
-                    disabled={visibleGroups.length === 0 || (visibleGroups.length === 1 && isPendingAction(`create-invite:${visibleGroups[0].id}`))}
-                    onClick={openOverviewInviteFlow}
-                  >
-                    <Share2 size={18} />
-                    <span>
-                      {visibleGroups.length === 0
-                        ? 'Нет групп'
-                        : visibleGroups.length === 1 && isPendingAction(`create-invite:${visibleGroups[0].id}`)
-                          ? 'Готовим ссылку...'
-                          : 'Ссылка на вступление'}
-                    </span>
-                  </button>
-                </div>
-              </section>
-
-              <section className="metric-grid">
-                <Metric
-                  hint="История оплат"
-                  icon={<Wallet size={18} />}
-                  label="Получено"
-                  tone="violet"
-                  value={formatMoney(paidAmount)}
-                  onClick={() => openPaymentsView('paid')}
-                />
-                <Metric
-                  hint="Открыть список"
-                  icon={<CreditCard size={18} />}
-                  label="Активные оплаты"
-                  tone="violet"
-                  value={currentPayments.length}
-                  onClick={() => openPaymentsView('all')}
-                />
-                <Metric
-                  hint="Требует оплаты"
-                  icon={<AlertTriangle size={18} />}
-                  label="Просрочено"
-                  tone="danger"
-                  value={overduePayments.length}
-                  onClick={() => openPaymentsView('overdue')}
-                />
-                <Metric
-                  hint="ждёт / одобрено"
-                  icon={<Clock3 size={18} />}
-                  label="Отсрочки"
-                  tone="violet"
-                  value={`${delayRequestedPayments.length} / ${delayedPayments.length}`}
-                  onClick={() => openPaymentsView('actions')}
-                />
-              </section>
-              </>
-            )}
-
-          </>
+          <OverviewSection
+            activeUser={activeUser}
+            activeMemberPayment={activeMemberPayment}
+            activeMemberTrainer={activeMemberTrainer}
+            activeMemberGroup={activeMemberGroup}
+            activeMemberSchedule={activeMemberSchedule}
+            todayTasks={todayTasks}
+            todayTaskCount={todayTaskCount}
+            todayTaskHeadline={todayTaskHeadline}
+            visibleGroups={visibleGroups}
+            paidAmount={paidAmount}
+            currentPayments={currentPayments}
+            overduePayments={overduePayments}
+            delayRequestedPayments={delayRequestedPayments}
+            delayedPayments={delayedPayments}
+            delayDraftFor={delayDraftFor}
+            updateDelayDraft={updateDelayDraft}
+            submitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
+            requestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
+            openPrepayment={openPrepayment}
+            openPaymentsView={openPaymentsView}
+            openOverviewInviteFlow={openOverviewInviteFlow}
+            isPendingAction={isPendingAction}
+          />
         ) : null}
-
         {activeSection === 'people' ? (
           <section className="crm-content-grid">
             <PeoplePanel
@@ -1789,12 +1619,12 @@ export function DashboardApp(): React.ReactElement {
               <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={addPerson}>
                 <div className="crm-panel-header">
                   <div>
-                    <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'Новый ученик' : 'Новый человек'}</h2>
-                    <p>Добавление в клуб</p>
+                    <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'РќРѕРІС‹Р№ СѓС‡РµРЅРёРє' : 'РќРѕРІС‹Р№ С‡РµР»РѕРІРµРє'}</h2>
+                    <p>Р”РѕР±Р°РІР»РµРЅРёРµ РІ РєР»СѓР±</p>
                   </div>
                   <button
                     className="form-close-button"
-                    aria-label="Закрыть форму"
+                    aria-label="Р—Р°РєСЂС‹С‚СЊ С„РѕСЂРјСѓ"
                     type="button"
                     onClick={() => setMobileFormOpen(false)}
                   >
@@ -1812,7 +1642,7 @@ export function DashboardApp(): React.ReactElement {
                         setPersonDraft((current) => ({ ...current, role: 'trainer' }));
                       }}
                     >
-                      Тренер
+                      РўСЂРµРЅРµСЂ
                     </button>
                     <button
                       className={personDraft.role === 'member' ? 'active' : ''}
@@ -1823,15 +1653,15 @@ export function DashboardApp(): React.ReactElement {
                         setPersonDraft((current) => ({ ...current, role: 'member' }));
                       }}
                     >
-                      Ученик
+                      РЈС‡РµРЅРёРє
                     </button>
                   </div>
                 ) : null}
 
                 {!isMemberInviteForm ? (
                   <>
-                    <label>Имя<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
-                    <label>Фамилия<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
+                    <label>РРјСЏ<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
+                    <label>Р¤Р°РјРёР»РёСЏ<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
                   </>
                 ) : null}
                 {!isLocalMode &&
@@ -1841,7 +1671,7 @@ export function DashboardApp(): React.ReactElement {
                 ) ? (
                   <div className="split-fields">
                     <label>
-                      Логин
+                      Р›РѕРіРёРЅ
                       <input
                         minLength={3}
                         pattern="[A-Za-z0-9._-]+"
@@ -1856,7 +1686,7 @@ export function DashboardApp(): React.ReactElement {
                       />
                     </label>
                     <label>
-                      Временный пароль
+                      Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ
                       <input
                         minLength={6}
                         required
@@ -1876,13 +1706,13 @@ export function DashboardApp(): React.ReactElement {
                   (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
                   personDraft.role === 'member'
                 ) ? (
-                  <label>Телефон <span className="optional-label">необязательно</span><input value={personDraft.phone} onChange={(event) => setPersonDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
+                  <label>РўРµР»РµС„РѕРЅ <span className="optional-label">РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ</span><input value={personDraft.phone} onChange={(event) => setPersonDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
                 ) : null}
 
                 {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? (
                   <>
                     <label>
-                      Группа
+                      Р“СЂСѓРїРїР°
                       <select
                         required
                         value={personDraft.groupId}
@@ -1893,22 +1723,22 @@ export function DashboardApp(): React.ReactElement {
                           }))
                         }
                       >
-                        <option value="">Выберите группу</option>
+                        <option value="">Р’С‹Р±РµСЂРёС‚Рµ РіСЂСѓРїРїСѓ</option>
                         {visibleGroups.map((group) => (
                           <option key={group.id} value={group.id}>
-                            {group.activity} · {group.days} {group.time}
+                            {group.activity} В· {group.days} {group.time}
                           </option>
                         ))}
                       </select>
                     </label>
                     <p className="inline-hint invite-form-hint">
-                      Ученик сам создаст логин и пароль по ссылке. После регистрации он автоматически появится в этой группе.
+                      РЈС‡РµРЅРёРє СЃР°Рј СЃРѕР·РґР°СЃС‚ Р»РѕРіРёРЅ Рё РїР°СЂРѕР»СЊ РїРѕ СЃСЃС‹Р»РєРµ. РџРѕСЃР»Рµ СЂРµРіРёСЃС‚СЂР°С†РёРё РѕРЅ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРѕСЏРІРёС‚СЃСЏ РІ СЌС‚РѕР№ РіСЂСѓРїРїРµ.
                     </p>
                   </>
                 ) : null}
 
                 <button className="primary-button" type="submit">
-                  {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? 'Создать приглашение' : 'Добавить тренера'}
+                  {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? 'РЎРѕР·РґР°С‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ' : 'Р”РѕР±Р°РІРёС‚СЊ С‚СЂРµРЅРµСЂР°'}
                 </button>
 
                 {memberInvite &&
@@ -1916,7 +1746,7 @@ export function DashboardApp(): React.ReactElement {
                   personDraft.role === 'member') ? (
                   <InviteResultCard
                     invite={memberInvite}
-                    inputLabel="Ссылка-приглашение"
+                    inputLabel="РЎСЃС‹Р»РєР°-РїСЂРёРіР»Р°С€РµРЅРёРµ"
                     onCopy={() => void copyMemberInvite()}
                     onClose={closeMemberInvite}
                     onShare={() => void shareMemberInvite()}
@@ -2044,7 +1874,7 @@ export function DashboardApp(): React.ReactElement {
             {memberInvite ? (
                 <InviteResultCard
                   invite={memberInvite}
-                  inputLabel="Ссылка для набора"
+                  inputLabel="РЎСЃС‹Р»РєР° РґР»СЏ РЅР°Р±РѕСЂР°"
                   className="group-invite-result"
                   onCopy={() => void copyMemberInvite()}
                   onClose={closeMemberInvite}
@@ -2063,7 +1893,7 @@ export function DashboardApp(): React.ReactElement {
                 isPending={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
                 submitLabel={buttonLabel(
                   `save-group:${editingGroupId || 'new'}`,
-                  editingGroupId ? 'Сохранить группу' : 'Создать группу'
+                  editingGroupId ? 'РЎРѕС…СЂР°РЅРёС‚СЊ РіСЂСѓРїРїСѓ' : 'РЎРѕР·РґР°С‚СЊ РіСЂСѓРїРїСѓ'
                 )}
                 trainerName={userName}
                 onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
@@ -2080,11 +1910,11 @@ export function DashboardApp(): React.ReactElement {
           <section className="crm-panel">
             <div className="crm-panel-header">
               <div>
-                <h2>{activeUser.role === 'member' ? 'Моё расписание' : 'Расписание учеников'}</h2>
+                <h2>{activeUser.role === 'member' ? 'РњРѕС‘ СЂР°СЃРїРёСЃР°РЅРёРµ' : 'Р Р°СЃРїРёСЃР°РЅРёРµ СѓС‡РµРЅРёРєРѕРІ'}</h2>
                 <p>
                   {activeUser.role === 'member'
-                    ? 'Актуальные дни и время тренировок'
-                    : 'Одна понятная строка расписания на ученика'}
+                    ? 'РђРєС‚СѓР°Р»СЊРЅС‹Рµ РґРЅРё Рё РІСЂРµРјСЏ С‚СЂРµРЅРёСЂРѕРІРѕРє'
+                    : 'РћРґРЅР° РїРѕРЅСЏС‚РЅР°СЏ СЃС‚СЂРѕРєР° СЂР°СЃРїРёСЃР°РЅРёСЏ РЅР° СѓС‡РµРЅРёРєР°'}
                 </p>
               </div>
             </div>
@@ -2092,34 +1922,34 @@ export function DashboardApp(): React.ReactElement {
             {activeUser.role === 'member' ? (
               <div className="member-schedule-detail">
                 <div>
-                  <span>Направление</span>
-                  <strong>{activeMemberGroup?.activity ?? 'Не назначено'}</strong>
+                  <span>РќР°РїСЂР°РІР»РµРЅРёРµ</span>
+                  <strong>{activeMemberGroup?.activity ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅРѕ'}</strong>
                 </div>
                 <div>
-                  <span>Дни</span>
-                  <strong>{activeMemberSchedule?.days ?? 'Не назначены'}</strong>
+                  <span>Р”РЅРё</span>
+                  <strong>{activeMemberSchedule?.days ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅС‹'}</strong>
                 </div>
                 <div>
-                  <span>Время</span>
-                  <strong>{activeMemberSchedule?.time ?? 'Не назначено'}</strong>
+                  <span>Р’СЂРµРјСЏ</span>
+                  <strong>{activeMemberSchedule?.time ?? 'РќРµ РЅР°Р·РЅР°С‡РµРЅРѕ'}</strong>
                 </div>
                 <div>
-                  <span>Тренер</span>
+                  <span>РўСЂРµРЅРµСЂ</span>
                   <strong>
                     {activeMemberTrainer
                       ? `${activeMemberTrainer.first_name} ${activeMemberTrainer.last_name}`
-                      : 'Не назначен'}
+                      : 'РќРµ РЅР°Р·РЅР°С‡РµРЅ'}
                   </strong>
                 </div>
                 <div>
-                  <span>Комментарий</span>
-                  <strong>{activeMemberSchedule?.note || 'Нет комментария'}</strong>
+                  <span>РљРѕРјРјРµРЅС‚Р°СЂРёР№</span>
+                  <strong>{activeMemberSchedule?.note || 'РќРµС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ'}</strong>
                 </div>
               </div>
             ) : (
               <div className="schedule-table">
                 <div className="schedule-head">
-                  <span>Ученик</span><span>Дни</span><span>Время</span><span>Комментарий</span><span>Действие</span>
+                  <span>РЈС‡РµРЅРёРє</span><span>Р”РЅРё</span><span>Р’СЂРµРјСЏ</span><span>РљРѕРјРјРµРЅС‚Р°СЂРёР№</span><span>Р”РµР№СЃС‚РІРёРµ</span>
                 </div>
                 {visibleMembers.map((member) => {
                   const edit = scheduleEditFor(member.id);
@@ -2127,10 +1957,10 @@ export function DashboardApp(): React.ReactElement {
                     <div className="schedule-row" key={member.id}>
                       <div>
                         <strong>{userName(member.id)}</strong>
-                        <span>{trainerFor(member.id)?.first_name ?? 'Без тренера'}</span>
+                        <span>{trainerFor(member.id)?.first_name ?? 'Р‘РµР· С‚СЂРµРЅРµСЂР°'}</span>
                       </div>
                       <input
-                        placeholder="Пн, Ср, Пт"
+                        placeholder="РџРЅ, РЎСЂ, РџС‚"
                         value={edit.days}
                         onChange={(event) =>
                           updateScheduleEdit(member.id, { days: event.target.value })
@@ -2144,7 +1974,7 @@ export function DashboardApp(): React.ReactElement {
                         }
                       />
                       <input
-                        placeholder="Зал или группа"
+                        placeholder="Р—Р°Р» РёР»Рё РіСЂСѓРїРїР°"
                         value={edit.note}
                         onChange={(event) =>
                           updateScheduleEdit(member.id, { note: event.target.value })
@@ -2155,13 +1985,13 @@ export function DashboardApp(): React.ReactElement {
                         type="button"
                         onClick={() => saveSchedule(member.id)}
                       >
-                        Сохранить
+                        РЎРѕС…СЂР°РЅРёС‚СЊ
                       </button>
                     </div>
                   );
                 })}
                 {visibleMembers.length === 0 ? (
-                  <p className="empty-state">Ученики ещё не добавлены.</p>
+                  <p className="empty-state">РЈС‡РµРЅРёРєРё РµС‰С‘ РЅРµ РґРѕР±Р°РІР»РµРЅС‹.</p>
                 ) : null}
               </div>
             )}
@@ -2199,40 +2029,6 @@ export function DashboardApp(): React.ReactElement {
   );
 }
 
-function Metric({
-  hint,
-  icon,
-  label,
-  onClick,
-  tone = 'violet',
-  value
-}: {
-  hint?: string;
-  icon?: React.ReactNode;
-  label: string;
-  onClick?: () => void;
-  tone?: 'violet' | 'danger';
-  value: React.ReactNode;
-}): React.ReactElement {
-  const content = (
-    <>
-      {icon ? <span className="metric-icon">{icon}</span> : null}
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {hint ? <small>{hint}</small> : null}
-    </>
-  );
-
-  if (onClick) {
-    return (
-      <button className={`metric-card metric-card-button ${tone}`} type="button" onClick={onClick}>
-        {content}
-      </button>
-    );
-  }
-
-  return <article className={`metric-card ${tone}`}>{content}</article>;
-}
 
 function NavButton({
   active,
