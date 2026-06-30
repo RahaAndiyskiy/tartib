@@ -29,7 +29,6 @@ import {
   resetWorkspace,
   writeActiveUserId,
   writeWorkspace,
-  type LocalBillingPlan,
   type LocalExpense,
   type LocalNotification,
   type LocalTrainingGroup,
@@ -104,6 +103,7 @@ import { InviteLinkModal } from './InviteLinkModal';
 import { InviteResultCard } from './InviteResultCard';
 import {
   assignMemberToGroupAction,
+  createLocalPersonAction,
   createMemberInviteAction,
   createTrainerAction,
   deleteMemberAction,
@@ -879,94 +879,20 @@ export function DashboardApp(): React.ReactElement {
       return;
     }
 
-    const now = new Date().toISOString();
-    const personId = createId();
-    const person: AppUser = {
-      id: personId,
-      auth_user_id: null,
-      organization_id: workspace.organization.id,
+    const result = createLocalPersonAction({
+      workspace,
+      draft: personDraft,
       role: effectiveRole,
-      roles: [effectiveRole],
-      first_name: personDraft.firstName.trim(),
-      last_name: personDraft.lastName.trim(),
-      email: personDraft.email.trim() || null,
-      phone: personDraft.phone.trim() || null,
-      created_at: now
-    };
+      selectedGroup: selectedGroup ?? null,
+      trainerId: effectiveTrainerId,
+      now: new Date().toISOString(),
+      periodLabel
+    });
 
-    const nextWorkspace: LocalWorkspace = {
-      ...workspace,
-      users: [...workspace.users, person]
-    };
-
-    if (person.role === 'member') {
-      nextWorkspace.assignments = [
-        ...workspace.assignments,
-        {
-          id: createId(),
-          organization_id: workspace.organization.id,
-          trainer_id: effectiveTrainerId,
-          member_id: personId,
-          created_at: now
-        }
-      ];
-      nextWorkspace.groupMembers = [
-        ...workspace.groupMembers,
-        {
-          id: createId(),
-          groupId: selectedGroup!.id,
-          memberId: personId,
-          createdAt: now
-        }
-      ];
-
-      const calculatedInitialAmount = Number(personDraft.initialAmount);
-
-      if (calculatedInitialAmount > 0 && personDraft.initialDueDate) {
-        const planId = createId();
-        const billingPlan: LocalBillingPlan = {
-          id: planId,
-          memberId: personId,
-          trainerId: effectiveTrainerId,
-          type: personDraft.paymentType,
-          trainingFormat: personDraft.trainingFormat,
-          source: 'individual',
-          baseAmount: calculatedInitialAmount,
-          billingDay:
-            personDraft.paymentType === 'monthly'
-              ? new Date(`${personDraft.initialDueDate}T12:00:00`).getDate()
-              : null,
-          active: true,
-          createdAt: now,
-          updatedAt: now
-        };
-
-        nextWorkspace.billingPlans = [...workspace.billingPlans, billingPlan];
-        nextWorkspace.payments = [
-          ...workspace.payments,
-          {
-            id: createId(),
-            organization_id: workspace.organization.id,
-            member_id: personId,
-            trainer_id: effectiveTrainerId,
-            amount: calculatedInitialAmount,
-            due_date: personDraft.initialDueDate,
-            status: 'active',
-            created_at: now,
-            plan_id: planId,
-            period_label: periodLabel(personDraft.initialDueDate),
-            is_current: true,
-            coverage_months: 1,
-            paid_at: null
-          }
-        ];
-      }
-    }
-
-    saveWorkspace(nextWorkspace);
+    saveWorkspace(result.workspace);
     setPersonDraft(emptyPersonDraft);
     setMessage(
-      person.role === 'member'
+      result.person.role === 'member'
         ? 'Ученик создан и назначен тренеру.'
         : 'Тренер создан. Теперь к нему можно добавлять учеников.'
     );

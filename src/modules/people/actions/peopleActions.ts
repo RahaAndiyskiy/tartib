@@ -1,10 +1,16 @@
 import {
   createId,
+  type LocalBillingPlan,
   type LocalGroupMember,
   type LocalTrainingGroup,
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
-import type { TrainerMember } from '@shared/types/domain';
+import type {
+  AppUser,
+  BillingPlanType,
+  TrainerMember,
+  TrainingFormat
+} from '@shared/types/domain';
 
 type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
 
@@ -23,6 +29,119 @@ type CreateTrainerParams = {
   phone: string;
   runRemoteAction: RunRemoteAction;
 };
+
+type LocalPersonDraftLike = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  initialAmount: string;
+  initialDueDate: string;
+  paymentType: BillingPlanType;
+  trainingFormat: TrainingFormat;
+};
+
+export function createLocalPersonAction({
+  workspace,
+  draft,
+  role,
+  selectedGroup,
+  trainerId,
+  now,
+  periodLabel
+}: {
+  workspace: LocalWorkspace;
+  draft: LocalPersonDraftLike;
+  role: 'trainer' | 'member';
+  selectedGroup: LocalTrainingGroup | null;
+  trainerId: string;
+  now: string;
+  periodLabel: (date: string) => string;
+}): { workspace: LocalWorkspace; person: AppUser } {
+  const personId = createId();
+  const person: AppUser = {
+    id: personId,
+    auth_user_id: null,
+    organization_id: workspace.organization.id,
+    role,
+    roles: [role],
+    first_name: draft.firstName.trim(),
+    last_name: draft.lastName.trim(),
+    email: draft.email.trim() || null,
+    phone: draft.phone.trim() || null,
+    created_at: now
+  };
+  const nextWorkspace: LocalWorkspace = {
+    ...workspace,
+    users: [...workspace.users, person]
+  };
+
+  if (person.role === 'member' && selectedGroup) {
+    nextWorkspace.assignments = [
+      ...workspace.assignments,
+      {
+        id: createId(),
+        organization_id: workspace.organization.id,
+        trainer_id: trainerId,
+        member_id: personId,
+        created_at: now
+      }
+    ];
+    nextWorkspace.groupMembers = [
+      ...workspace.groupMembers,
+      {
+        id: createId(),
+        groupId: selectedGroup.id,
+        memberId: personId,
+        createdAt: now
+      }
+    ];
+
+    const calculatedInitialAmount = Number(draft.initialAmount);
+
+    if (calculatedInitialAmount > 0 && draft.initialDueDate) {
+      const planId = createId();
+      const billingPlan: LocalBillingPlan = {
+        id: planId,
+        memberId: personId,
+        trainerId,
+        type: draft.paymentType,
+        trainingFormat: draft.trainingFormat,
+        source: 'individual',
+        baseAmount: calculatedInitialAmount,
+        billingDay:
+          draft.paymentType === 'monthly'
+            ? new Date(`${draft.initialDueDate}T12:00:00`).getDate()
+            : null,
+        active: true,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      nextWorkspace.billingPlans = [...workspace.billingPlans, billingPlan];
+      nextWorkspace.payments = [
+        ...workspace.payments,
+        {
+          id: createId(),
+          organization_id: workspace.organization.id,
+          member_id: personId,
+          trainer_id: trainerId,
+          amount: calculatedInitialAmount,
+          due_date: draft.initialDueDate,
+          status: 'active',
+          created_at: now,
+          plan_id: planId,
+          period_label: periodLabel(draft.initialDueDate),
+          is_current: true,
+          coverage_months: 1,
+          paid_at: null
+        }
+      ];
+    }
+  }
+
+  return { workspace: nextWorkspace, person };
+}
 
 export async function createTrainerAction({
   firstName,

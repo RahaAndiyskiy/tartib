@@ -119,6 +119,7 @@ Important modules:
 - People view selectors and permissions are extracted into `src/modules/people`.
 - Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.
+- Local person creation is extracted into `src/modules/people/actions`; it covers local trainer/member creation, member group assignment and optional initial payment creation.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.
