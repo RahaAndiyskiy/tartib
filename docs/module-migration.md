@@ -23,7 +23,7 @@ Each module is considered migrated only when all layers are moved:
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, member assignment and member deletion actions are in `src/modules/people`; local member creation with initial payment stays in dashboard orchestration until `groups` and `payments` exist. |
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, basic permissions and group deletion are in `src/modules/groups`; dashboard still orchestrates the local group save boundary. |
-| `payments` | partial | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; owner/trainer payment drawer UI still lives in `DashboardApp.tsx`. |
+| `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns payment state wiring and callbacks. |
 | `notifications` | partial | pending | pending | pending | partial | Modal UI is extracted; notification actions still live around dashboard state. |
 | `account` | pending | pending | pending | pending | pending | Account/settings should become a separate module later. |
 | `schedule` | pending | pending | pending | pending | pending | Not a full module yet. |
@@ -49,6 +49,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/payments/components/MemberPaymentPanel.tsx` owns the member-facing payment page UI.
 - `src/modules/payments/components/PaymentWorkspaceRegistryPanel.tsx` owns the owner/trainer payment registry, tabs, search, action groups and paid history list.
 - `src/modules/payments/components/PaymentRegistryRow.tsx` owns compact payment rows inside the payments module.
+- `src/modules/payments/components/PaymentDrawer.tsx` owns the payment drawer, edit form, decisions, prepayment controls, history and delete action UI.
 - `src/modules/payments/index.ts` exposes the current public payments module API.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
@@ -63,7 +64,7 @@ Each module is considered migrated only when all layers are moved:
    - keep only cross-module orchestration in `DashboardApp.tsx`;
    - move remaining local group-save wrapper code when the group boundary is stable.
 4. Continue `payments` module:
-   - move owner/trainer payment drawer UI in small groups;
+   - move remaining payment state wiring/callback adapters out of `DashboardApp.tsx` only when it can be done without hiding cross-module dependencies;
    - keep group-default payment sync inside `payments/actions` and add tests before extending tariff rules.
 
 ## Rule

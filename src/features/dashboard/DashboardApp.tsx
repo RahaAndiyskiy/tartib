@@ -10,7 +10,6 @@ import {
   ExternalLink,
   LayoutDashboard,
   LogOut,
-  MoreHorizontal,
   Plus,
   RotateCcw,
   Settings,
@@ -20,8 +19,7 @@ import {
   Layers3,
   UserRound,
   Wallet,
-  Users,
-  X
+  Users
 } from 'lucide-react';
 import {
   createId,
@@ -48,9 +46,7 @@ import {
 import { formatMoney } from '@shared/constants/app';
 import type {
   AppUser,
-  BillingPlanType,
   PaymentRequest,
-  TrainingFormat
 } from '@shared/types/domain';
 import {
   hasRole,
@@ -136,6 +132,7 @@ import {
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
   MemberPaymentPanel,
+  PaymentDrawer,
   PaymentWorkspaceRegistryPanel,
   mergeDelayDraft,
   mergePaymentEdit,
@@ -2483,394 +2480,50 @@ export function DashboardApp(): React.ReactElement {
               setPaymentEditOpen={setPaymentEditOpen}
             />
             {selectedPaymentMember ? (
-              <>
-                <button
-                  className="payment-drawer-backdrop"
-                  aria-label="Закрыть детали оплаты"
-                  type="button"
-                  onClick={() => setSelectedPaymentMemberId('')}
-                />
-                <aside className="payment-drawer" aria-label={`Оплата: ${userName(selectedPaymentMember.id)}`}>
-                  <div className="payment-drawer-header">
-                    <div>
-                      <span>Оплата ученика</span>
-                      <h2>{userName(selectedPaymentMember.id)}</h2>
-                      <p>
-                        {selectedPaymentGroup?.activity ?? 'Без группы'}
-                        {selectedPayment?.period_label ? ` · ${selectedPayment.period_label}` : ''}
-                      </p>
-                    </div>
-                    <button className="icon-button" aria-label="Закрыть" type="button" onClick={() => setSelectedPaymentMemberId('')}>
-                      <X size={20} />
-                    </button>
-                  </div>
-
-                  <div className="payment-drawer-body">
-                    <div className="payment-concept-strip">
-                      <div>
-                        <span>Условия</span>
-                        <strong>{selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : 'Не настроены'}</strong>
-                      </div>
-                      <ChevronRight size={16} />
-                      <div>
-                        <span>Текущий счёт</span>
-                        <strong>{selectedPayment ? statusLabels[selectedPayment.status] : 'Нет счёта'}</strong>
-                      </div>
-                      <ChevronRight size={16} />
-                      <div>
-                        <span>История</span>
-                        <strong>{selectedPaymentHistory.length} оплат</strong>
-                      </div>
-                    </div>
-                    <div className="payment-split-overview">
-                      <section className="payment-current-card">
-                        <div className="payment-card-heading">
-                          <span>Текущий счёт</span>
-                          <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
-                        </div>
-                        <strong>{selectedPayment ? formatMoney(selectedPayment.amount) : 'Не назначен'}</strong>
-                        <dl>
-                          <div>
-                            <dt>Период</dt>
-                            <dd>{selectedPayment?.period_label ?? 'Текущий период'}</dd>
-                          </div>
-                          <div>
-                            <dt>Оплатить до</dt>
-                            <dd>{formatShortDate(selectedPayment?.due_date)}</dd>
-                          </div>
-                        </dl>
-                      </section>
-
-                      <section className="payment-plan-card">
-                        <div className="payment-card-heading">
-                          <span>Условия оплаты</span>
-                          <strong>{selectedPaymentPlan ? 'Настроены' : 'Не настроены'}</strong>
-                        </div>
-                        <dl>
-                          <div>
-                            <dt>Схема</dt>
-                            <dd>{selectedPaymentPlan ? planLabels[selectedPaymentPlan.type] : '—'}</dd>
-                          </div>
-                          <div>
-                            <dt>Формат</dt>
-                            <dd>
-                              {selectedPaymentPlan?.type === 'monthly'
-                                ? formatLabels[selectedPaymentPlan.trainingFormat]
-                                : '—'}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>Источник</dt>
-                            <dd>
-                              {selectedPaymentPlan?.source === 'individual'
-                                ? 'Индивидуальные'
-                                : selectedPaymentPlan
-                                  ? 'Условия группы'
-                                  : '—'}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>Базовая сумма</dt>
-                            <dd>
-                              {selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : '—'}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>День оплаты</dt>
-                            <dd>
-                              {selectedPaymentPlan?.billingDay
-                                ? `${selectedPaymentPlan.billingDay} число`
-                                : selectedPaymentPlan?.type === 'one_time'
-                                  ? 'Разово'
-                                  : '—'}
-                            </dd>
-                          </div>
-                        </dl>
-                      </section>
-                    </div>
-
-                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && !paymentEditOpen ? (
-                      <button className="ghost-button payment-edit-trigger" type="button" onClick={() => setPaymentEditOpen(true)}>
-                        {selectedPayment ? 'Изменить' : 'Настроить'}
-                      </button>
-                    ) : null}
-
-                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && paymentEditOpen ? (
-                      <div className="payment-edit-form">
-                        <div className="payment-detail-section-heading">
-                          <h3>{selectedPayment ? 'Условия и текущий счёт' : 'Новая оплата ученика'}</h3>
-                          <button className="text-button" type="button" onClick={() => setPaymentEditOpen(false)}>Отмена</button>
-                        </div>
-                        <div className="split-fields">
-                          <label>
-                            Сумма счёта
-                            <input
-                              min="1"
-                              step="0.01"
-                              type="number"
-                              value={paymentEditFor(selectedPaymentMember.id).currentAmount}
-                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { currentAmount: event.target.value })}
-                            />
-                          </label>
-                          <label>
-                            Оплатить до
-                            <input
-                              type="date"
-                              value={paymentEditFor(selectedPaymentMember.id).dueDate}
-                              onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { dueDate: event.target.value })}
-                            />
-                          </label>
-                        </div>
-                        <details className="payment-plan-options">
-                          <summary>
-                            <span>
-                              Условия на будущее
-                              <small>Схема, формат и повторение</small>
-                            </span>
-                            <ChevronRight size={17} />
-                          </summary>
-                          <div className="payment-plan-options-body">
-                            <label>
-                              Схема
-                              <select
-                                value={paymentEditFor(selectedPaymentMember.id).type}
-                                onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { type: event.target.value as BillingPlanType })}
-                              >
-                                <option value="monthly">Абонемент</option>
-                                <option value="one_time">Разовая</option>
-                              </select>
-                            </label>
-                            {paymentEditFor(selectedPaymentMember.id).type === 'monthly' ? (
-                              <label>
-                                Формат
-                                <select
-                                  value={paymentEditFor(selectedPaymentMember.id).trainingFormat}
-                                  onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { trainingFormat: event.target.value as TrainingFormat })}
-                                >
-                                  <option value="group">Группа</option>
-                                  <option value="individual">Индивидуально</option>
-                                </select>
-                              </label>
-                            ) : null}
-                            {paymentEditFor(selectedPaymentMember.id).type !== 'one_time' ? (
-                              <>
-                                <label className="payment-future-toggle">
-                                  <input
-                                    checked={paymentEditFor(selectedPaymentMember.id).individualTerms}
-                                    type="checkbox"
-                                    onChange={(event) =>
-                                      updatePaymentEdit(selectedPaymentMember.id, {
-                                        individualTerms: event.target.checked,
-                                        updateFuture: event.target.checked
-                                          ? true
-                                          : paymentEditFor(selectedPaymentMember.id).updateFuture
-                                      })
-                                    }
-                                  />
-                                  Индивидуальные условия оплаты
-                                </label>
-                                <label className="payment-future-toggle">
-                                  <input
-                                    checked={paymentEditFor(selectedPaymentMember.id).updateFuture}
-                                    type="checkbox"
-                                    disabled={paymentEditFor(selectedPaymentMember.id).individualTerms}
-                                    onChange={(event) => updatePaymentEdit(selectedPaymentMember.id, { updateFuture: event.target.checked })}
-                                  />
-                                  Использовать эту сумму в следующих месяцах
-                                </label>
-                              </>
-                            ) : null}
-                          </div>
-                        </details>
-                        <button
-                          className="primary-button"
-                          type="button"
-                          disabled={isPendingAction(`save-payment:${selectedPaymentMember.id}`)}
-                          onClick={() => void saveMemberPayment(selectedPaymentMember.id)}
-                        >
-                          {buttonLabel(`save-payment:${selectedPaymentMember.id}`, selectedPayment ? 'Сохранить изменения' : 'Назначить оплату')}
-                        </button>
-                      </div>
-                    ) : null}
-
-                    {selectedPayment?.status === 'payment_confirmation' && (hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) ? (
-                      <div className="payment-decision-card">
-                        <div>
-                          <strong>Ученик сообщил об оплате</strong>
-                          <span>Проверьте поступление и примите решение.</span>
-                        </div>
-                        <div className="payment-primary-actions">
-                          <button className="primary-button" type="button" disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)} onClick={() => updatePaymentStatus(selectedPayment.id, 'paid')}>
-                            Подтвердить
-                          </button>
-                          <button className="ghost-button" type="button" disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)} onClick={() => updatePaymentStatus(selectedPayment.id, 'active')}>
-                            Отклонить
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {selectedPayment?.status === 'delay_requested' && (hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) ? (
-                      <div className="payment-decision-card">
-                        <div>
-                          <strong>Запрошена отсрочка до {formatShortDate(selectedPayment.delay_requested_date)}</strong>
-                          <span>{selectedPayment.delay_comment || 'Без комментария'}</span>
-                        </div>
-                        <div className="payment-primary-actions">
-                          <button className="primary-button" type="button" disabled={isPendingAction(`decide-delay:${selectedPayment.id}`)} onClick={() => decidePaymentDelay(selectedPayment.id, true)}>
-                            Одобрить
-                          </button>
-                          <button className="ghost-button" type="button" disabled={isPendingAction(`decide-delay:${selectedPayment.id}`)} onClick={() => decidePaymentDelay(selectedPayment.id, false)}>
-                            Отклонить
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {hasRole(activeUser, 'member') && selectedPayment && canSubmitPayment(selectedPayment) ? (
-                      <div className="member-payment-controls">
-                        <button className="primary-button" type="button" disabled={isPendingAction(`submit-payment:${selectedPayment.id}`)} onClick={() => submitPaymentConfirmation(selectedPayment.id)}>
-                          Я оплатил
-                        </button>
-                        <div className="payment-delay-form">
-                          <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
-                          <label>
-                            Новая дата
-                            <input
-                              min={todayString()}
-                              type="date"
-                              value={delayDraftFor(selectedPayment).requestedDate}
-                              onChange={(event) => updateDelayDraft(selectedPayment.id, { requestedDate: event.target.value })}
-                            />
-                          </label>
-                          <label>
-                            Комментарий
-                            <input
-                              placeholder="Необязательно"
-                              value={delayDraftFor(selectedPayment).comment}
-                              onChange={(event) => updateDelayDraft(selectedPayment.id, { comment: event.target.value })}
-                            />
-                          </label>
-                          <button className="ghost-button" type="button" disabled={isPendingAction(`request-delay:${selectedPayment.id}`)} onClick={() => requestPaymentDelay(selectedPayment.id)}>
-                            Запросить отсрочку
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                    {hasRole(activeUser, 'member') && selectedPayment && paymentLockedText(selectedPayment) ? (
-                      <div className="payment-info-card">
-                        <strong>Оплата ещё не открыта</strong>
-                        <span>
-                          {paymentLockedText(selectedPayment)}
-                          <button type="button" onClick={() => openPrepayment(selectedPayment)}>
-                            предоплату
-                          </button>
-                          .
-                        </span>
-                      </div>
-                    ) : null}
-
-                    {selectedPayment && canSubmitPrepayment(selectedPayment) ? (
-                      <div className="payment-prepay-card" id={`prepayment-${selectedPayment.id}`}>
-                        <div>
-                          <strong>Предоплата</strong>
-                          <span>Можно оплатить раньше срока или закрыть несколько месяцев одним платежом.</span>
-                        </div>
-                        <div className="prepay-months" aria-label="Количество месяцев предоплаты">
-                          {[1, 2, 3].map((months) => (
-                            <button
-                              className={prepaymentMonthsFor(selectedPayment.id) === months ? 'active' : ''}
-                              key={months}
-                              type="button"
-                              onClick={() =>
-                                setPrepaymentMonths((current) => ({
-                                  ...current,
-                                  [selectedPayment.id]: months
-                                }))
-                              }
-                            >
-                              {months} мес.
-                            </button>
-                          ))}
-                        </div>
-                        <div className="prepay-total">
-                          <span>{prepaymentPeriodLabel(selectedPayment.due_date, prepaymentMonthsFor(selectedPayment.id))}</span>
-                          <strong>
-                            {formatMoney(
-                              Number(selectedPaymentPlan?.baseAmount ?? selectedPayment.amount) *
-                              prepaymentMonthsFor(selectedPayment.id)
-                            )}
-                          </strong>
-                        </div>
-                        <button
-                          className="ghost-button"
-                          type="button"
-                          disabled={isPendingAction(`submit-prepayment:${selectedPayment.id}`)}
-                          onClick={() => submitPrepayment(selectedPayment.id)}
-                        >
-                          Отправить предоплату
-                        </button>
-                      </div>
-                    ) : null}
-
-                    <div className="payment-detail-section">
-                      <div className="payment-detail-section-heading">
-                        <h3>Ответственность</h3>
-                      </div>
-                      <dl className="payment-detail-list">
-                        <div><dt>Группа</dt><dd>{selectedPaymentGroup?.activity ?? 'Без группы'}</dd></div>
-                        <div><dt>Тренер</dt><dd>{selectedPaymentTrainer ? `${selectedPaymentTrainer.first_name} ${selectedPaymentTrainer.last_name}` : '—'}</dd></div>
-                      </dl>
-                    </div>
-
-                    <div className="payment-detail-section">
-                      <button
-                        className="payment-history-toggle"
-                        type="button"
-                        onClick={() =>
-                          setHistoryOpenByMember((current) => ({
-                            ...current,
-                            [selectedPaymentMember.id]: !selectedPaymentHistoryOpen
-                          }))
-                        }
-                      >
-                        <span>
-                          <strong>История оплат</strong>
-                          <small>{selectedPaymentHistory.length} записей</small>
-                        </span>
-                        <ChevronRight
-                          className={selectedPaymentHistoryOpen ? 'open' : ''}
-                          size={18}
-                        />
-                      </button>
-                      {selectedPaymentHistoryOpen ? (
-                        <div className="payment-detail-history">
-                          {selectedPaymentHistory.map((payment) => (
-                            <div key={payment.id}>
-                              <span>{payment.period_label ?? payment.due_date}</span>
-                              <strong>{formatMoney(payment.amount)}</strong>
-                            </div>
-                          ))}
-                          {selectedPaymentHistory.length === 0 ? <p>Оплат пока нет.</p> : null}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {(hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')) && selectedPayment && selectedPayment.status !== 'paid' ? (
-                      <details className="payment-more-actions">
-                        <summary><MoreHorizontal size={18} /> Другие действия</summary>
-                        <button className="ghost-button danger" type="button" disabled={isPendingAction(`delete-payment:${selectedPayment.id}`)} onClick={() => void deleteMemberPayment(selectedPayment)}>
-                          Удалить счёт
-                        </button>
-                      </details>
-                    ) : null}
-                  </div>
-                </aside>
-              </>
+              <PaymentDrawer
+                activeUser={activeUser}
+                selectedPaymentMember={selectedPaymentMember}
+                selectedPayment={selectedPayment}
+                selectedPaymentPlan={selectedPaymentPlan}
+                selectedPaymentGroup={selectedPaymentGroup}
+                selectedPaymentTrainer={selectedPaymentTrainer}
+                selectedPaymentHistory={selectedPaymentHistory}
+                selectedPaymentHistoryOpen={selectedPaymentHistoryOpen}
+                paymentEditOpen={paymentEditOpen}
+                paymentEdit={paymentEditFor(selectedPaymentMember.id)}
+                statusLabels={statusLabels}
+                planLabels={planLabels}
+                formatLabels={formatLabels}
+                userName={userName}
+                formatShortDate={formatShortDate}
+                todayString={todayString}
+                prepaymentPeriodLabel={prepaymentPeriodLabel}
+                canManagePayments={hasRole(activeUser, 'owner') || hasRole(activeUser, 'trainer')}
+                canSubmitPayment={canSubmitPayment}
+                canSubmitPrepayment={canSubmitPrepayment}
+                paymentLockedText={paymentLockedText}
+                delayDraftFor={delayDraftFor}
+                updateDelayDraft={updateDelayDraft}
+                prepaymentMonthsFor={prepaymentMonthsFor}
+                setPrepaymentMonths={setPrepaymentMonths}
+                setHistoryOpenByMember={setHistoryOpenByMember}
+                isPendingAction={isPendingAction}
+                buttonLabel={buttonLabel}
+                onClose={() => setSelectedPaymentMemberId('')}
+                onEditOpenChange={setPaymentEditOpen}
+                onEditChange={updatePaymentEdit}
+                onSavePayment={(memberId) => void saveMemberPayment(memberId)}
+                onUpdatePaymentStatus={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
+                onDecidePaymentDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
+                onSubmitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
+                onRequestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
+                onOpenPrepayment={openPrepayment}
+                onSubmitPrepayment={(paymentId) => void submitPrepayment(paymentId)}
+                onDeletePayment={(payment) => void deleteMemberPayment(payment)}
+              />
             ) : null}
           </section>
         ) : null}
-
         {activeSection === 'groups' && canViewGroups(activeUser) ? (
           <section className="crm-content-grid">
             <GroupsPanel

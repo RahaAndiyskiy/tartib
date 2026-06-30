@@ -100,6 +100,7 @@ Recent progress:
 - `PaymentRegistryRow` was moved into `src/modules/payments` for compact payments registry rows.
 - `MemberPaymentPanel` was extracted for the member-facing payment page.
 - `PaymentWorkspaceRegistryPanel` was extracted for owner/trainer payment tabs, search, action groups and paid history list.
+- `PaymentDrawer` was extracted for payment details, edit form, decisions, prepayment, history and delete UI.
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 - People view selectors and permissions were moved into `src/modules/people`.
