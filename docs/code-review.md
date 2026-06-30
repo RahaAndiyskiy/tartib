@@ -104,6 +104,7 @@ Recent progress:
 - `PaymentDrawer` was extracted for payment details, edit form, decisions, prepayment, history and delete UI.
 - `usePaymentUiState` was extracted for payment UI view/search/selection/edit drafts/delay drafts/prepayment months.
 - `PeoplePanel` was extracted into `src/modules/people` for the team list, search/filter controls and member group actions.
+- `PersonFormPanel` was extracted for the add-person form UI.
 - `hasRole` and `roleLabel` were moved into `src/core/roles.ts`.
 - People view selectors and permissions were moved into `src/modules/people`.
 - Member group assignment and member deletion actions were moved into `src/modules/people/actions`.

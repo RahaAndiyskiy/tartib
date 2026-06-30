@@ -21,7 +21,7 @@ Each module is considered migrated only when all layers are moved:
 
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `people` | done | partial | partial | done | partial | `PeoplePanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are in `src/modules/people`; dashboard still owns form state and cross-module UI reactions. |
+| `people` | done | partial | partial | done | partial | `PeoplePanel`, `PersonFormPanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are extracted; dashboard still owns form state and cross-module UI reactions. |
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are in `src/modules/groups`; dashboard still owns cross-module payment-sync callback and UI reactions. |
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
@@ -33,6 +33,7 @@ Each module is considered migrated only when all layers are moved:
 
 - `src/core/roles.ts` owns shared role helpers: `hasRole`, `roleLabel`, `roleLabels`.
 - `src/modules/people/components/PeoplePanel.tsx` owns the team list UI.
+- `src/features/dashboard/components/PersonFormPanel.tsx` owns the dashboard add-person form UI.
 - `src/modules/people/model/selectors.ts` owns people view selectors and filtering.
 - `src/modules/people/permissions.ts` owns people permission helpers.
 - `src/modules/people/actions/peopleActions.ts` owns member group assignment and member deletion actions.

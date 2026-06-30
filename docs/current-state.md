@@ -118,6 +118,7 @@ Important modules:
 - Payment drawer, edit form, decisions, prepayment controls, history and delete UI are extracted into `src/modules/payments/components/PaymentDrawer.tsx`.
 - Payment UI state for view/search/selection/edit drafts/delay drafts/prepayment months is extracted into `src/modules/payments/model/usePaymentUiState.ts`.
 - Team list UI is extracted into `src/modules/people/components/PeoplePanel.tsx`.
+- Add-person form UI is extracted into `src/features/dashboard/components/PersonFormPanel.tsx`.
 - People view selectors and permissions are extracted into `src/modules/people`.
 - Member group assignment and member deletion actions are extracted into `src/modules/people/actions`.
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.

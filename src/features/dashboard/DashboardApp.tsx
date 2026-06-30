@@ -2,7 +2,6 @@
 
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
 import {
   createId,
   reconcileWorkspace,
@@ -72,6 +71,7 @@ import { GroupFormModal } from './GroupFormModal';
 import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
 import { OverviewSection } from './components/OverviewSection';
+import { PersonFormPanel } from './components/PersonFormPanel';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import { markNotificationsReadAction } from '@/modules/notifications';
@@ -1404,145 +1404,22 @@ export function DashboardApp(): React.ReactElement {
               onCreateGroup={openCreateGroup}
               onOpenInviteFlow={openInviteFlow}
             />
-            {!hasRole(activeUser, 'member') ? (
-              <form className={`crm-panel crm-side-form form-stack${mobileFormOpen ? ' mobile-form-open' : ''}`} onSubmit={addPerson}>
-                <div className="crm-panel-header">
-                  <div>
-                    <h2>{hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner') ? 'РќРѕРІС‹Р№ СѓС‡РµРЅРёРє' : 'РќРѕРІС‹Р№ С‡РµР»РѕРІРµРє'}</h2>
-                    <p>Р”РѕР±Р°РІР»РµРЅРёРµ РІ РєР»СѓР±</p>
-                  </div>
-                  <button
-                    className="form-close-button"
-                    aria-label="Р—Р°РєСЂС‹С‚СЊ С„РѕСЂРјСѓ"
-                    type="button"
-                    onClick={() => setMobileFormOpen(false)}
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-
-                {hasRole(activeUser, 'owner') ? (
-                  <div className="segmented-control">
-                    <button
-                      className={personDraft.role === 'trainer' ? 'active' : ''}
-                      type="button"
-                      onClick={() => {
-                        setMemberInvite(null);
-                        setPersonDraft((current) => ({ ...current, role: 'trainer' }));
-                      }}
-                    >
-                      РўСЂРµРЅРµСЂ
-                    </button>
-                    <button
-                      className={personDraft.role === 'member' ? 'active' : ''}
-                      disabled={visibleGroups.length === 0}
-                      type="button"
-                      onClick={() => {
-                        setMemberInvite(null);
-                        setPersonDraft((current) => ({ ...current, role: 'member' }));
-                      }}
-                    >
-                      РЈС‡РµРЅРёРє
-                    </button>
-                  </div>
-                ) : null}
-
-                {!isMemberInviteForm ? (
-                  <>
-                    <label>РРјСЏ<input required value={personDraft.firstName} onChange={(event) => setPersonDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
-                    <label>Р¤Р°РјРёР»РёСЏ<input required value={personDraft.lastName} onChange={(event) => setPersonDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
-                  </>
-                ) : null}
-                {!isLocalMode &&
-                !(
-                  (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
-                  personDraft.role === 'member'
-                ) ? (
-                  <div className="split-fields">
-                    <label>
-                      Р›РѕРіРёРЅ
-                      <input
-                        minLength={3}
-                        pattern="[A-Za-z0-9._-]+"
-                        required
-                        value={personDraft.username}
-                        onChange={(event) =>
-                          setPersonDraft((current) => ({
-                            ...current,
-                            username: event.target.value
-                          }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Р’СЂРµРјРµРЅРЅС‹Р№ РїР°СЂРѕР»СЊ
-                      <input
-                        minLength={6}
-                        required
-                        type="password"
-                        value={personDraft.password}
-                        onChange={(event) =>
-                          setPersonDraft((current) => ({
-                            ...current,
-                            password: event.target.value
-                          }))
-                        }
-                      />
-                    </label>
-                  </div>
-                ) : null}
-                {!(
-                  (hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
-                  personDraft.role === 'member'
-                ) ? (
-                  <label>РўРµР»РµС„РѕРЅ <span className="optional-label">РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ</span><input value={personDraft.phone} onChange={(event) => setPersonDraft((current) => ({ ...current, phone: event.target.value }))} /></label>
-                ) : null}
-
-                {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? (
-                  <>
-                    <label>
-                      Р“СЂСѓРїРїР°
-                      <select
-                        required
-                        value={personDraft.groupId}
-                        onChange={(event) =>
-                          setPersonDraft((current) => ({
-                            ...current,
-                            groupId: event.target.value
-                          }))
-                        }
-                      >
-                        <option value="">Р’С‹Р±РµСЂРёС‚Рµ РіСЂСѓРїРїСѓ</option>
-                        {visibleGroups.map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.activity} В· {group.days} {group.time}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <p className="inline-hint invite-form-hint">
-                      РЈС‡РµРЅРёРє СЃР°Рј СЃРѕР·РґР°СЃС‚ Р»РѕРіРёРЅ Рё РїР°СЂРѕР»СЊ РїРѕ СЃСЃС‹Р»РєРµ. РџРѕСЃР»Рµ СЂРµРіРёСЃС‚СЂР°С†РёРё РѕРЅ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРѕСЏРІРёС‚СЃСЏ РІ СЌС‚РѕР№ РіСЂСѓРїРїРµ.
-                    </p>
-                  </>
-                ) : null}
-
-                <button className="primary-button" type="submit">
-                  {(hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) || personDraft.role === 'member' ? 'РЎРѕР·РґР°С‚СЊ РїСЂРёРіР»Р°С€РµРЅРёРµ' : 'Р”РѕР±Р°РІРёС‚СЊ С‚СЂРµРЅРµСЂР°'}
-                </button>
-
-                {memberInvite &&
-                ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
-                  personDraft.role === 'member') ? (
-                  <InviteResultCard
-                    invite={memberInvite}
-                    inputLabel="РЎСЃС‹Р»РєР°-РїСЂРёРіР»Р°С€РµРЅРёРµ"
-                    onCopy={() => void copyMemberInvite()}
-                    onClose={closeMemberInvite}
-                    onShare={() => void shareMemberInvite()}
-                  />
-                ) : null}
-              </form>
-            ) : null}
+            <PersonFormPanel
+              activeUser={activeUser}
+              draft={personDraft}
+              groups={visibleGroups}
+              invite={memberInvite}
+              isLocalMode={isLocalMode}
+              isOpen={mobileFormOpen}
+              isMemberInviteForm={isMemberInviteForm}
+              onSubmit={addPerson}
+              onClose={() => setMobileFormOpen(false)}
+              onDraftChange={(patch) => setPersonDraft((current) => ({ ...current, ...patch }))}
+              onClearInvite={() => setMemberInvite(null)}
+              onCopyInvite={() => void copyMemberInvite()}
+              onCloseInvite={closeMemberInvite}
+              onShareInvite={() => void shareMemberInvite()}
+            />
           </section>
         ) : null}
 
