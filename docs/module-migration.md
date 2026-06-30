@@ -22,7 +22,7 @@ Each module is considered migrated only when all layers are moved:
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, `PersonFormPanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are extracted; dashboard still owns form state and cross-module UI reactions. |
-| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are in `src/modules/groups`; dashboard still owns cross-module payment-sync callback and UI reactions. |
+| `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, dashboard `GroupsSection`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are extracted; dashboard still owns cross-module payment-sync callback and UI reactions. |
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, dashboard `PaymentWorkspaceSection`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
 | `account` | partial | pending | partial | pending | partial | Profile and organization settings save actions are in `src/modules/account`; settings page UI is in `src/features/dashboard/components/SettingsSection.tsx`; dashboard still owns draft state and orchestration. |
@@ -42,6 +42,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/actions/peopleActions.ts` owns add-person submit decisions and returns a small result object for dashboard-side UI reactions.
 - `src/modules/people/index.ts` exposes the current public people module API.
 - `src/modules/groups/components/GroupsPanel.tsx` owns the group list UI.
+- `src/features/dashboard/components/GroupsSection.tsx` owns dashboard-level groups composition: group list, invite result and group form.
 - `src/modules/groups/model/selectors.ts` owns visible group selectors and group maps.
 - `src/modules/groups/model/draft.ts` owns group draft validation, payment-default parsing, local group building and draft-from-group mapping.
 - `src/modules/groups/permissions.ts` owns basic group access helpers.

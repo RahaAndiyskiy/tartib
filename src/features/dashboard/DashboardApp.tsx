@@ -32,7 +32,6 @@ import {
   canManageGroups,
   canViewGroups,
   deleteGroupAction,
-  GroupsPanel,
   submitGroupDraftAction,
   upsertGroupInWorkspace
 } from '@/modules/groups';
@@ -67,9 +66,8 @@ import {
 } from './utils';
 import { DashboardOverlays } from './components/DashboardOverlays';
 import { DashboardShell } from './components/DashboardShell';
-import { GroupFormModal } from './GroupFormModal';
-import { InviteResultCard } from './InviteResultCard';
 import { ExpensesSection } from './components/ExpensesSection';
+import { GroupsSection } from './components/GroupsSection';
 import { OverviewSection } from './components/OverviewSection';
 import { PersonFormPanel } from './components/PersonFormPanel';
 import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
@@ -1509,53 +1507,42 @@ export function DashboardApp(): React.ReactElement {
             deleteMemberPayment={(payment) => void deleteMemberPayment(payment)}
           />
         ) : null}
-        {activeSection === 'groups' && canViewGroups(activeUser) ? (
-          <section className="crm-content-grid">
-            <GroupsPanel
-              activeUser={activeUser}
-              workspace={workspace}
-              groups={visibleGroups}
-              lastCreatedGroupId={lastCreatedGroupId}
-              isPendingAction={isPendingAction}
-              buttonLabel={buttonLabel}
-              onCreateGroup={openCreateGroup}
-              onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
-              onEditGroup={startGroupEdit}
-              onDeleteGroup={(groupId) => void deleteGroup(groupId)}
-            />
-            {memberInvite ? (
-                <InviteResultCard
-                  invite={memberInvite}
-                  inputLabel="РЎСЃС‹Р»РєР° РґР»СЏ РЅР°Р±РѕСЂР°"
-                  className="group-invite-result"
-                  onCopy={() => void copyMemberInvite()}
-                  onClose={closeMemberInvite}
-                  onShare={() => void shareMemberInvite()}
-                />
-              ) : null}
-
-            {canManageGroups(activeUser) ? (
-              <GroupFormModal
-                draft={groupDraft}
-                trainers={trainers}
-                weekDays={weekDays}
-                isOwner={hasRole(activeUser, 'owner')}
-                isEditing={Boolean(editingGroupId)}
-                isOpen={mobileFormOpen}
-                isPending={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
-                submitLabel={buttonLabel(
-                  `save-group:${editingGroupId || 'new'}`,
-                  editingGroupId ? 'РЎРѕС…СЂР°РЅРёС‚СЊ РіСЂСѓРїРїСѓ' : 'РЎРѕР·РґР°С‚СЊ РіСЂСѓРїРїСѓ'
-                )}
-                trainerName={userName}
-                onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
-                onToggleDay={toggleGroupDay}
-                onSubmit={createGroup}
-                onClose={() => setMobileFormOpen(false)}
-                onCancelEdit={cancelGroupEdit}
-              />
-            ) : null}
-          </section>
+        {activeSection === 'groups' ? (
+          <GroupsSection
+            activeUser={activeUser}
+            workspace={workspace}
+            groups={visibleGroups}
+            trainers={trainers}
+            draft={groupDraft}
+            invite={memberInvite}
+            weekDays={weekDays}
+            canView={canViewGroups(activeUser)}
+            canManage={canManageGroups(activeUser)}
+            isOwner={hasRole(activeUser, 'owner')}
+            isEditing={Boolean(editingGroupId)}
+            isOpen={mobileFormOpen}
+            isPending={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
+            lastCreatedGroupId={lastCreatedGroupId}
+            submitLabel={buttonLabel(
+              `save-group:${editingGroupId || 'new'}`,
+              editingGroupId ? 'Сохранить группу' : 'Создать группу'
+            )}
+            trainerName={userName}
+            isPendingAction={isPendingAction}
+            buttonLabel={buttonLabel}
+            onCreateGroup={openCreateGroup}
+            onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
+            onEditGroup={startGroupEdit}
+            onDeleteGroup={(groupId) => void deleteGroup(groupId)}
+            onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
+            onToggleDay={toggleGroupDay}
+            onSubmit={createGroup}
+            onCloseForm={() => setMobileFormOpen(false)}
+            onCancelEdit={cancelGroupEdit}
+            onCopyInvite={() => void copyMemberInvite()}
+            onCloseInvite={closeMemberInvite}
+            onShareInvite={() => void shareMemberInvite()}
+          />
         ) : null}
 
         {activeSection === 'schedule' ? (

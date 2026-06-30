@@ -113,6 +113,7 @@ Recent progress:
 - Local person creation was moved into `src/modules/people/actions`, including the local member assignment and optional initial payment path.
 - Add-person submit branching was moved into `src/modules/people/actions`; `DashboardApp` now only applies the returned UI/workspace effect.
 - Group create/edit submit branching was moved into `src/modules/groups/actions`; payment default synchronization remains an injected payments dependency.
+- `GroupsSection` was extracted for dashboard-level groups composition.
 - Profile and organization settings save actions were moved into `src/modules/account/actions`.
 - Schedule edit/save logic was moved into `src/modules/schedule/actions`.
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.

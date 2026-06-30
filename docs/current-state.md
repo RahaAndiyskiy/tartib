@@ -126,6 +126,7 @@ Important modules:
 - Local person creation is extracted into `src/modules/people/actions`; it covers local trainer/member creation, member group assignment and optional initial payment creation.
 - Add-person submit decisions are extracted into `src/modules/people/actions`; dashboard now reacts to result objects instead of owning the full remote/local branch.
 - Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
+- Dashboard-level groups composition is extracted into `src/features/dashboard/components/GroupsSection.tsx`.
 - Notification modal UI and mark-read action are extracted into `src/modules/notifications`; dashboard still owns push enable and payment action callbacks.
 - Profile and organization settings save actions are extracted into `src/modules/account`; dashboard still owns settings form UI and draft state.
 - Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`.
