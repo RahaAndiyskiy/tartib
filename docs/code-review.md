@@ -114,6 +114,7 @@ Recent progress:
 - Profile and organization settings save actions were moved into `src/modules/account/actions`.
 - Schedule edit/save logic was moved into `src/modules/schedule/actions`.
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
+- Dashboard derived data and payment UI model wiring were moved into `src/features/dashboard/model/useDashboardData.ts`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.

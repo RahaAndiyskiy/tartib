@@ -1,7 +1,7 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -42,7 +42,6 @@ import {
 } from '@shared/lib/pushClient';
 import { formatMoney } from '@shared/constants/app';
 import type {
-  AppUser,
   PaymentRequest,
 } from '@shared/types/domain';
 import {
@@ -55,8 +54,6 @@ import {
   canViewGroups,
   deleteGroupAction,
   GroupsPanel,
-  mapGroupsById,
-  selectVisibleGroups,
   submitGroupDraftAction,
   upsertGroupInWorkspace
 } from '@/modules/groups';
@@ -114,44 +111,28 @@ import {
   assignMemberToGroupAction,
   createMemberInviteAction,
   deleteMemberAction,
-  filterPeopleForView,
-  mapAssignmentsByMemberId,
-  mapGroupMembershipByMemberId,
   PeoplePanel,
-  selectAllMembers,
-  selectPeopleForView,
-  selectTrainers,
-  selectVisibleMembers,
   submitPersonDraftAction
 } from '@/modules/people';
 import {
   applyGroupDefaultPaymentToMembers,
-  buildMemberPaymentDetails,
-  buildPaymentOverview,
-  buildPaymentRegistry,
-  buildPaymentTasks,
-  buildSelectedPaymentDetails,
   decidePaymentDelayAction,
   decidePaymentStatusAction,
   deleteMemberPaymentAction,
-  mapActivePlansByMemberId,
-  mapCurrentPaymentsByMemberId,
   MemberPaymentPanel,
   PaymentDrawer,
   PaymentWorkspaceRegistryPanel,
-  paymentTaskHeadline,
   requestPaymentDelayAction,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
-  selectVisiblePayments,
   submitPaymentConfirmationAction,
   submitPrepaymentAction,
   upsertBillingPlan,
   upsertPayment,
-  usePaymentUiState,
   validateSavePaymentDraft,
   type PaymentView
 } from '@/modules/payments';
+import { useDashboardData } from './model/useDashboardData';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -386,107 +367,74 @@ export function DashboardApp(): React.ReactElement {
     void refreshRemoteWorkspace(`section:${activeSection}`, 4_000);
   }, [activeSection, isLocalMode, refreshRemoteWorkspace]);
 
-  const activeUser = useMemo(
-    () => workspace?.users.find((user) => user.id === activeUserId) ?? null,
-    [activeUserId, workspace]
-  );
+  const dashboardData = useDashboardData({
+    workspace,
+    activeUserId,
+    historyOpenByMember,
+    peopleSearch,
+    peopleGroupFilter
+  });
 
-  useEffect(() => {
-    if (!activeUser || !workspace) return;
+  const {
+    activeUser,
+    trainers,
+    visibleGroups,
+    visibleMembers,
+    assignmentsByMemberId,
+    groupsById,
+    currentPaymentByMemberId,
+    activePlanByMemberId,
+    trainerFor,
+    groupFor,
+    userName,
+    paymentOverview,
+    paymentRegistry,
+    selectedPaymentDetails,
+    todayTasks,
+    todayTaskCount,
+    todayTaskHeadline,
+    activeMemberDetails,
+    activeMemberTrainer,
+    activeMemberGroup,
+    activeMemberSchedule,
+    unreadNotifications,
+    userNotifications,
+    peopleForView,
+    filteredPeopleForView,
+    currentExpenses,
+    paidExpenses,
+    pendingExpenses,
+    paymentUi
+  } = dashboardData;
 
-    setSettingsDraft({
-      firstName: activeUser.first_name,
-      lastName: activeUser.last_name,
-      phone: activeUser.phone ?? '',
-      organizationName: workspace.organization.name
-    });
-  }, [activeUser, workspace]);
-
-  useEffect(() => {
-    if (isLocalMode || !workspace?.organization.id || !activeUserId) return;
-
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`workspace-live:${workspace.organization.id}:${activeUserId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'payment_requests',
-          filter: `organization_id=eq.${workspace.organization.id}`
-        },
-        () => {
-          void refreshRemoteWorkspace('realtime:payments', 1_000);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${activeUserId}`
-        },
-        () => {
-          void refreshRemoteWorkspace('realtime:notifications', 1_000);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [activeUserId, isLocalMode, refreshRemoteWorkspace, workspace?.organization.id]);
-
-  const trainers = useMemo(() => selectTrainers(workspace), [workspace]);
-
-  const allMembers = useMemo(() => selectAllMembers(workspace), [workspace]);
-
-  const visibleGroups = useMemo(() => selectVisibleGroups(workspace, activeUser), [activeUser, workspace]);
-
-  const visibleMembers = useMemo(
-    () =>
-      selectVisibleMembers({
-        activeUser,
-        allMembers,
-        assignments: workspace?.assignments ?? []
-      }),
-    [activeUser, allMembers, workspace?.assignments]
-  );
-
-  const visiblePayments = useMemo(
-    () => selectVisiblePayments(workspace, activeUser),
-    [activeUser, workspace]
-  );
-
-  const usersById = useMemo(() => {
-    if (!workspace) return new Map<string, AppUser>();
-    return new Map(workspace.users.map((user) => [user.id, user]));
-  }, [workspace]);
-
-  const assignmentsByMemberId = useMemo(
-    () => mapAssignmentsByMemberId(workspace?.assignments ?? []),
-    [workspace?.assignments]
-  );
-
-  const groupsById = useMemo(() => mapGroupsById(workspace?.groups ?? []), [workspace?.groups]);
-
-  const groupMembershipByMemberId = useMemo(
-    () => mapGroupMembershipByMemberId(workspace?.groupMembers ?? []),
-    [workspace?.groupMembers]
-  );
-
-  const currentPaymentByMemberId = useMemo(
-    () => mapCurrentPaymentsByMemberId(workspace?.payments ?? []),
-    [workspace?.payments]
-  );
-
-  const activePlanByMemberId = useMemo(
-    () => mapActivePlansByMemberId(workspace?.billingPlans ?? []),
-    [workspace?.billingPlans]
-  );
-
+  const {
+    currentPayments,
+    paidAmount,
+    delayRequestedPayments,
+    overduePayments,
+    delayedPayments,
+    paymentActionCount
+  } = paymentOverview;
+  const {
+    filteredMembers: filteredPaymentMembers,
+    visibleActionGroups: visiblePaymentActionGroups,
+    paidResults: paidPaymentResults
+  } = paymentRegistry;
+  const {
+    member: selectedPaymentMember,
+    payment: selectedPayment,
+    plan: selectedPaymentPlan,
+    group: selectedPaymentGroup,
+    trainer: selectedPaymentTrainer,
+    history: selectedPaymentHistory,
+    historyOpen: selectedPaymentHistoryOpen
+  } = selectedPaymentDetails;
+  const {
+    payment: activeMemberPayment,
+    plan: activeMemberPlan,
+    history: activeMemberPaymentHistory,
+    historyOpen: activeMemberHistoryOpen
+  } = activeMemberDetails;
   const {
     paymentEdits,
     paymentView,
@@ -508,7 +456,7 @@ export function DashboardApp(): React.ReactElement {
     prepaymentMonthsFor,
     openPaymentsView: openPaymentUiView,
     selectPaymentMember
-  } = usePaymentUiState({ currentPaymentByMemberId, activePlanByMemberId });
+  } = paymentUi;
 
   const isPendingAction = (key: string): boolean => pendingAction === key;
   const buttonLabel = (key: string, defaultLabel: string): string =>
@@ -519,7 +467,6 @@ export function DashboardApp(): React.ReactElement {
           ? 'Удаляем...'
           : 'Сохраняем...'
       : defaultLabel;
-
   const runRemoteActionWithPending = async <T,>(
     payload: Record<string, unknown>,
     pendingKey: string
@@ -531,115 +478,11 @@ export function DashboardApp(): React.ReactElement {
       setPendingAction((current) => (current === pendingKey ? null : current));
     }
   };
-
-  const paymentOverview = useMemo(
-    () =>
-      buildPaymentOverview({
-        visiblePayments,
-        visibleMembers,
-        currentPaymentByMemberId
-      }),
-    [currentPaymentByMemberId, visibleMembers, visiblePayments]
-  );
-  const {
-    currentPayments,
-    paidAmount,
-    confirmationPayments,
-    delayRequestedPayments,
-    overduePayments,
-    delayedPayments,
-    paymentActionCount
-  } = paymentOverview;
-  const currentExpenses = workspace?.expenses.filter((expense) => expense.isCurrent) ?? [];
-  const paidExpenses = workspace?.expenses
-    .filter((expense) => expense.status === 'paid')
-    .reduce((sum, expense) => sum + Number(expense.amount), 0) ?? 0;
-  const pendingExpenses = currentExpenses
-    .filter((expense) => expense.status === 'pending')
-    .reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const paymentRegistry = buildPaymentRegistry({
-    visiblePayments,
-    visibleMembers,
-    currentPaymentByMemberId,
-    paymentView,
-    paymentSearch,
-    userName
-  });
-  const {
-    filteredMembers: filteredPaymentMembers,
-    visibleActionGroups: visiblePaymentActionGroups,
-    paidResults: paidPaymentResults
-  } = paymentRegistry;
-  const selectedPaymentDetails = buildSelectedPaymentDetails({
-    selectedMemberId: selectedPaymentMemberId,
-    visibleMembers,
-    visiblePayments,
-    currentPaymentByMemberId,
-    activePlanByMemberId,
-    usersById,
-    historyOpenByMember,
-    groupForMember: groupFor
-  });
-  const {
-    member: selectedPaymentMember,
-    payment: selectedPayment,
-    plan: selectedPaymentPlan,
-    group: selectedPaymentGroup,
-    trainer: selectedPaymentTrainer,
-    history: selectedPaymentHistory,
-    historyOpen: selectedPaymentHistoryOpen
-  } = selectedPaymentDetails;
-  const todayTasks = buildPaymentTasks({
-    confirmationPayments,
-    delayRequestedPayments,
-    overduePayments
-  }).map((task) => ({
-    ...task,
-    onClick: () => openPaymentsView(task.id === 'overdue' ? 'overdue' : 'actions')
-  }));
-  const todayTaskCount = todayTasks.reduce((sum, task) => sum + task.count, 0);
-  const todayTaskHeadline = paymentTaskHeadline(todayTaskCount);
-  const activeMemberDetails = useMemo(
-    () =>
-      buildMemberPaymentDetails({
-        activeUser,
-        currentPayments,
-        visiblePayments,
-        activePlanByMemberId,
-        historyOpenByMember
-      }),
-    [activePlanByMemberId, activeUser, currentPayments, historyOpenByMember, visiblePayments]
-  );
-  const {
-    payment: activeMemberPayment,
-    plan: activeMemberPlan,
-    history: activeMemberPaymentHistory,
-    historyOpen: activeMemberHistoryOpen
-  } = activeMemberDetails;
-  const activeMemberTrainer =
-    activeUser?.role === 'member' ? trainerFor(activeUser.id) : null;
-  const activeMemberGroup =
-    activeUser?.role === 'member'
-      ? visibleGroups[0] ?? null
-      : null;
-  const activeMemberSchedule =
-    activeUser?.role === 'member'
-      ? activeMemberGroup
-        ? {
-            id: activeMemberGroup.id,
-            memberId: activeUser.id,
-            trainerId: activeMemberGroup.trainerId,
-            days: activeMemberGroup.days,
-            time: activeMemberGroup.time,
-            note: activeMemberGroup.note,
-            updatedAt: activeMemberGroup.updatedAt
-          }
-        : workspace?.schedules.find((schedule) => schedule.memberId === activeUser.id) ?? null
-      : null;
-
-  const unreadNotifications = workspace?.notifications.filter(
-    (notification) => notification.userId === activeUserId && !notification.read
-  ) ?? [];
+  const isMemberInviteForm =
+    Boolean(activeUser) &&
+    !isLocalMode &&
+    ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
+      personDraft.role === 'member');
 
   function saveWorkspace(nextWorkspace: LocalWorkspace): void {
     const reconciledWorkspace = reconcileWorkspace(nextWorkspace);
@@ -1407,41 +1250,6 @@ export function DashboardApp(): React.ReactElement {
     window.location.href = '/login';
   }
 
-  function trainerFor(memberId: string): AppUser | null {
-    if (!workspace) return null;
-    const assignment = assignmentsByMemberId.get(memberId);
-    return assignment ? usersById.get(assignment.trainer_id) ?? null : null;
-  }
-
-  function groupFor(memberId: string): LocalTrainingGroup | null {
-    if (!workspace) return null;
-    const assignment = groupMembershipByMemberId.get(memberId);
-    return assignment ? groupsById.get(assignment.groupId) ?? null : null;
-  }
-
-  function userName(userId: string): string {
-    const user = usersById.get(userId);
-    return user ? `${user.first_name} ${user.last_name}` : 'Неизвестно';
-  }
-
-  const peopleForView = selectPeopleForView({
-    activeUser,
-    visibleMembers,
-    users: workspace?.users ?? []
-  });
-  const filteredPeopleForView = filterPeopleForView({
-    people: peopleForView,
-    search: peopleSearch,
-    groupFilter: peopleGroupFilter,
-    getMemberGroup: groupFor
-  });
-  const isMemberInviteForm =
-    Boolean(activeUser) &&
-    !isLocalMode &&
-    ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
-      personDraft.role === 'member');
-  const userNotifications =
-    workspace?.notifications.filter((notification) => notification.userId === activeUserId) ?? [];
   const sectionMeta: Record<DashboardSection, { title: string; description: string }> = {
     overview: {
       title: 'Обзор',
