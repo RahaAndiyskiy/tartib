@@ -42,10 +42,429 @@ type RunRemoteActionWithPending = <T>(
   pendingKey: string
 ) => Promise<T | null>;
 
+type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
+
 export type RemoteSavePaymentResult = {
   payment: PaymentRequest;
   billingPlan: LocalBillingPlan;
 };
+
+export async function deleteMemberPaymentAction({
+  workspace,
+  payment,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  clearPaymentEdit,
+  confirmDelete,
+  now,
+  createId
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  clearPaymentEdit: (memberId: string) => void;
+  confirmDelete: (message: string) => boolean;
+  now: string;
+  createId: () => string;
+}): Promise<void> {
+  if (!workspace || payment.status === 'paid') return;
+  const confirmed = confirmDelete(
+    `Удалить счёт на ${formatMoney(payment.amount)}? Ученик увидит, что счёт отменён.`
+  );
+  if (!confirmed) return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentDeletionResult>(
+      { action: 'delete_payment', paymentId: payment.id },
+      `delete-payment:${payment.id}`
+    );
+    if (data?.deletedPaymentId) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentDeletion(current, data, activeUserId) : current
+      );
+      clearPaymentEdit(payment.member_id);
+      setMessage('Счёт удалён. Ученику отправлено уведомление.');
+    }
+    return;
+  }
+
+  saveWorkspace(deleteLocalPayment({ workspace, payment, now, createId }));
+  clearPaymentEdit(payment.member_id);
+  setMessage('Счёт удалён. Ученику отправлено уведомление.');
+}
+
+export async function decidePaymentStatusAction({
+  workspace,
+  payment,
+  status,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  clearPaymentEdit,
+  now,
+  createId,
+  statusAfterRejectedAction,
+  addMonthsDate,
+  periodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  status: PaymentRequestStatus;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  clearPaymentEdit: (memberId: string) => void;
+  now: string;
+  createId: () => string;
+  statusAfterRejectedAction: (payment: PaymentRequest) => PaymentRequestStatus;
+  addMonthsDate: (date: string, billingDay: number | null, monthCount: number) => string;
+  periodLabel: (date: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment) return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      {
+        action: 'decide_payment',
+        paymentId: payment.id,
+        approved: status === 'paid'
+      },
+      `decide-payment:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage(status === 'paid' ? 'Оплата подтверждена.' : 'Подтверждение отклонено.');
+    }
+    return;
+  }
+
+  const plan = workspace.billingPlans.find((item) => item.id === payment.plan_id);
+  const resolvedStatus =
+    status === 'active' && payment.status === 'payment_confirmation'
+      ? statusAfterRejectedAction(payment)
+      : status;
+  const notificationMessage =
+    resolvedStatus === 'paid'
+      ? 'Ваша оплата подтверждена ответственным лицом.'
+      : status === 'active' && payment.status === 'payment_confirmation'
+        ? 'Подтверждение оплаты отклонено. Проверьте оплату и отправьте подтверждение повторно.'
+        : null;
+  const activeRecurringPlan =
+    resolvedStatus === 'paid' &&
+    payment.is_current !== false &&
+    plan?.active &&
+    plan.type !== 'one_time'
+      ? plan
+      : null;
+  const shouldAdvance = Boolean(activeRecurringPlan);
+  const nextDueDate = activeRecurringPlan
+    ? addMonthsDate(payment.due_date, activeRecurringPlan.billingDay, payment.coverage_months ?? 1)
+    : null;
+  const nextAmount = Number(activeRecurringPlan?.baseAmount ?? 0);
+  const nextPayment: PaymentRequest | null =
+    activeRecurringPlan && nextDueDate
+      ? {
+          id: createId(),
+          organization_id: payment.organization_id,
+          member_id: payment.member_id,
+          trainer_id: payment.trainer_id,
+          amount: nextAmount,
+          due_date: nextDueDate,
+          status: 'active',
+          created_at: now,
+          plan_id: activeRecurringPlan.id,
+          period_label: periodLabel(nextDueDate),
+          is_current: true,
+          coverage_months: 1,
+          paid_at: null
+        }
+      : null;
+
+  saveWorkspace(
+    decideLocalPaymentStatus({
+      workspace,
+      payment,
+      resolvedStatus,
+      nextPayment,
+      shouldAdvance,
+      notificationMessage,
+      now,
+      createId
+    })
+  );
+  clearPaymentEdit(payment.member_id);
+}
+
+export async function requestPaymentDelayAction({
+  workspace,
+  payment,
+  requestedDate,
+  comment,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  userName,
+  isInvalidRequestedDate
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  requestedDate: string;
+  comment: string;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  userName: (userId: string) => string;
+  isInvalidRequestedDate: (requestedDate: string, dueDate: string) => boolean;
+}): Promise<void> {
+  if (!workspace || !payment) return;
+
+  if (isInvalidRequestedDate(requestedDate, payment.due_date)) {
+    setMessage('Выберите новую дату позже текущего срока оплаты.');
+    return;
+  }
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      {
+        action: 'request_delay',
+        paymentId: payment.id,
+        requestedDate,
+        comment
+      },
+      `request-delay:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage('Запрос отсрочки отправлен.');
+    }
+    return;
+  }
+
+  saveWorkspace(
+    requestLocalPaymentDelay({
+      workspace,
+      payment,
+      requestedDate,
+      comment,
+      now,
+      createId,
+      userName
+    })
+  );
+  setMessage('Запрос отсрочки отправлен.');
+}
+
+export async function decidePaymentDelayAction({
+  workspace,
+  payment,
+  approved,
+  actorId,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  statusForDueDate,
+  periodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  approved: boolean;
+  actorId: string;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  statusForDueDate: (dueDate: string) => Extract<PaymentRequestStatus, 'active' | 'overdue' | 'delayed'>;
+  periodLabel: (date: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment || payment.status !== 'delay_requested') return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      {
+        action: 'decide_delay',
+        paymentId: payment.id,
+        approved
+      },
+      `decide-delay:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
+    }
+    return;
+  }
+
+  saveWorkspace(
+    decideLocalPaymentDelay({
+      workspace,
+      payment,
+      approved,
+      actorId,
+      now,
+      createId,
+      statusForDueDate,
+      periodLabel
+    })
+  );
+  setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
+}
+
+export async function submitPaymentConfirmationAction({
+  workspace,
+  payment,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  canSubmitPayment,
+  now,
+  createId,
+  userName
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  canSubmitPayment: (payment: PaymentRequest) => boolean;
+  now: string;
+  createId: () => string;
+  userName: (userId: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment) return;
+
+  if (!canSubmitPayment(payment)) {
+    setMessage('Счёт ещё не наступил. Предоплату нужно оформить отдельным сценарием.');
+    return;
+  }
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      { action: 'submit_payment', paymentId: payment.id },
+      `submit-payment:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage('Подтверждение отправлено ответственному лицу.');
+    }
+    return;
+  }
+
+  saveWorkspace(submitLocalPaymentConfirmation({ workspace, payment, now, createId, userName }));
+  setMessage('Подтверждение отправлено ответственному лицу.');
+}
+
+export async function submitPrepaymentAction({
+  workspace,
+  payment,
+  plan,
+  months,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  userName,
+  prepaymentPeriodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  plan: LocalBillingPlan | undefined;
+  months: number;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  userName: (userId: string) => string;
+  prepaymentPeriodLabel: (date: string, months: number) => string;
+}): Promise<void> {
+  if (!workspace || !payment || !plan) return;
+
+  const normalizedMonths = Math.max(1, Math.min(12, Math.trunc(months)));
+  const amount = Number(plan.baseAmount) * normalizedMonths;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      { action: 'submit_prepayment', paymentId: payment.id, months: normalizedMonths },
+      `submit-prepayment:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage('Предоплата отправлена тренеру на подтверждение.');
+    }
+    return;
+  }
+
+  saveWorkspace(
+    submitLocalPrepayment({
+      workspace,
+      payment,
+      months: normalizedMonths,
+      amount,
+      periodLabel: prepaymentPeriodLabel(payment.due_date, normalizedMonths),
+      now,
+      createId,
+      userName
+    })
+  );
+  setMessage('Предоплата отправлена тренеру на подтверждение.');
+}
 
 export function validateSavePaymentDraft({
   edit,

@@ -51,7 +51,6 @@ import type {
   AppUser,
   BillingPlanType,
   PaymentRequest,
-  PaymentRequestStatus,
   TrainingFormat
 } from '@shared/types/domain';
 import {
@@ -103,7 +102,6 @@ import {
   paymentLockedText,
   periodLabel,
   prepaymentPeriodLabel,
-  statusAfterRejectedAction,
   todayString
 } from './utils';
 import { NotificationsModal } from './NotificationsModal';
@@ -128,17 +126,15 @@ import {
 } from '@/modules/people';
 import {
   applyGroupDefaultPaymentToMembers,
-  applyRemotePaymentDeletion,
-  applyRemotePaymentMutation,
   buildMemberPaymentDetails,
   buildPaymentOverview,
   buildPaymentRegistry,
   buildPaymentTasks,
   buildSelectedPaymentDetails,
   delayDraftForPayment,
-  decideLocalPaymentDelay,
-  decideLocalPaymentStatus,
-  deleteLocalPayment,
+  decidePaymentDelayAction,
+  decidePaymentStatusAction,
+  deleteMemberPaymentAction,
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
   mergeDelayDraft,
@@ -146,17 +142,15 @@ import {
   paymentEditForMember,
   paymentTaskHeadline,
   prepaymentMonthsForPayment,
-  requestLocalPaymentDelay,
+  requestPaymentDelayAction,
   removePaymentEdit,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
   selectVisiblePayments,
-  submitLocalPaymentConfirmation,
-  submitLocalPrepayment,
+  submitPaymentConfirmationAction,
+  submitPrepaymentAction,
   upsertBillingPlan,
   upsertPayment,
-  type RemotePaymentDeletionResult,
-  type RemotePaymentMutationResult,
   validateSavePaymentDraft,
   type PaymentView
 } from '@/modules/payments';
@@ -1216,118 +1210,52 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {
-    if (!workspace || payment.status === 'paid') return;
-    const confirmed = window.confirm(
-      `Удалить счёт на ${formatMoney(payment.amount)}? Ученик увидит, что счёт отменён.`
-    );
-    if (!confirmed) return;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentDeletionResult>(
-        { action: 'delete_payment', paymentId: payment.id },
-        `delete-payment:${payment.id}`
-      );
-      if (data?.deletedPaymentId) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentDeletion(current, data, activeUserId) : current
-        );
-        setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
-        setMessage('Счёт удалён. Ученику отправлено уведомление.');
-      }
-      return;
-    }
-
-    const now = new Date().toISOString();
-    saveWorkspace(deleteLocalPayment({ workspace, payment, now, createId }));
-    setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
-    setMessage('Счёт удалён. Ученику отправлено уведомление.');
+    await deleteMemberPaymentAction({
+      workspace,
+      payment,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      clearPaymentEdit: (memberId) =>
+        setPaymentEdits((current) => removePaymentEdit(current, memberId)),
+      confirmDelete: (message) => window.confirm(message),
+      now: new Date().toISOString(),
+      createId
+    });
   }
 
-  async function updatePaymentStatus(paymentId: string, status: PaymentRequestStatus): Promise<void> {
-    if (!workspace) return;
+  async function updatePaymentStatus(paymentId: string, status: PaymentRequest['status']): Promise<void> {
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
 
-    const payment = workspace.payments.find((item) => item.id === paymentId);
-    if (!payment) return;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-        {
-          action: 'decide_payment',
-          paymentId,
-          approved: status === 'paid'
-        },
-        `decide-payment:${paymentId}`
-      );
-      if (data?.payment) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
-        );
-        setMessage(status === 'paid' ? 'Оплата подтверждена.' : 'Подтверждение отклонено.');
-      }
-      return;
-    }
-    const now = new Date().toISOString();
-    const plan = workspace.billingPlans.find((item) => item.id === payment?.plan_id);
-    const resolvedStatus =
-      status === 'active' && payment.status === 'payment_confirmation'
-        ? statusAfterRejectedAction(payment)
-        : status;
-    const notificationMessage =
-      resolvedStatus === 'paid'
-        ? 'Ваша оплата подтверждена ответственным лицом.'
-        : status === 'active' && payment.status === 'payment_confirmation'
-          ? 'Подтверждение оплаты отклонено. Проверьте оплату и отправьте подтверждение повторно.'
-          : null;
-    const activeRecurringPlan =
-      resolvedStatus === 'paid' &&
-      payment.is_current !== false &&
-      plan?.active &&
-      plan.type !== 'one_time'
-        ? plan
-        : null;
-    const shouldAdvance = Boolean(activeRecurringPlan);
-    const nextDueDate =
-      activeRecurringPlan
-        ? addMonthsDate(payment.due_date, activeRecurringPlan.billingDay, payment.coverage_months ?? 1)
-        : null;
-    const nextAmount =
-      Number(activeRecurringPlan?.baseAmount ?? 0);
-    const nextPayment: PaymentRequest | null =
-      activeRecurringPlan && nextDueDate
-        ? {
-            id: createId(),
-            organization_id: payment.organization_id,
-            member_id: payment.member_id,
-            trainer_id: payment.trainer_id,
-            amount: nextAmount,
-            due_date: nextDueDate,
-            status: 'active',
-            created_at: now,
-            plan_id: activeRecurringPlan.id,
-            period_label: periodLabel(nextDueDate),
-            is_current: true,
-            coverage_months: 1,
-            paid_at: null
-          }
-        : null;
-
-    saveWorkspace(
-      decideLocalPaymentStatus({
-        workspace,
-        payment,
-        resolvedStatus,
-        nextPayment,
-        shouldAdvance,
-        notificationMessage,
-        now,
-        createId
-      })
-    );
-    if (payment) {
-      setPaymentEdits((current) => removePaymentEdit(current, payment.member_id));
-    }
+    await decidePaymentStatusAction({
+      workspace,
+      payment,
+      status,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      clearPaymentEdit: (memberId) =>
+        setPaymentEdits((current) => removePaymentEdit(current, memberId)),
+      now: new Date().toISOString(),
+      createId,
+      statusAfterRejectedAction: (item) =>
+        item.delay_status === 'approved' &&
+        item.delay_requested_date &&
+        dateAtNoon(item.delay_requested_date) >= dateAtNoon(todayString())
+          ? 'delayed'
+          : dateAtNoon(item.due_date) < dateAtNoon(todayString())
+            ? 'overdue'
+            : 'active',
+      addMonthsDate,
+      periodLabel
+    });
   }
-
   function delayDraftFor(payment: PaymentRequest): DelayDraft {
     return delayDraftForPayment({ drafts: delayDrafts, payment });
   }
@@ -1361,172 +1289,104 @@ export function DashboardApp(): React.ReactElement {
   }
 
   async function requestPaymentDelay(paymentId: string): Promise<void> {
-    if (!workspace || !activeUser || !hasRole(activeUser, 'member')) return;
+    if (!activeUser || !hasRole(activeUser, 'member')) return;
 
-    const payment = workspace.payments.find((item) => item.id === paymentId);
-    if (!payment) return;
-    const draft = delayDraftFor(payment);
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
+    const draft = payment ? delayDraftFor(payment) : { requestedDate: '', comment: '' };
 
-    if (
-      !draft.requestedDate ||
-      dateAtNoon(draft.requestedDate) <= dateAtNoon(payment.due_date) ||
-      dateAtNoon(draft.requestedDate) < dateAtNoon(todayString())
-    ) {
-      setMessage('Выберите новую дату позже текущего срока оплаты.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-        {
-          action: 'request_delay',
-          paymentId,
-          requestedDate: draft.requestedDate,
-          comment: draft.comment
-        },
-        `request-delay:${paymentId}`
-      );
-      if (data?.payment) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
-        );
-        setMessage('Запрос отсрочки отправлен.');
-      }
-      return;
-    }
-
-    const now = new Date().toISOString();
-    saveWorkspace(
-      requestLocalPaymentDelay({
-        workspace,
-        payment,
-        requestedDate: draft.requestedDate,
-        comment: draft.comment,
-        now,
-        createId,
-        userName
-      })
-    );
-    setMessage('Запрос отсрочки отправлен.');
+    await requestPaymentDelayAction({
+      workspace,
+      payment,
+      requestedDate: draft.requestedDate,
+      comment: draft.comment,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      userName,
+      isInvalidRequestedDate: (requestedDate, dueDate) =>
+        !requestedDate ||
+        dateAtNoon(requestedDate) <= dateAtNoon(dueDate) ||
+        dateAtNoon(requestedDate) < dateAtNoon(todayString())
+    });
   }
 
   async function decidePaymentDelay(paymentId: string, approved: boolean): Promise<void> {
-    if (!workspace || !activeUser || (!hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner'))) {
+    if (!activeUser || (!hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner'))) {
       return;
     }
 
-    const payment = workspace.payments.find((item) => item.id === paymentId);
-    if (!payment || payment.status !== 'delay_requested') return;
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
 
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-        {
-          action: 'decide_delay',
-          paymentId,
-          approved
-        },
-        `decide-delay:${paymentId}`
-      );
-      if (data?.payment) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
-        );
-        setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
-      }
-      return;
-    }
-    const now = new Date().toISOString();
-    saveWorkspace(
-      decideLocalPaymentDelay({
-        workspace,
-        payment,
-        approved,
-        actorId: activeUser.id,
-        now,
-        createId,
-        statusForDueDate: (dueDate) =>
-          dateAtNoon(dueDate) < dateAtNoon(todayString())
-            ? 'overdue'
-            : approved
-              ? 'delayed'
-              : 'active',
-        periodLabel
-      })
-    );
-    setMessage(approved ? 'Отсрочка одобрена.' : 'Отсрочка отклонена.');
+    await decidePaymentDelayAction({
+      workspace,
+      payment,
+      approved,
+      actorId: activeUser.id,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      statusForDueDate: (dueDate) =>
+        dateAtNoon(dueDate) < dateAtNoon(todayString())
+          ? 'overdue'
+          : approved
+            ? 'delayed'
+            : 'active',
+      periodLabel
+    });
   }
 
   async function submitPaymentConfirmation(paymentId: string): Promise<void> {
-    if (!workspace) return;
-    const payment = workspace.payments.find((item) => item.id === paymentId);
-    if (!payment) return;
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
 
-    if (!canSubmitPayment(payment)) {
-      setMessage('Счёт ещё не наступил. Предоплату нужно оформить отдельным сценарием.');
-      return;
-    }
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-        { action: 'submit_payment', paymentId },
-        `submit-payment:${paymentId}`
-      );
-      if (data?.payment) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
-        );
-        setMessage('Подтверждение отправлено ответственному лицу.');
-      }
-      return;
-    }
-    const now = new Date().toISOString();
-
-    saveWorkspace(submitLocalPaymentConfirmation({ workspace, payment, now, createId, userName }));
-    setMessage('Подтверждение отправлено ответственному лицу.');
+    await submitPaymentConfirmationAction({
+      workspace,
+      payment,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      canSubmitPayment,
+      now: new Date().toISOString(),
+      createId,
+      userName
+    });
   }
 
   async function submitPrepayment(paymentId: string): Promise<void> {
-    if (!workspace || !activeUser || !hasRole(activeUser, 'member')) return;
+    if (!activeUser || !hasRole(activeUser, 'member')) return;
 
-    const payment = workspace.payments.find((item) => item.id === paymentId);
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
     if (!payment || !canSubmitPrepayment(payment)) return;
 
-    const plan = activePlanByMemberId.get(payment.member_id);
-    if (!plan) return;
-
-    const months = Math.max(1, Math.min(12, Math.trunc(prepaymentMonthsFor(paymentId))));
-    const amount = Number(plan.baseAmount) * months;
-
-    if (!isLocalMode) {
-      const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-        { action: 'submit_prepayment', paymentId, months },
-        `submit-prepayment:${paymentId}`
-      );
-      if (data?.payment) {
-        setWorkspace((current) =>
-          current ? applyRemotePaymentMutation(current, data, activeUserId) : current
-        );
-        setMessage('Предоплата отправлена тренеру на подтверждение.');
-      }
-      return;
-    }
-
-    const now = new Date().toISOString();
-    saveWorkspace(
-      submitLocalPrepayment({
-        workspace,
-        payment,
-        months,
-        amount,
-        periodLabel: prepaymentPeriodLabel(payment.due_date, months),
-        now,
-        createId,
-        userName
-      })
-    );
-    setMessage('Предоплата отправлена тренеру на подтверждение.');
+    await submitPrepaymentAction({
+      workspace,
+      payment,
+      plan: activePlanByMemberId.get(payment.member_id),
+      months: prepaymentMonthsFor(paymentId),
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      userName,
+      prepaymentPeriodLabel
+    });
   }
-
   function createExpense(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!workspace) return;
