@@ -17,6 +17,11 @@ export {
   selectVisiblePayments
 } from './model/selectors';
 export {
+  usePaymentUiState,
+  type DelayDraftState,
+  type PaymentEditState
+} from './model/usePaymentUiState';
+export {
   applyRemotePaymentDeletion,
   applyRemotePaymentMutation,
   applyGroupDefaultPaymentToMembers,

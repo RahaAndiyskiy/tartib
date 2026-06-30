@@ -78,11 +78,9 @@ import {
 } from './constants';
 import type {
   DashboardSection,
-  DelayDraft,
   ExpenseDraft,
   GroupDraft,
   MemberInviteResult,
-  PaymentEdit,
   PersonDraft,
   ScheduleEdit,
   SettingsDraft
@@ -125,7 +123,6 @@ import {
   buildPaymentRegistry,
   buildPaymentTasks,
   buildSelectedPaymentDetails,
-  delayDraftForPayment,
   decidePaymentDelayAction,
   decidePaymentStatusAction,
   deleteMemberPaymentAction,
@@ -134,13 +131,8 @@ import {
   MemberPaymentPanel,
   PaymentDrawer,
   PaymentWorkspaceRegistryPanel,
-  mergeDelayDraft,
-  mergePaymentEdit,
-  paymentEditForMember,
   paymentTaskHeadline,
-  prepaymentMonthsForPayment,
   requestPaymentDelayAction,
-  removePaymentEdit,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
   selectVisiblePayments,
@@ -148,6 +140,7 @@ import {
   submitPrepaymentAction,
   upsertBillingPlan,
   upsertPayment,
+  usePaymentUiState,
   validateSavePaymentDraft,
   type PaymentView
 } from '@/modules/payments';
@@ -158,7 +151,6 @@ export function DashboardApp(): React.ReactElement {
   const [workspace, setWorkspace] = useState<LocalWorkspace | null>(null);
   const [activeUserId, setActiveUserId] = useState('');
   const [personDraft, setPersonDraft] = useState<PersonDraft>(emptyPersonDraft);
-  const [paymentEdits, setPaymentEdits] = useState<Record<string, PaymentEdit>>({});
   const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(emptyExpenseDraft);
   const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
@@ -168,8 +160,6 @@ export function DashboardApp(): React.ReactElement {
     phone: '',
     organizationName: ''
   });
-  const [delayDrafts, setDelayDrafts] = useState<Record<string, DelayDraft>>({});
-  const [prepaymentMonths, setPrepaymentMonths] = useState<Record<string, number>>({});
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
   const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
@@ -184,16 +174,11 @@ export function DashboardApp(): React.ReactElement {
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [paymentView, setPaymentView] = useState<PaymentView>('all');
-  const [paymentSearch, setPaymentSearch] = useState('');
   const [peopleSearch, setPeopleSearch] = useState('');
   const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
   const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
   const [groupEditorOpenByMember, setGroupEditorOpenByMember] = useState<Record<string, boolean>>({});
-  const [selectedPaymentMemberId, setSelectedPaymentMemberId] = useState('');
-  const [paymentEditOpen, setPaymentEditOpen] = useState(false);
   const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
-  const [paymentActionGroupsOpen, setPaymentActionGroupsOpen] = useState<Record<string, boolean>>({});
   const remoteRefreshInFlightRef = useRef(false);
   const lastRemoteRefreshAtRef = useRef(0);
 
@@ -494,6 +479,29 @@ export function DashboardApp(): React.ReactElement {
     [workspace?.billingPlans]
   );
 
+  const {
+    paymentEdits,
+    paymentView,
+    setPaymentView,
+    paymentSearch,
+    setPaymentSearch,
+    selectedPaymentMemberId,
+    setSelectedPaymentMemberId,
+    paymentEditOpen,
+    setPaymentEditOpen,
+    paymentActionGroupsOpen,
+    setPaymentActionGroupsOpen,
+    setPrepaymentMonths,
+    paymentEditFor,
+    updatePaymentEdit,
+    clearPaymentEdit,
+    delayDraftFor,
+    updateDelayDraft: updatePaymentDelayDraft,
+    prepaymentMonthsFor,
+    openPaymentsView: openPaymentUiView,
+    selectPaymentMember
+  } = usePaymentUiState({ currentPaymentByMemberId, activePlanByMemberId });
+
   const isPendingAction = (key: string): boolean => pendingAction === key;
   const buttonLabel = (key: string, defaultLabel: string): string =>
     isPendingAction(key)
@@ -718,9 +726,7 @@ export function DashboardApp(): React.ReactElement {
 
   function openPaymentsView(view: PaymentView): void {
     setActiveSection('payments');
-    setPaymentView(view);
-    setSelectedPaymentMemberId('');
-    setPaymentEditOpen(false);
+    openPaymentUiView(view);
     setMobileFormOpen(false);
     setMobileAccountOpen(false);
     setNotificationsOpen(false);
@@ -732,9 +738,7 @@ export function DashboardApp(): React.ReactElement {
     if (!payment) return;
 
     setActiveSection('payments');
-    setPaymentView(payment.status === 'paid' ? 'paid' : 'all');
-    setSelectedPaymentMemberId(payment.member_id);
-    setPaymentEditOpen(false);
+    selectPaymentMember(payment.member_id, payment.status === 'paid' ? 'paid' : 'all');
     setMobileFormOpen(false);
     setMobileAccountOpen(false);
     setNotificationsOpen(false);
@@ -755,9 +759,7 @@ export function DashboardApp(): React.ReactElement {
 
   function openPrepayment(payment: PaymentRequest): void {
     setActiveSection('payments');
-    setPaymentView('all');
-    setSelectedPaymentMemberId(payment.member_id);
-    setPaymentEditOpen(false);
+    selectPaymentMember(payment.member_id, 'all');
     window.setTimeout(() => {
       document.getElementById(`prepayment-${payment.id}`)?.scrollIntoView({
         behavior: 'smooth',
@@ -1180,7 +1182,7 @@ export function DashboardApp(): React.ReactElement {
         setWorkspace((current) =>
           current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
         );
-        setPaymentEdits((current) => removePaymentEdit(current, memberId));
+        clearPaymentEdit(memberId);
         setMessage('Оплата сохранена.');
       }
       return;
@@ -1202,7 +1204,7 @@ export function DashboardApp(): React.ReactElement {
       periodLabel
     });
     saveWorkspace(result.workspace);
-    setPaymentEdits((current) => removePaymentEdit(current, memberId));
+    clearPaymentEdit(memberId);
     setMessage(result.paymentExisted ? 'Оплата обновлена.' : 'Оплата назначена.');
   }
 
@@ -1216,8 +1218,7 @@ export function DashboardApp(): React.ReactElement {
       saveWorkspace,
       setWorkspace,
       setMessage,
-      clearPaymentEdit: (memberId) =>
-        setPaymentEdits((current) => removePaymentEdit(current, memberId)),
+      clearPaymentEdit,
       confirmDelete: (message) => window.confirm(message),
       now: new Date().toISOString(),
       createId
@@ -1237,8 +1238,7 @@ export function DashboardApp(): React.ReactElement {
       saveWorkspace,
       setWorkspace,
       setMessage,
-      clearPaymentEdit: (memberId) =>
-        setPaymentEdits((current) => removePaymentEdit(current, memberId)),
+      clearPaymentEdit,
       now: new Date().toISOString(),
       createId,
       statusAfterRejectedAction: (item) =>
@@ -1253,26 +1253,12 @@ export function DashboardApp(): React.ReactElement {
       periodLabel
     });
   }
-  function delayDraftFor(payment: PaymentRequest): DelayDraft {
-    return delayDraftForPayment({ drafts: delayDrafts, payment });
-  }
 
-  function updateDelayDraft(paymentId: string, patch: Partial<DelayDraft>): void {
+  function updateDelayDraft(paymentId: string, patch: Parameters<typeof updatePaymentDelayDraft>[1]): void {
     const payment = workspace?.payments.find((item) => item.id === paymentId);
     if (!payment) return;
 
-    setDelayDrafts((current) =>
-      mergeDelayDraft({
-        drafts: current,
-        paymentId,
-        currentDraft: delayDraftFor(payment),
-        patch
-      })
-    );
-  }
-
-  function prepaymentMonthsFor(paymentId: string): number {
-    return prepaymentMonthsForPayment(prepaymentMonths, paymentId);
+    updatePaymentDelayDraft(payment, patch);
   }
 
   function canSubmitPrepayment(payment: PaymentRequest): boolean {
@@ -1699,36 +1685,6 @@ export function DashboardApp(): React.ReactElement {
   function userName(userId: string): string {
     const user = usersById.get(userId);
     return user ? `${user.first_name} ${user.last_name}` : 'Неизвестно';
-  }
-
-  function paymentEditFor(memberId: string): PaymentEdit {
-    const payment = currentPaymentByMemberId.get(memberId);
-    const plan = activePlanByMemberId.get(memberId);
-    return paymentEditForMember({
-      edits: paymentEdits,
-      memberId,
-      payment,
-      plan,
-      fallback: {
-        type: 'monthly',
-        trainingFormat: 'group',
-        individualTerms: false,
-        currentAmount: '',
-        dueDate: '',
-        updateFuture: false
-      }
-    });
-  }
-
-  function updatePaymentEdit(memberId: string, patch: Partial<PaymentEdit>): void {
-    setPaymentEdits((current) =>
-      mergePaymentEdit({
-        edits: current,
-        memberId,
-        currentEdit: paymentEditFor(memberId),
-        patch
-      })
-    );
   }
 
   const peopleForView = selectPeopleForView({
