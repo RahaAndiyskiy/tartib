@@ -29,10 +29,8 @@ import {
   resetWorkspace,
   writeActiveUserId,
   writeWorkspace,
-  type LocalExpense,
   type LocalNotification,
   type LocalTrainingGroup,
-  type LocalTrainingSchedule,
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import { getSupabaseClient } from '@shared/lib/supabaseClient';
@@ -103,6 +101,15 @@ import {
   saveOrganizationSettingsAction,
   saveProfileSettingsAction
 } from '@/modules/account';
+import {
+  createExpenseAction,
+  markExpensePaidAction
+} from '@/modules/expenses';
+import {
+  patchScheduleEdit,
+  saveScheduleAction,
+  scheduleEditForMember
+} from '@/modules/schedule';
 import {
   assignMemberToGroupAction,
   createMemberInviteAction,
@@ -1241,129 +1248,80 @@ export function DashboardApp(): React.ReactElement {
   }
   function createExpense(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (!workspace) return;
 
-    const amount = Number(expenseDraft.amount);
-    if (!expenseDraft.name.trim() || amount <= 0 || !expenseDraft.dueDate) {
-      setMessage('Укажите название, сумму и срок расхода.');
+    const result = createExpenseAction({
+      workspace,
+      draft: expenseDraft,
+      now: new Date().toISOString(),
+      createId,
+      periodLabel
+    });
+
+    if (!result) return;
+    if ('error' in result) {
+      setMessage(result.error);
       return;
     }
 
-    const expense: LocalExpense = {
-      id: createId(),
-      name: expenseDraft.name.trim(),
-      amount,
-      dueDate: expenseDraft.dueDate,
-      type: expenseDraft.type,
-      status: 'pending',
-      periodLabel: periodLabel(expenseDraft.dueDate),
-      isCurrent: true,
-      paidAt: null,
-      createdAt: new Date().toISOString()
-    };
-
-    saveWorkspace({
-      ...workspace,
-      expenses: [...workspace.expenses, expense]
-    });
+    saveWorkspace(result.workspace);
     setExpenseDraft(emptyExpenseDraft);
-    setMessage('Расход добавлен.');
+    setMessage(result.message);
   }
 
   function markExpensePaid(expenseId: string): void {
-    if (!workspace) return;
-
-    const expense = workspace.expenses.find((item) => item.id === expenseId);
-    if (!expense) return;
-
-    const nextDueDate =
-      expense.type === 'recurring'
-        ? nextMonthDate(expense.dueDate, new Date(`${expense.dueDate}T12:00:00`).getDate())
-        : null;
-    const nextExpense: LocalExpense | null = nextDueDate
-      ? {
-          ...expense,
-          id: createId(),
-          dueDate: nextDueDate,
-          status: 'pending',
-          periodLabel: periodLabel(nextDueDate),
-          isCurrent: true,
-          paidAt: null,
-          createdAt: new Date().toISOString()
-        }
-      : null;
-
-    saveWorkspace({
-      ...workspace,
-      expenses: [
-        ...workspace.expenses.map((item) =>
-          item.id === expenseId
-            ? {
-                ...item,
-                status: 'paid' as const,
-                paidAt: new Date().toISOString(),
-                isCurrent: false
-              }
-            : item
-        ),
-        ...(nextExpense ? [nextExpense] : [])
-      ]
+    const result = markExpensePaidAction({
+      workspace,
+      expenseId,
+      now: new Date().toISOString(),
+      createId,
+      nextMonthDate,
+      periodLabel
     });
-    setMessage(nextExpense ? 'Расход оплачен, следующий месяц создан.' : 'Расход оплачен.');
+
+    if (!result) return;
+    saveWorkspace(result.workspace);
+    setMessage(result.message);
   }
 
   function scheduleEditFor(memberId: string): ScheduleEdit {
-    const existingEdit = scheduleEdits[memberId];
-    if (existingEdit) return existingEdit;
-
-    const schedule = workspace?.schedules.find((item) => item.memberId === memberId);
-    return {
-      days: schedule?.days ?? '',
-      time: schedule?.time ?? '',
-      note: schedule?.note ?? ''
-    };
+    return scheduleEditForMember({
+      workspace,
+      edits: scheduleEdits,
+      memberId
+    });
   }
 
   function updateScheduleEdit(memberId: string, patch: Partial<ScheduleEdit>): void {
-    setScheduleEdits((current) => ({
-      ...current,
-      [memberId]: {
-        ...scheduleEditFor(memberId),
-        ...patch
-      }
-    }));
+    setScheduleEdits((current) =>
+      patchScheduleEdit({
+        current,
+        workspace,
+        memberId,
+        patch
+      })
+    );
   }
 
   function saveSchedule(memberId: string): void {
-    if (!workspace || !activeUser) return;
+    const result = saveScheduleAction({
+      workspace,
+      activeUser,
+      memberId,
+      edit: scheduleEdits[memberId] ?? scheduleEditFor(memberId),
+      trainer: trainerFor(memberId),
+      now: new Date().toISOString(),
+      createId
+    });
 
-    const edit = scheduleEdits[memberId] ?? scheduleEditFor(memberId);
-    const trainer = trainerFor(memberId);
-    if (!trainer || !edit.days.trim() || !edit.time.trim()) {
-      setMessage('Укажите дни и время тренировок.');
+    if (!result) return;
+    if ('error' in result) {
+      setMessage(result.error);
       return;
     }
 
-    const existing = workspace.schedules.find((schedule) => schedule.memberId === memberId);
-    const schedule: LocalTrainingSchedule = {
-      id: existing?.id ?? createId(),
-      memberId,
-      trainerId: trainer.id,
-      days: edit.days.trim(),
-      time: edit.time.trim(),
-      note: edit.note.trim(),
-      updatedAt: new Date().toISOString()
-    };
-
-    saveWorkspace({
-      ...workspace,
-      schedules: existing
-        ? workspace.schedules.map((item) => (item.id === existing.id ? schedule : item))
-        : [...workspace.schedules, schedule]
-    });
-    setMessage('Расписание сохранено.');
+    saveWorkspace(result.workspace);
+    setMessage(result.message);
   }
-
   async function markNotificationsRead(): Promise<void> {
     await markNotificationsReadAction({
       workspace,

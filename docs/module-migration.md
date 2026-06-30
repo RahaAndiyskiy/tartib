@@ -26,8 +26,8 @@ Each module is considered migrated only when all layers are moved:
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted into `src/modules/payments`; dashboard still owns cross-module callbacks. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
 | `account` | pending | pending | partial | pending | partial | Profile and organization settings save actions are in `src/modules/account`; dashboard still owns settings UI and draft state. |
-| `schedule` | pending | pending | pending | pending | pending | Not a full module yet. |
-| `expenses` | pending | pending | pending | pending | pending | Postponed from MVP core, but code exists and should be modularized later. |
+| `schedule` | pending | partial | partial | pending | partial | Schedule edit helpers and save action are in `src/modules/schedule`; dashboard still owns schedule UI and draft state. |
+| `expenses` | pending | pending | partial | pending | partial | Expense create and mark-paid actions are in `src/modules/expenses`; dashboard still owns expense UI and draft state. |
 
 ## Completed Migration Work
 
@@ -58,6 +58,8 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/notifications/components/NotificationsModal.tsx` owns notification modal UI.
 - `src/modules/notifications/actions/notificationActions.ts` owns marking notifications as read.
 - `src/modules/account/actions/accountActions.ts` owns profile and organization settings save actions.
+- `src/modules/schedule/actions/scheduleActions.ts` owns schedule edit helpers and schedule save action.
+- `src/modules/expenses/actions/expenseActions.ts` owns expense creation and mark-paid action.
 - `docs/modular-architecture.md` defines the target modular monolith architecture.
 
 ## Immediate Next Steps

@@ -112,6 +112,8 @@ Recent progress:
 - Add-person submit branching was moved into `src/modules/people/actions`; `DashboardApp` now only applies the returned UI/workspace effect.
 - Group create/edit submit branching was moved into `src/modules/groups/actions`; payment default synchronization remains an injected payments dependency.
 - Profile and organization settings save actions were moved into `src/modules/account/actions`.
+- Schedule edit/save logic was moved into `src/modules/schedule/actions`.
+- Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.

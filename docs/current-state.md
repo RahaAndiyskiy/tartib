@@ -124,6 +124,8 @@ Important modules:
 - Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
 - Notification modal UI and mark-read action are extracted into `src/modules/notifications`; dashboard still owns push enable and payment action callbacks.
 - Profile and organization settings save actions are extracted into `src/modules/account`; dashboard still owns settings form UI and draft state.
+- Schedule edit/save logic is extracted into `src/modules/schedule`; dashboard still renders the schedule UI.
+- Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save are extracted into `src/modules/groups`.
