@@ -119,6 +119,7 @@ Recent progress:
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
 - Dashboard derived data and payment UI model wiring were moved into `src/features/dashboard/model/useDashboardData.ts`.
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
+- Workspace loading, local sync, remote refresh, persistence and remote action helpers were moved into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Dashboard navigation labels and active-user section correction were moved into `src/features/dashboard/model/navigation.ts`.
 - Dashboard visual shell, global overlays plus overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.

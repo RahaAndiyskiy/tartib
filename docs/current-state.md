@@ -133,6 +133,7 @@ Important modules:
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
 - Dashboard chrome state and common open/close transitions are extracted into `src/features/dashboard/model/useDashboardChrome.ts`.
+- Workspace loading, local sync, remote refresh, persistence and remote action helpers are extracted into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Dashboard section labels and safe section correction on active-user switch are extracted into `src/features/dashboard/model/navigation.ts`.
 - Overview, schedule, settings, expenses, global overlays and the visual dashboard shell are extracted into dashboard components.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.

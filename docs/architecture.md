@@ -55,7 +55,7 @@ public/
 
 `DashboardApp.tsx`
 
-Main dashboard runtime/controller. It still owns workspace loading, local/remote orchestration, drafts and cross-module callbacks. Visual shell and several sections are extracted, but the file is still large and should be split gradually, not rewritten at once.
+Main dashboard runtime/controller. Workspace runtime/chrome state, visual shell and several sections are extracted, but the file still owns drafts, pending action labels and cross-module callbacks. It is still large and should be split gradually, not rewritten at once.
 
 Dashboard support modules:
 
@@ -69,6 +69,8 @@ Dashboard support modules:
 - `src/features/dashboard/components/ScheduleSection.tsx` - schedule page UI.
 - `src/features/dashboard/components/SettingsSection.tsx` - settings page UI.
 - `src/features/dashboard/components/ExpensesSection.tsx` - expenses page UI.
+- `src/features/dashboard/model/useDashboardChrome.ts` - dashboard section, modal and chrome state transitions.
+- `src/features/dashboard/model/useWorkspaceRuntime.ts` - workspace loading, local sync, remote refresh, persistence and remote action helpers.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.
 - `src/features/dashboard/GroupFormModal.tsx` - group create/edit form UI.
 - `src/features/dashboard/InviteLinkModal.tsx` - group invite picker/link modal UI.
