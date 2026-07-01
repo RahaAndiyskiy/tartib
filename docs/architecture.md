@@ -75,6 +75,7 @@ Dashboard support modules:
 - `src/features/dashboard/model/useGroupsController.ts` - group draft state, create/edit/delete handlers and default-payment sync trigger.
 - `src/features/dashboard/model/useNotificationsController.ts` - open notifications and mark-read workflow.
 - `src/features/dashboard/model/usePendingAction.ts` - pending action state, loading button labels and remote action pending wrapper.
+- `src/features/dashboard/model/usePeopleActionsController.ts` - dashboard-side people action orchestration for member group assignment and member deletion.
 - `src/features/dashboard/model/usePeopleFlowController.ts` - person draft, member invite links, share/copy actions and active-user switching.
 - `src/features/dashboard/model/usePaymentNavigation.ts` - payment view navigation, notification payment lookup and prepayment affordance checks.
 - `src/features/dashboard/model/usePaymentActionsController.ts` - dashboard-side payment action orchestration for save/delete payment, confirmation, delay and prepayment flows.

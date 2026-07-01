@@ -21,7 +21,7 @@ Each module is considered migrated only when all layers are moved:
 
 | Module | UI | Model/selectors | Actions | Permissions | Checks | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `people` | done | partial | partial | done | partial | `PeoplePanel`, `PersonFormPanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are extracted; dashboard still owns form state and cross-module UI reactions. |
+| `people` | done | partial | partial | done | partial | `PeoplePanel`, `PersonFormPanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment/delete actions and dashboard action controller are extracted; dashboard still owns people view UI state and cross-module UI reactions. |
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, dashboard `GroupsSection`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are extracted; dashboard still owns cross-module payment-sync callback and UI reactions. |
 | `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, dashboard `PaymentWorkspaceSection`, `usePaymentUiState`, `usePaymentNavigation`, `usePaymentActionsController`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted; dashboard still wires props into payment UI. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
@@ -41,6 +41,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/people/actions/peopleActions.ts` owns local person creation, including member assignment, group membership and optional initial payment creation.
 - `src/modules/people/actions/peopleActions.ts` owns add-person submit decisions and returns a small result object for dashboard-side UI reactions.
 - `src/modules/people/index.ts` exposes the current public people module API.
+- `src/features/dashboard/model/usePeopleActionsController.ts` owns dashboard-side people action orchestration for member group assignment and member deletion.
 - `src/modules/groups/components/GroupsPanel.tsx` owns the group list UI.
 - `src/features/dashboard/components/GroupsSection.tsx` owns dashboard-level groups composition: group list, invite result and group form.
 - `src/modules/groups/model/selectors.ts` owns visible group selectors and group maps.
@@ -91,8 +92,8 @@ Each module is considered migrated only when all layers are moved:
    - move any remaining people-specific mapping that is still in `DashboardApp.tsx`;
    - keep shared payment/group selectors out until those modules exist.
 2. Continue `people` actions:
-   - keep extracting only the pieces that are clearly people-owned;
-   - leave cross-module UI effects and form modal state in the dashboard shell until a dedicated people form module exists.
+   - keep `usePeopleActionsController.ts` as the dashboard/people boundary for assignment and deletion;
+   - leave people view UI state and form modal state in the dashboard shell until a dedicated people page controller exists.
 3. Continue `groups` module:
    - keep only cross-module orchestration in `DashboardApp.tsx`;
    - keep payment default synchronization explicit instead of importing payment ownership into `groups`.

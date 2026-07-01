@@ -35,8 +35,6 @@ import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import {
-  assignMemberToGroupAction,
-  deleteMemberAction,
   PeoplePanel,
 } from '@/modules/people';
 import {
@@ -50,6 +48,7 @@ import { useExpensesController } from './model/useExpensesController';
 import { useGroupsController } from './model/useGroupsController';
 import { useNotificationsController } from './model/useNotificationsController';
 import { usePendingAction } from './model/usePendingAction';
+import { usePeopleActionsController } from './model/usePeopleActionsController';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
 import { usePaymentNavigation } from './model/usePaymentNavigation';
 import { usePaymentActionsController } from './model/usePaymentActionsController';
@@ -315,6 +314,18 @@ export function DashboardApp(): React.ReactElement {
     workspace
   });
   const {
+    assignMemberToGroup,
+    deleteMember
+  } = usePeopleActionsController({
+    groupsById,
+    isLocalMode,
+    runRemoteActionWithPending,
+    saveWorkspace,
+    setMessage,
+    setWorkspace,
+    workspace
+  });
+  const {
     addPerson,
     clearMemberInvite,
     closeMemberInvite,
@@ -383,32 +394,6 @@ export function DashboardApp(): React.ReactElement {
 
   function openSection(section: DashboardSection): void {
     chrome.openSection(section);
-  }
-
-  async function assignMemberToGroup(memberId: string, groupId: string): Promise<void> {
-    await assignMemberToGroupAction({
-      workspace,
-      group: groupsById.get(groupId) ?? null,
-      memberId,
-      groupId,
-      isLocalMode,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage
-    });
-  }
-
-  async function deleteMember(memberId: string): Promise<void> {
-    await deleteMemberAction({
-      workspace,
-      memberId,
-      isLocalMode,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage
-    });
   }
 
   const sectionMeta = buildSectionMeta(activeUser);
