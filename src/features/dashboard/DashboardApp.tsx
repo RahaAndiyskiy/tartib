@@ -9,9 +9,9 @@ import {
 import {
   formatLabels,
   planLabels,
-  statusLabels
+  statusLabels,
+  weekDays
 } from './constants';
-import type { DashboardSection } from './types';
 import {
   addMonthsDate,
   canSubmitPayment,
@@ -25,6 +25,7 @@ import {
   todayString
 } from './utils';
 import { DashboardOverlays } from './components/DashboardOverlays';
+import { DashboardLoadingState } from './components/DashboardLoadingState';
 import { DashboardSections } from './components/DashboardSections';
 import { DashboardShell } from './components/DashboardShell';
 import { useDashboardData } from './model/useDashboardData';
@@ -117,8 +118,6 @@ export function DashboardApp(): React.ReactElement {
     setMessage,
     workspace
   });
-
-  const weekDays = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ'];
 
   const dashboardData = useDashboardData({
     workspace,
@@ -389,32 +388,15 @@ export function DashboardApp(): React.ReactElement {
     visibleGroups
   });
 
-  function openSection(section: DashboardSection): void {
-    chrome.openSection(section);
-  }
-
   const sectionMeta = buildSectionMeta(activeUser);
 
   if (!workspace || !activeUser) {
     return (
-      <main className="app-shell loading-state">
-        <section className="loading-card">
-          <strong>Р—Р°РіСЂСѓР¶Р°РµРј РєР»СѓР±...</strong>
-          {workspaceLoadError ? (
-            <>
-              <p>{workspaceLoadError}</p>
-              <div>
-                <button className="primary-button" type="button" onClick={() => void refreshRemoteWorkspace('manual', 0)}>
-                  РџРѕРІС‚РѕСЂРёС‚СЊ
-                </button>
-                <button className="ghost-button" type="button" onClick={() => { window.location.href = '/login'; }}>
-                  Р’РѕР№С‚Рё Р·Р°РЅРѕРІРѕ
-                </button>
-              </div>
-            </>
-          ) : null}
-        </section>
-      </main>
+      <DashboardLoadingState
+        error={workspaceLoadError}
+        onRetry={() => void refreshRemoteWorkspace('manual', 0)}
+        onLogin={() => { window.location.href = '/login'; }}
+      />
     );
   }
 
@@ -620,7 +602,7 @@ export function DashboardApp(): React.ReactElement {
       mobileFormOpen={mobileFormOpen}
       notificationsOpen={notificationsOpen}
       unreadNotificationCount={unreadNotifications.length}
-      onOpenSection={openSection}
+      onOpenSection={chrome.openSection}
       onSelectActiveUser={selectActiveUser}
       onOpenNewWindow={openNewWindow}
       onReset={handleReset}

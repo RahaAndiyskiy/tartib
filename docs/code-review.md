@@ -82,11 +82,11 @@ Recommended next step:
 - keep client-only display helpers separate;
 - document whether billing dates are organization-local, user-local or UTC-based.
 
-### 4. `DashboardApp.tsx` is still too large
+### 4. `DashboardApp.tsx` is large but now acts as a composition root
 
 File: `src/features/dashboard/DashboardApp.tsx`
 
-The dashboard still contains local workspace behavior, remote mutations, forms, groups, team, payments and settings orchestration in one file.
+The dashboard file remains long because controller dependencies and typed page prop packages are explicit. It no longer contains its own async business actions, section JSX switch, derived-data calculations or local UI state.
 
 Recent progress:
 
@@ -137,25 +137,24 @@ Recent progress:
 - Dashboard navigation labels and active-user section correction were moved into `src/features/dashboard/model/navigation.ts`.
 - Dashboard visual shell, global overlays plus overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
 - The active section switch and typed page composition were moved into `src/features/dashboard/components/DashboardSections.tsx`.
+- Workspace loading/error UI was moved into `src/features/dashboard/components/DashboardLoadingState.tsx`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.
 - Payment view selectors, overview counts, registry filtering, selected payment details and form-state helpers were started in `src/modules/payments`.
 - Payment save validation/build, remote save wrapper, group-default payment synchronization, high-level payment action wrappers and workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions were started in `src/modules/payments/actions`.
 
-Risk:
+Remaining risk:
 
-- small UI changes can affect unrelated flows;
-- duplicated state and message handling are easier to introduce;
-- new AI agents need more context to make safe changes.
+- the explicit prop-package assembly is verbose;
+- broad changes to shared controller contracts still touch the composition root;
+- moving that wiring into a generic mega-hook would hide dependencies, so further extraction should follow real feature boundaries.
 
 Recommended next step:
 
-- do not rewrite it wholesale;
-- extract only around touched features:
-  - remaining team/group cross-module adapters;
-  - shared message/toast helper;
-  - final dashboard composition cleanup after controllers settle.
+- keep `DashboardApp` as an explicit composition root;
+- add focused controller/action tests before changing billing behavior;
+- improve the global notice pattern only when product flows need scoped feedback.
 
 ### 5. Temporary notices are extracted but still global
 

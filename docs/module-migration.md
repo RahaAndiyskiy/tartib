@@ -82,6 +82,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useSettingsController.ts` owns account/organization settings draft sync and save handlers.
 - `src/features/dashboard/model/navigation.ts` owns dashboard section labels and safe section correction when switching active users.
 - `src/features/dashboard/components/DashboardOverlays.tsx` owns global dashboard overlays wiring for notifications, logout confirmation and overview invite link modal.
+- `src/features/dashboard/components/DashboardLoadingState.tsx` owns workspace loading/error UI.
 - `src/features/dashboard/components/DashboardSections.tsx` owns the active section switch and typed page composition.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the dashboard visual shell: sidebar, mobile topbar, header and navigation.
 - `src/features/dashboard/components/OverviewSection.tsx` owns the owner/trainer overview and member overview UI.
@@ -92,18 +93,10 @@ Each module is considered migrated only when all layers are moved:
 
 ## Immediate Next Steps
 
-1. Continue `people` model/selectors:
-   - move any remaining people-specific mapping that is still in `DashboardApp.tsx`;
-   - keep shared payment/group selectors out until those modules exist.
-2. Continue `people` actions:
-   - keep `usePeopleActionsController.ts` as the dashboard/people boundary for assignment and deletion;
-   - leave people view UI state and form modal state in the dashboard shell until a dedicated people page controller exists.
-3. Continue `groups` module:
-   - keep only cross-module orchestration in `DashboardApp.tsx`;
-   - keep payment default synchronization explicit instead of importing payment ownership into `groups`.
-4. Continue `payments` module:
-   - keep `usePaymentActionsController.ts` as the dashboard/payment boundary until payment UI and action props can be composed closer to the payments module;
-   - keep group-default payment sync inside `payments/actions` and add tests before extending tariff rules.
+1. Keep `DashboardApp.tsx` as the explicit composition root; do not hide typed wiring in a generic mega-hook.
+2. Add focused tests around group-default pricing, individual payment overrides and payment status preservation.
+3. Keep cross-module boundaries explicit: groups trigger payment-default synchronization through the payments module.
+4. Replace the global notice string only when scoped success/error feedback is designed.
 
 ## Rule
 

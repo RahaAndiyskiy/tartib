@@ -104,11 +104,12 @@ Main stack:
 
 Important modules:
 
-- `src/features/dashboard/DashboardApp.tsx` is still the main dashboard runtime/controller and is large.
+- `src/features/dashboard/DashboardApp.tsx` is the dashboard composition root: it wires controllers and typed page prop packages but no longer owns business mutations or section JSX.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the visual dashboard shell: sidebar, mobile topbar, header and navigation.
 - Dashboard helper modules now hold shared dashboard types, labels and date/payment helpers.
 - Notification and logout confirmation modals are extracted from `DashboardApp.tsx`.
 - Global dashboard overlay wiring is extracted into `src/features/dashboard/components/DashboardOverlays.tsx`.
+- Workspace loading/error UI is extracted into `src/features/dashboard/components/DashboardLoadingState.tsx`.
 - Active dashboard section rendering is extracted into `src/features/dashboard/components/DashboardSections.tsx`; each page receives a typed prop package instead of being conditionally rendered inside `DashboardApp`.
 - Group create/edit form is extracted into `GroupFormModal`.
 - Overview invite picker/link modal is extracted into `InviteLinkModal`.

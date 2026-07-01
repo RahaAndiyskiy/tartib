@@ -55,7 +55,7 @@ public/
 
 `DashboardApp.tsx`
 
-Main dashboard runtime/controller. Workspace runtime/chrome state, visual shell and several sections are extracted, but the file still owns drafts, pending action labels and cross-module callbacks. It is still large and should be split gradually, not rewritten at once.
+Dashboard composition root. It initializes feature controllers, connects their typed outputs and passes prepared prop packages to the shell, overlays and section switch. Business mutations, section JSX, derived data and local UI state live outside this file. The file is still long because dependencies remain explicit, but it is no longer the owner of domain behavior.
 
 Dashboard support modules:
 
@@ -63,6 +63,7 @@ Dashboard support modules:
 - `src/features/dashboard/constants.ts` - labels and empty draft values.
 - `src/features/dashboard/utils.ts` - dashboard date/payment helper functions.
 - `src/features/dashboard/components/DashboardShell.tsx` - visual dashboard shell: sidebar, mobile topbar, header and navigation.
+- `src/features/dashboard/components/DashboardLoadingState.tsx` - workspace loading/error state with retry and re-login actions.
 - `src/features/dashboard/components/DashboardOverlays.tsx` - global overlay wiring for notifications, logout confirmation and overview invite link modal.
 - `src/features/dashboard/components/DashboardSections.tsx` - active dashboard section switch and typed composition of overview, people, payments, groups, schedule, expenses and settings pages.
 - `src/features/dashboard/components/OverviewSection.tsx` - owner/trainer overview and member overview UI.

@@ -9,6 +9,8 @@ import type {
   PersonDraft
 } from './types';
 
+export const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
 export const emptyPersonDraft: PersonDraft = {
   role: 'trainer',
   firstName: '',
