@@ -118,6 +118,7 @@ Recent progress:
 - Schedule edit/save logic was moved into `src/modules/schedule/actions`.
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
 - Dashboard derived data and payment UI model wiring were moved into `src/features/dashboard/model/useDashboardData.ts`.
+- Push status, enable push, local reset, new window and sign-out actions were moved into `src/features/dashboard/model/useAccountRuntime.ts`.
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers were moved into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and the remote action pending wrapper were moved into `src/features/dashboard/model/usePendingAction.ts`.

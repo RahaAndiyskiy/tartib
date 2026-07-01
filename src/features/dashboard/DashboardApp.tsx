@@ -4,18 +4,10 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import {
   createId,
-  resetWorkspace,
   writeActiveUserId,
   type LocalNotification,
   type LocalTrainingGroup
 } from '@shared/lib/localWorkspace';
-import { getSupabaseClient } from '@shared/lib/supabaseClient';
-import {
-  enablePushNotifications,
-  pushPermissionState,
-  pushSupported,
-  type PushAvailability
-} from '@shared/lib/pushClient';
 import type {
   PaymentRequest,
 } from '@shared/types/domain';
@@ -105,6 +97,7 @@ import {
   buildSectionMeta,
   sectionForActiveUserChange
 } from './model/navigation';
+import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
 import { usePendingAction } from './model/usePendingAction';
 import { useSettingsController } from './model/useSettingsController';
@@ -119,7 +112,6 @@ export function DashboardApp(): React.ReactElement {
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
-  const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
   const chrome = useDashboardChrome('overview');
   const {
     activeSection,
@@ -158,6 +150,18 @@ export function DashboardApp(): React.ReactElement {
     isPendingAction,
     runRemoteActionWithPending
   } = usePendingAction({ runRemoteActionData });
+  const {
+    enablePush,
+    handleReset,
+    openNewWindow,
+    pushStatus,
+    signOut
+  } = useAccountRuntime({
+    isLocalMode,
+    setActiveUserId,
+    setMessage,
+    setWorkspace
+  });
 
   useEffect(() => {
     if (!message) return;
@@ -168,15 +172,6 @@ export function DashboardApp(): React.ReactElement {
 
     return () => window.clearTimeout(timeoutId);
   }, [message]);
-
-  useEffect(() => {
-    if (isLocalMode) {
-      setPushStatus('disabled');
-      return;
-    }
-
-    setPushStatus(pushPermissionState());
-  }, [isLocalMode]);
 
   const weekDays = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ'];
 
@@ -916,48 +911,6 @@ export function DashboardApp(): React.ReactElement {
       saveWorkspace,
       setWorkspace
     });
-  }
-
-  async function enablePush(): Promise<void> {
-    if (!pushSupported()) {
-      setPushStatus('unsupported');
-      setMessage('Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЌС‚РёРј Р±СЂР°СѓР·РµСЂРѕРј.');
-      return;
-    }
-
-    try {
-      const nextStatus = await enablePushNotifications();
-      setPushStatus(nextStatus);
-      setMessage(
-        nextStatus === 'granted'
-          ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РІРєР»СЋС‡РµРЅС‹.'
-          : nextStatus === 'disabled'
-            ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РїРѕРєР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹ РЅР° СЃРµСЂРІРµСЂРµ.'
-            : nextStatus === 'blocked'
-              ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅС‹ РІ РЅР°СЃС‚СЂРѕР№РєР°С… Р±СЂР°СѓР·РµСЂР°.'
-              : 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РІРєР»СЋС‡РµРЅС‹.'
-      );
-    } catch (error) {
-      console.warn('[push] enable failed', error);
-      setMessage(error instanceof Error ? error.message : 'РќРµ СѓРґР°Р»РѕСЃСЊ РІРєР»СЋС‡РёС‚СЊ push-СѓРІРµРґРѕРјР»РµРЅРёСЏ.');
-    }
-  }
-
-  function handleReset(): void {
-    const nextWorkspace = resetWorkspace();
-    const owner = nextWorkspace.users[0];
-    setWorkspace(nextWorkspace);
-    setActiveUserId(owner.id);
-    setMessage('РўРµСЃС‚РѕРІС‹Рµ РґР°РЅРЅС‹Рµ СЃР±СЂРѕС€РµРЅС‹.');
-  }
-
-  function openNewWindow(): void {
-    window.open('/dashboard', '_blank', 'noopener,noreferrer');
-  }
-
-  async function signOut(): Promise<void> {
-    await getSupabaseClient().auth.signOut();
-    window.location.href = '/login';
   }
 
   const sectionMeta = buildSectionMeta(activeUser);

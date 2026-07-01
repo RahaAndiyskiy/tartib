@@ -127,11 +127,12 @@ Important modules:
 - Add-person submit decisions are extracted into `src/modules/people/actions`; dashboard now reacts to result objects instead of owning the full remote/local branch.
 - Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
 - Dashboard-level groups composition is extracted into `src/features/dashboard/components/GroupsSection.tsx`.
-- Notification modal UI and mark-read action are extracted into `src/modules/notifications`; dashboard still owns push enable and payment action callbacks.
-- Profile and organization settings save actions are extracted into `src/modules/account`; dashboard still owns settings form UI and draft state.
+- Notification modal UI and mark-read action are extracted into `src/modules/notifications`; dashboard still owns payment action callbacks.
+- Profile and organization settings save actions are extracted into `src/modules/account`; settings draft sync and save handlers are extracted into `src/features/dashboard/model/useSettingsController.ts`.
 - Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
+- Push status, enable push, local reset, new window and sign-out actions are extracted into `src/features/dashboard/model/useAccountRuntime.ts`.
 - Dashboard chrome state and common open/close transitions are extracted into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers are extracted into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and remote action pending wrapper are extracted into `src/features/dashboard/model/usePendingAction.ts`.
