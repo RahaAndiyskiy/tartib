@@ -52,6 +52,7 @@ export function useWorkspaceRuntime({
       return token ?? null;
     }
 
+    // PWA может проснуться со старой сессией: обновляем токен до перехода на login.
     const refreshed = await supabase.auth.refreshSession();
     return refreshed.data.session?.access_token ?? null;
   }, []);
@@ -72,6 +73,7 @@ export function useWorkspaceRuntime({
       });
     let response = await requestWorkspace(token);
 
+    // Один повтор с новым токеном не выбрасывает пользователя из приложения при истёкшей сессии.
     if (response.status === 401) {
       const refreshedToken = await getAccessToken(true);
       if (refreshedToken) {
@@ -104,6 +106,7 @@ export function useWorkspaceRuntime({
   }, [debugPerformance, getAccessToken, setMessage]);
 
   const refreshRemoteWorkspace = useCallback(async (reason: string, minIntervalMs = 10_000): Promise<void> => {
+    // Focus, visibility и таймер могут сработать вместе, поэтому refresh дедуплицируется.
     if (isLocalMode || remoteRefreshInFlightRef.current) return;
 
     const now = Date.now();
@@ -155,6 +158,7 @@ export function useWorkspaceRuntime({
       return () => listener.subscription.unsubscribe();
     }
 
+    // Local mode синхронизируется между вкладками через localStorage и пользовательское событие.
     syncWorkspace();
     const reminderTimer = window.setInterval(syncWorkspace, 60_000);
     window.addEventListener('storage', syncWorkspace);
@@ -227,6 +231,7 @@ export function useWorkspaceRuntime({
       });
     let response = await requestAction(token);
 
+    // Для мутаций действует та же одноразовая попытка восстановления сессии.
     if (response.status === 401) {
       const refreshedToken = await getAccessToken(true);
       if (refreshedToken) {

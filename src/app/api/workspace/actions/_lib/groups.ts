@@ -49,6 +49,7 @@ async function applyGroupPaymentDefaults(
   const dueDate = dueDateForBillingDay(billingDay);
   const status = (dateValue(dueDate) < dateValue(todayString()) ? 'overdue' : 'active') as PaymentRequestStatus;
 
+  // Групповая цена обновляется параллельно для всех учеников, кроме индивидуальных тарифов.
   const updateResults = await Promise.all((members.data ?? []).map(async (member): Promise<string | null> => {
     const existingPlan = await admin
       .from('billing_plans')
@@ -88,6 +89,7 @@ async function applyGroupPaymentDefaults(
       existingPayment.data &&
       ['payment_confirmation', 'delay_requested', 'paid'].includes(existingPayment.data.status)
     ) {
+      // Начатый процесс оплаты или отсрочки нельзя сбрасывать изменением настроек группы.
       return null;
     }
 

@@ -91,6 +91,7 @@ export function useDashboardData({
     () => mapActivePlansByMemberId(workspace?.billingPlans ?? []),
     [workspace?.billingPlans]
   );
+  // UI оплат всегда строится поверх актуальных карт текущего счёта и активного тарифа.
   const paymentUi = usePaymentUiState({ currentPaymentByMemberId, activePlanByMemberId });
   const {
     paymentView,
@@ -192,6 +193,7 @@ export function useDashboardData({
   const activeMemberSchedule =
     activeUser?.role === 'member'
       ? activeMemberGroup
+        // Расписание группы основное; отдельное расписание остаётся запасным вариантом.
         ? {
             id: activeMemberGroup.id,
             memberId: activeUser.id,

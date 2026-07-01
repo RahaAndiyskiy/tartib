@@ -137,6 +137,7 @@ export function DashboardShell({
         </nav>
 
         <div className="crm-sidebar-footer">
+          {/* Переключение ролей и сброс данных доступны только в локальном тестовом режиме. */}
           {isLocalMode ? (
             <label className="crm-role-select">
               Работать как
@@ -301,6 +302,7 @@ function NavButton({
 }): React.ReactElement {
   const ignoreNextClickRef = useRef(false);
 
+  // iOS после touchend генерирует click: флаг не даёт навигации сработать дважды.
   function handleTouchEnd(event: React.TouchEvent<HTMLButtonElement>): void {
     event.preventDefault();
     ignoreNextClickRef.current = true;

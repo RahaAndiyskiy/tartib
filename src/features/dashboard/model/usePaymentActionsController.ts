@@ -122,6 +122,7 @@ export function usePaymentActionsController({
     }
     if (!edit || !trainerId || !validation.ok) return;
 
+    // В production сервер возвращает изменённые сущности; клиент только точечно обновляет workspace.
     if (!isLocalMode) {
       const data = await saveRemoteMemberPaymentAction({
         memberId,
@@ -140,6 +141,7 @@ export function usePaymentActionsController({
       return;
     }
 
+    // Local mode повторяет тот же сценарий без API и сохраняет результат в локальный workspace.
     const existingPayment = currentPaymentByMemberId.get(memberId);
     const existingPlan = activePlanByMemberId.get(memberId);
     const result = saveLocalMemberPayment({

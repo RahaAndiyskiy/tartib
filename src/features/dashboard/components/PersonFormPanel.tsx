@@ -45,6 +45,7 @@ export function PersonFormPanel({
   if (hasRole(activeUser, 'member')) return null;
 
   const trainerOnly = hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner');
+  // Тренера создаёт владелец, а ученик входит сам по ссылке выбранной группы.
   const createsMemberInvite = trainerOnly || draft.role === 'member';
 
   function selectRole(role: PersonDraft['role']): void {

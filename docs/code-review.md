@@ -88,6 +88,8 @@ File: `src/features/dashboard/DashboardApp.tsx`
 
 The dashboard file remains long because controller dependencies and typed page prop packages are explicit. It no longer contains its own async business actions, section JSX switch, derived-data calculations or local UI state.
 
+The latest cleanup pass also standardized the reading order of the composition root and added concise Russian comments only around non-obvious business and platform rules.
+
 Recent progress:
 
 - dashboard types were moved to `src/features/dashboard/types.ts`;

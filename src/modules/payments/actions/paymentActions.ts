@@ -173,6 +173,9 @@ export async function decidePaymentStatusAction({
     plan.type !== 'one_time'
       ? plan
       : null;
+
+  // Новый текущий счёт создаётся только после подтверждённой оплаты по активному абонементу.
+  // Разовые оплаты завершаются без автоматического продолжения периода.
   const shouldAdvance = Boolean(activeRecurringPlan);
   const nextDueDate = activeRecurringPlan
     ? addMonthsDate(payment.due_date, activeRecurringPlan.billingDay, payment.coverage_months ?? 1)
@@ -482,6 +485,7 @@ export function validateSavePaymentDraft({
   return {
     ok: true,
     amount,
+    // Индивидуальный тариф отделяется от цены группы и больше не синхронизируется с ней.
     source: edit.individualTerms || edit.type === 'one_time' ? 'individual' : 'group_default'
   };
 }
@@ -549,6 +553,7 @@ export function saveLocalMemberPayment({
   periodLabel: (date: string) => string;
 }): { workspace: LocalWorkspace; paymentExisted: boolean } {
   const planId = existingPlan?.id ?? createId();
+  // Изменение только текущего счёта не должно незаметно менять будущую стоимость абонемента.
   const baseAmount = Number(
     edit.individualTerms || edit.updateFuture || !existingPlan
       ? edit.currentAmount
@@ -644,6 +649,7 @@ export function applyGroupDefaultPaymentToMembers({
   statusForDueDate: (date: string) => Extract<PaymentRequestStatus, 'active' | 'overdue'>;
 }): Pick<LocalWorkspace, 'billingPlans' | 'payments'> {
   const memberIdSet = new Set(memberIds);
+  // Групповая цена применяется только к ученикам без индивидуальных условий.
   const updatedPlans = workspace.billingPlans.map((plan) =>
     memberIdSet.has(plan.memberId) && plan.active && plan.source !== 'individual'
       ? {
@@ -689,6 +695,7 @@ export function applyGroupDefaultPaymentToMembers({
       const plan = currentPlanByMemberId.get(payment.member_id);
       if (!payment.is_current || !memberIdSet.has(payment.member_id) || !plan) return payment;
       if (plan.source === 'individual') return payment;
+      // Счёт с начатым процессом оплаты или отсрочки нельзя сбрасывать групповым обновлением.
       if (lockedStatuses.includes(payment.status)) return payment;
 
       return {

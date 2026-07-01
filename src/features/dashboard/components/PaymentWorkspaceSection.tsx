@@ -135,6 +135,7 @@ export function PaymentWorkspaceSection({
 }: PaymentWorkspaceSectionProps): React.ReactElement {
   return (
     <section className="payments-workspace">
+      {/* Реестр отвечает за поиск и выбор ученика; детали выбранной оплаты открываются отдельно. */}
       <PaymentWorkspaceRegistryPanel
         paymentView={paymentView}
         paymentSearch={paymentSearch}
@@ -159,6 +160,7 @@ export function PaymentWorkspaceSection({
         setSelectedPaymentMemberId={setSelectedPaymentMemberId}
         setPaymentEditOpen={setPaymentEditOpen}
       />
+      {/* Drawer содержит весь сценарий конкретного счёта и не усложняет основной список. */}
       {selectedPaymentMember ? (
         <PaymentDrawer
           activeUser={activeUser}

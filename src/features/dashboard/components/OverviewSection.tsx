@@ -80,6 +80,7 @@ export function OverviewSection({
   openOverviewInviteFlow,
   isPendingAction
 }: OverviewSectionProps): React.ReactElement {
+  // У ученика обзор намеренно сокращён до личной оплаты, тренера и расписания.
   if (hasRole(activeUser, 'member')) {
     return (
       <section className="member-overview">
@@ -178,6 +179,7 @@ export function OverviewSection({
     );
   }
 
+  // Для владельца и тренера обзор показывает только действия и агрегаты контроля.
   return (
     <>
       <section className="today-card">

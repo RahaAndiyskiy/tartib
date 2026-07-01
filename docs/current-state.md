@@ -105,6 +105,7 @@ Main stack:
 Important modules:
 
 - `src/features/dashboard/DashboardApp.tsx` is the dashboard composition root: it wires controllers and typed page prop packages but no longer owns business mutations or section JSX.
+- Complex payment, group-pricing, session-recovery and role-specific UI branches now have short Russian comments that explain the business reason without narrating obvious code.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the visual dashboard shell: sidebar, mobile topbar, header and navigation.
 - Dashboard helper modules now hold shared dashboard types, labels and date/payment helpers.
 - Notification and logout confirmation modals are extracted from `DashboardApp.tsx`.
