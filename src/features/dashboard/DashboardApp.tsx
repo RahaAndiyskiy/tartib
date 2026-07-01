@@ -1,6 +1,5 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
 import { createId } from '@shared/lib/localWorkspace';
 import { hasRole } from '@/core/roles';
 import {
@@ -41,6 +40,8 @@ import {
   MemberPaymentPanel,
 } from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
+import { useDashboardNotice } from './model/useDashboardNotice';
+import { useDashboardUiState } from './model/useDashboardUiState';
 import { buildSectionMeta } from './model/navigation';
 import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
@@ -59,7 +60,7 @@ import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
-  const [message, setMessage] = useState('');
+  const { message, setMessage } = useDashboardNotice();
   const chrome = useDashboardChrome('overview');
   const {
     activeSection,
@@ -69,11 +70,18 @@ export function DashboardApp(): React.ReactElement {
     logoutConfirmOpen,
     invitePickerOpen
   } = chrome;
-  const [peopleSearch, setPeopleSearch] = useState('');
-  const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
-  const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
-  const [groupEditorOpenByMember, setGroupEditorOpenByMember] = useState<Record<string, boolean>>({});
-  const [historyOpenByMember, setHistoryOpenByMember] = useState<Record<string, boolean>>({});
+  const {
+    expandedPeople,
+    groupEditorOpenByMember,
+    historyOpenByMember,
+    peopleGroupFilter,
+    peopleSearch,
+    setHistoryOpenByMember,
+    setPeopleGroupFilter,
+    setPeopleSearch,
+    toggleGroupEditor,
+    togglePersonExpanded
+  } = useDashboardUiState();
   const {
     workspace,
     activeUserId,
@@ -120,16 +128,6 @@ export function DashboardApp(): React.ReactElement {
     setMessage,
     workspace
   });
-
-  useEffect(() => {
-    if (!message) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setMessage('');
-    }, 3200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [message]);
 
   const weekDays = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ'];
 
@@ -514,18 +512,8 @@ export function DashboardApp(): React.ReactElement {
               buttonLabel={buttonLabel}
               onGroupFilterChange={setPeopleGroupFilter}
               onSearchChange={setPeopleSearch}
-              onTogglePerson={(userId, nextOpen) =>
-                setExpandedPeople((current) => ({
-                  ...current,
-                  [userId]: nextOpen
-                }))
-              }
-              onToggleGroupEditor={(memberId, nextOpen) =>
-                setGroupEditorOpenByMember((current) => ({
-                  ...current,
-                  [memberId]: nextOpen
-                }))
-              }
+              onTogglePerson={togglePersonExpanded}
+              onToggleGroupEditor={toggleGroupEditor}
               onAssignMemberToGroup={(memberId, groupId) => void assignMemberToGroup(memberId, groupId)}
               onDeleteMember={(memberId) => void deleteMember(memberId)}
               onCreateGroup={openCreateGroup}

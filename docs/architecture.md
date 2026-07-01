@@ -71,6 +71,8 @@ Dashboard support modules:
 - `src/features/dashboard/components/ExpensesSection.tsx` - expenses page UI.
 - `src/features/dashboard/model/useAccountRuntime.ts` - push status, enable push, local reset, new window and sign-out actions.
 - `src/features/dashboard/model/useDashboardChrome.ts` - dashboard section, modal and chrome state transitions.
+- `src/features/dashboard/model/useDashboardNotice.ts` - temporary dashboard notice state and auto-clear timing.
+- `src/features/dashboard/model/useDashboardUiState.ts` - local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion.
 - `src/features/dashboard/model/useExpensesController.ts` - expenses draft state, create expense and mark-paid handlers.
 - `src/features/dashboard/model/useGroupsController.ts` - group draft state, create/edit/delete handlers and default-payment sync trigger.
 - `src/features/dashboard/model/useNotificationsController.ts` - open notifications and mark-read workflow.

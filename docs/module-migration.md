@@ -69,6 +69,8 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
 - `src/features/dashboard/model/useAccountRuntime.ts` owns push status, enable push, local reset, new window and sign-out actions.
 - `src/features/dashboard/model/useDashboardChrome.ts` owns dashboard chrome state and common open/close transitions for sections, mobile form, account menu, notifications, invite picker and logout confirmation.
+- `src/features/dashboard/model/useDashboardNotice.ts` owns temporary dashboard notice state and auto-clear timing.
+- `src/features/dashboard/model/useDashboardUiState.ts` owns local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion.
 - `src/features/dashboard/model/useNotificationsController.ts` owns opening notifications and marking them as read.
 - `src/features/dashboard/model/usePeopleFlowController.ts` owns person draft state, member invite links, share/copy actions and active-user switching.
 - `src/features/dashboard/model/usePaymentNavigation.ts` owns payment view navigation, notification payment lookup and prepayment affordance checks.

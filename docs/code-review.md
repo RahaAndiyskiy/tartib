@@ -119,6 +119,8 @@ Recent progress:
 - Schedule edit/save logic was moved into `src/modules/schedule/actions`.
 - Expense create/mark-paid logic was moved into `src/modules/expenses/actions`.
 - Dashboard derived data and payment UI model wiring were moved into `src/features/dashboard/model/useDashboardData.ts`.
+- Temporary dashboard notice state and auto-clear timing were moved into `src/features/dashboard/model/useDashboardNotice.ts`.
+- Local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion was moved into `src/features/dashboard/model/useDashboardUiState.ts`.
 - Push status, enable push, local reset, new window and sign-out actions were moved into `src/features/dashboard/model/useAccountRuntime.ts`.
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers were moved into `src/features/dashboard/model/useExpensesController.ts`.
@@ -153,11 +155,11 @@ Recommended next step:
   - shared message/toast helper;
   - final dashboard composition cleanup after controllers settle.
 
-### 5. Temporary notices are still global and fragile
+### 5. Temporary notices are extracted but still global
 
-File: `src/features/dashboard/DashboardApp.tsx`
+File: `src/features/dashboard/model/useDashboardNotice.ts`
 
-The app uses a single global `message` string for many unrelated actions. Recent UX changes made notices auto-clear, but the pattern is still broad.
+The app uses a single global notice string for many unrelated actions. The state and auto-clear timer now live in a small hook, but the product pattern is still broad.
 
 Risk:
 
