@@ -64,6 +64,7 @@ Dashboard support modules:
 - `src/features/dashboard/utils.ts` - dashboard date/payment helper functions.
 - `src/features/dashboard/components/DashboardShell.tsx` - visual dashboard shell: sidebar, mobile topbar, header and navigation.
 - `src/features/dashboard/components/DashboardOverlays.tsx` - global overlay wiring for notifications, logout confirmation and overview invite link modal.
+- `src/features/dashboard/components/DashboardSections.tsx` - active dashboard section switch and typed composition of overview, people, payments, groups, schedule, expenses and settings pages.
 - `src/features/dashboard/components/OverviewSection.tsx` - owner/trainer overview and member overview UI.
 - `src/features/dashboard/components/PaymentWorkspaceSection.tsx` - dashboard-level owner/trainer payments composition.
 - `src/features/dashboard/components/ScheduleSection.tsx` - schedule page UI.

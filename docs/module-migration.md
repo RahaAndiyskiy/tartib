@@ -82,6 +82,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useSettingsController.ts` owns account/organization settings draft sync and save handlers.
 - `src/features/dashboard/model/navigation.ts` owns dashboard section labels and safe section correction when switching active users.
 - `src/features/dashboard/components/DashboardOverlays.tsx` owns global dashboard overlays wiring for notifications, logout confirmation and overview invite link modal.
+- `src/features/dashboard/components/DashboardSections.tsx` owns the active section switch and typed page composition.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the dashboard visual shell: sidebar, mobile topbar, header and navigation.
 - `src/features/dashboard/components/OverviewSection.tsx` owns the owner/trainer overview and member overview UI.
 - `src/features/dashboard/components/ScheduleSection.tsx` owns schedule page UI.

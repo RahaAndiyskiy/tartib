@@ -136,6 +136,7 @@ Recent progress:
 - Account/organization settings draft sync and save handlers were moved into `src/features/dashboard/model/useSettingsController.ts`.
 - Dashboard navigation labels and active-user section correction were moved into `src/features/dashboard/model/navigation.ts`.
 - Dashboard visual shell, global overlays plus overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
+- The active section switch and typed page composition were moved into `src/features/dashboard/components/DashboardSections.tsx`.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
 - Group deletion action was moved into `src/modules/groups/actions`.
 - Group draft validation/build, edit mapping, workspace group upsert/replace helpers and remote group save were moved into `src/modules/groups`.

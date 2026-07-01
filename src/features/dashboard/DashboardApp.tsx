@@ -25,20 +25,8 @@ import {
   todayString
 } from './utils';
 import { DashboardOverlays } from './components/DashboardOverlays';
+import { DashboardSections } from './components/DashboardSections';
 import { DashboardShell } from './components/DashboardShell';
-import { ExpensesSection } from './components/ExpensesSection';
-import { GroupsSection } from './components/GroupsSection';
-import { OverviewSection } from './components/OverviewSection';
-import { PersonFormPanel } from './components/PersonFormPanel';
-import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
-import { ScheduleSection } from './components/ScheduleSection';
-import { SettingsSection } from './components/SettingsSection';
-import {
-  PeoplePanel,
-} from '@/modules/people';
-import {
-  MemberPaymentPanel,
-} from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
 import { useDashboardNotice } from './model/useDashboardNotice';
 import { useDashboardUiState } from './model/useDashboardUiState';
@@ -430,6 +418,197 @@ export function DashboardApp(): React.ReactElement {
     );
   }
 
+  const peopleProps = {
+    activeUser,
+    people: peopleForView,
+    filteredPeople: filteredPeopleForView,
+    groups: visibleGroups,
+    groupFilter: peopleGroupFilter,
+    search: peopleSearch,
+    expandedPeople,
+    groupEditorOpenByMember,
+    getMemberGroup: groupFor,
+    isPendingAction,
+    buttonLabel,
+    onGroupFilterChange: setPeopleGroupFilter,
+    onSearchChange: setPeopleSearch,
+    onTogglePerson: togglePersonExpanded,
+    onToggleGroupEditor: toggleGroupEditor,
+    onAssignMemberToGroup: (memberId: string, groupId: string) => void assignMemberToGroup(memberId, groupId),
+    onDeleteMember: (memberId: string) => void deleteMember(memberId),
+    onCreateGroup: openCreateGroup,
+    onOpenInviteFlow: openInviteFlow
+  };
+  const personFormProps = {
+    activeUser,
+    draft: personDraft,
+    groups: visibleGroups,
+    invite: memberInvite,
+    isLocalMode,
+    isOpen: mobileFormOpen,
+    isMemberInviteForm,
+    onSubmit: addPerson,
+    onClose: chrome.closeMobileForm,
+    onDraftChange: updatePersonDraft,
+    onClearInvite: clearMemberInvite,
+    onCopyInvite: () => void copyMemberInvite(),
+    onCloseInvite: closeMemberInvite,
+    onShareInvite: () => void shareMemberInvite()
+  };
+  const memberPaymentProps = {
+    activeUser,
+    activeMemberPlan,
+    activeMemberPayment,
+    activeMemberPaymentHistory,
+    activeMemberTrainer,
+    activeMemberHistoryOpen,
+    statusLabels,
+    planLabels,
+    formatLabels,
+    todayString,
+    formatShortDate,
+    prepaymentPeriodLabel,
+    canSubmitPayment,
+    canSubmitPrepayment,
+    paymentLockedText,
+    delayDraftFor,
+    updateDelayDraft,
+    prepaymentMonthsFor,
+    setPrepaymentMonths,
+    setHistoryOpenByMember,
+    isPendingAction,
+    submitPaymentConfirmation: (paymentId: string) => void submitPaymentConfirmation(paymentId),
+    requestPaymentDelay: (paymentId: string) => void requestPaymentDelay(paymentId),
+    openPrepayment,
+    submitPrepayment: (paymentId: string) => void submitPrepayment(paymentId)
+  };
+  const paymentWorkspaceProps = {
+    activeUser,
+    paymentView,
+    paymentSearch,
+    visibleMembers,
+    filteredPaymentMembers,
+    visiblePaymentActionGroups,
+    paidPaymentResults,
+    paymentActionCount,
+    overduePaymentCount: overduePayments.length,
+    paymentActionGroupsOpen,
+    currentPaymentByMemberId,
+    activePlanByMemberId,
+    selectedPaymentMemberId,
+    selectedPaymentMember,
+    selectedPayment,
+    selectedPaymentPlan,
+    selectedPaymentGroup,
+    selectedPaymentTrainer,
+    selectedPaymentHistory,
+    selectedPaymentHistoryOpen,
+    paymentEditOpen,
+    statusLabels,
+    planLabels,
+    formatLabels,
+    userName,
+    groupFor,
+    formatShortDate,
+    todayString,
+    prepaymentPeriodLabel,
+    canSubmitPayment,
+    canSubmitPrepayment,
+    paymentLockedText,
+    delayDraftFor,
+    updateDelayDraft,
+    prepaymentMonthsFor,
+    setPrepaymentMonths,
+    setHistoryOpenByMember,
+    setPaymentView,
+    setPaymentSearch,
+    setPaymentActionGroupsOpen,
+    setSelectedPaymentMemberId,
+    setPaymentEditOpen,
+    isPendingAction,
+    buttonLabel,
+    paymentEditFor,
+    updatePaymentEdit,
+    saveMemberPayment: (memberId: string) => void saveMemberPayment(memberId),
+    updatePaymentStatus: (paymentId: string, status: Parameters<typeof updatePaymentStatus>[1]) =>
+      void updatePaymentStatus(paymentId, status),
+    decidePaymentDelay: (paymentId: string, approved: boolean) => void decidePaymentDelay(paymentId, approved),
+    submitPaymentConfirmation: (paymentId: string) => void submitPaymentConfirmation(paymentId),
+    requestPaymentDelay: (paymentId: string) => void requestPaymentDelay(paymentId),
+    openPrepayment,
+    submitPrepayment: (paymentId: string) => void submitPrepayment(paymentId),
+    deleteMemberPayment: (payment: Parameters<typeof deleteMemberPayment>[0]) => void deleteMemberPayment(payment)
+  };
+  const groupsProps = {
+    activeUser,
+    workspace,
+    groups: visibleGroups,
+    trainers,
+    draft: groupDraft,
+    invite: memberInvite,
+    weekDays,
+    canView: canViewGroups(activeUser),
+    canManage: canManageGroups(activeUser),
+    isOwner: hasRole(activeUser, 'owner'),
+    isEditing: Boolean(editingGroupId),
+    isOpen: mobileFormOpen,
+    isPending: isPendingAction(`save-group:${editingGroupId || 'new'}`),
+    lastCreatedGroupId,
+    submitLabel: buttonLabel(
+      `save-group:${editingGroupId || 'new'}`,
+      editingGroupId ? 'Сохранить группу' : 'Создать группу'
+    ),
+    trainerName: userName,
+    isPendingAction,
+    buttonLabel,
+    onCreateGroup: openCreateGroup,
+    onCreateInvite: (groupId: string) => void createMemberInviteForGroup(groupId),
+    onEditGroup: startGroupEdit,
+    onDeleteGroup: (groupId: string) => void deleteGroup(groupId),
+    onDraftChange: updateGroupDraft,
+    onToggleDay: toggleGroupDay,
+    onSubmit: createGroup,
+    onCloseForm: chrome.closeMobileForm,
+    onCancelEdit: cancelGroupEdit,
+    onCopyInvite: () => void copyMemberInvite(),
+    onCloseInvite: closeMemberInvite,
+    onShareInvite: () => void shareMemberInvite()
+  };
+  const scheduleProps = {
+    activeUser,
+    visibleMembers,
+    activeMemberGroup,
+    activeMemberSchedule,
+    activeMemberTrainer,
+    userName,
+    trainerFor,
+    scheduleEditFor,
+    updateScheduleEdit,
+    saveSchedule
+  };
+  const expensesProps = {
+    workspace,
+    currentExpenses,
+    paidExpenses,
+    pendingExpenses,
+    expenseDraft,
+    onExpenseDraftChange: setExpenseDraft,
+    onCreateExpense: createExpense,
+    onMarkExpensePaid: markExpensePaid
+  };
+  const settingsProps = {
+    activeUser,
+    settingsDraft,
+    pushStatus,
+    isLocalMode,
+    isPendingAction,
+    onSettingsDraftChange: setSettingsDraft,
+    onSaveProfile: saveProfileSettings,
+    onSaveOrganization: saveOrganizationSettings,
+    onEnablePush: () => void enablePush(),
+    onSignOut: () => void signOut()
+  };
+
   return (
     <DashboardShell
       workspace={workspace}
@@ -481,216 +660,19 @@ export function DashboardApp(): React.ReactElement {
           onShareInvite={() => void shareMemberInvite()}
           onCloseInvite={closeOverviewInviteModal}
         />
-        {activeSection === 'overview' && overviewProps ? (
-          <OverviewSection {...overviewProps} />
-        ) : null}
-        {activeSection === 'people' ? (
-          <section className="crm-content-grid">
-            <PeoplePanel
-              activeUser={activeUser}
-              people={peopleForView}
-              filteredPeople={filteredPeopleForView}
-              groups={visibleGroups}
-              groupFilter={peopleGroupFilter}
-              search={peopleSearch}
-              expandedPeople={expandedPeople}
-              groupEditorOpenByMember={groupEditorOpenByMember}
-              getMemberGroup={groupFor}
-              isPendingAction={isPendingAction}
-              buttonLabel={buttonLabel}
-              onGroupFilterChange={setPeopleGroupFilter}
-              onSearchChange={setPeopleSearch}
-              onTogglePerson={togglePersonExpanded}
-              onToggleGroupEditor={toggleGroupEditor}
-              onAssignMemberToGroup={(memberId, groupId) => void assignMemberToGroup(memberId, groupId)}
-              onDeleteMember={(memberId) => void deleteMember(memberId)}
-              onCreateGroup={openCreateGroup}
-              onOpenInviteFlow={openInviteFlow}
-            />
-            <PersonFormPanel
-              activeUser={activeUser}
-              draft={personDraft}
-              groups={visibleGroups}
-              invite={memberInvite}
-              isLocalMode={isLocalMode}
-              isOpen={mobileFormOpen}
-              isMemberInviteForm={isMemberInviteForm}
-              onSubmit={addPerson}
-              onClose={chrome.closeMobileForm}
-              onDraftChange={updatePersonDraft}
-              onClearInvite={clearMemberInvite}
-              onCopyInvite={() => void copyMemberInvite()}
-              onCloseInvite={closeMemberInvite}
-              onShareInvite={() => void shareMemberInvite()}
-            />
-          </section>
-        ) : null}
-
-        {activeSection === 'payments' && hasRole(activeUser, 'member') ? (
-          <MemberPaymentPanel
-            activeUser={activeUser}
-            activeMemberPlan={activeMemberPlan}
-            activeMemberPayment={activeMemberPayment}
-            activeMemberPaymentHistory={activeMemberPaymentHistory}
-            activeMemberTrainer={activeMemberTrainer}
-            activeMemberHistoryOpen={activeMemberHistoryOpen}
-            statusLabels={statusLabels}
-            planLabels={planLabels}
-            formatLabels={formatLabels}
-            todayString={todayString}
-            formatShortDate={formatShortDate}
-            prepaymentPeriodLabel={prepaymentPeriodLabel}
-            canSubmitPayment={canSubmitPayment}
-            canSubmitPrepayment={canSubmitPrepayment}
-            paymentLockedText={paymentLockedText}
-            delayDraftFor={delayDraftFor}
-            updateDelayDraft={updateDelayDraft}
-            prepaymentMonthsFor={prepaymentMonthsFor}
-            setPrepaymentMonths={setPrepaymentMonths}
-            setHistoryOpenByMember={setHistoryOpenByMember}
-            isPendingAction={isPendingAction}
-            submitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
-            requestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
-            openPrepayment={openPrepayment}
-            submitPrepayment={(paymentId) => void submitPrepayment(paymentId)}
-          />
-        ) : null}
-        {activeSection === 'payments' && !hasRole(activeUser, 'member') ? (
-          <PaymentWorkspaceSection
-            activeUser={activeUser}
-            paymentView={paymentView}
-            paymentSearch={paymentSearch}
-            visibleMembers={visibleMembers}
-            filteredPaymentMembers={filteredPaymentMembers}
-            visiblePaymentActionGroups={visiblePaymentActionGroups}
-            paidPaymentResults={paidPaymentResults}
-            paymentActionCount={paymentActionCount}
-            overduePaymentCount={overduePayments.length}
-            paymentActionGroupsOpen={paymentActionGroupsOpen}
-            currentPaymentByMemberId={currentPaymentByMemberId}
-            activePlanByMemberId={activePlanByMemberId}
-            selectedPaymentMemberId={selectedPaymentMemberId}
-            selectedPaymentMember={selectedPaymentMember}
-            selectedPayment={selectedPayment}
-            selectedPaymentPlan={selectedPaymentPlan}
-            selectedPaymentGroup={selectedPaymentGroup}
-            selectedPaymentTrainer={selectedPaymentTrainer}
-            selectedPaymentHistory={selectedPaymentHistory}
-            selectedPaymentHistoryOpen={selectedPaymentHistoryOpen}
-            paymentEditOpen={paymentEditOpen}
-            statusLabels={statusLabels}
-            planLabels={planLabels}
-            formatLabels={formatLabels}
-            userName={userName}
-            groupFor={groupFor}
-            formatShortDate={formatShortDate}
-            todayString={todayString}
-            prepaymentPeriodLabel={prepaymentPeriodLabel}
-            canSubmitPayment={canSubmitPayment}
-            canSubmitPrepayment={canSubmitPrepayment}
-            paymentLockedText={paymentLockedText}
-            delayDraftFor={delayDraftFor}
-            updateDelayDraft={updateDelayDraft}
-            prepaymentMonthsFor={prepaymentMonthsFor}
-            setPrepaymentMonths={setPrepaymentMonths}
-            setHistoryOpenByMember={setHistoryOpenByMember}
-            setPaymentView={setPaymentView}
-            setPaymentSearch={setPaymentSearch}
-            setPaymentActionGroupsOpen={setPaymentActionGroupsOpen}
-            setSelectedPaymentMemberId={setSelectedPaymentMemberId}
-            setPaymentEditOpen={setPaymentEditOpen}
-            isPendingAction={isPendingAction}
-            buttonLabel={buttonLabel}
-            paymentEditFor={paymentEditFor}
-            updatePaymentEdit={updatePaymentEdit}
-            saveMemberPayment={(memberId) => void saveMemberPayment(memberId)}
-            updatePaymentStatus={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
-            decidePaymentDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
-            submitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
-            requestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
-            openPrepayment={openPrepayment}
-            submitPrepayment={(paymentId) => void submitPrepayment(paymentId)}
-            deleteMemberPayment={(payment) => void deleteMemberPayment(payment)}
-          />
-        ) : null}
-        {activeSection === 'groups' ? (
-          <GroupsSection
-            activeUser={activeUser}
-            workspace={workspace}
-            groups={visibleGroups}
-            trainers={trainers}
-            draft={groupDraft}
-            invite={memberInvite}
-            weekDays={weekDays}
-            canView={canViewGroups(activeUser)}
-            canManage={canManageGroups(activeUser)}
-            isOwner={hasRole(activeUser, 'owner')}
-            isEditing={Boolean(editingGroupId)}
-            isOpen={mobileFormOpen}
-            isPending={isPendingAction(`save-group:${editingGroupId || 'new'}`)}
-            lastCreatedGroupId={lastCreatedGroupId}
-            submitLabel={buttonLabel(
-              `save-group:${editingGroupId || 'new'}`,
-              editingGroupId ? 'Сохранить группу' : 'Создать группу'
-            )}
-            trainerName={userName}
-            isPendingAction={isPendingAction}
-            buttonLabel={buttonLabel}
-            onCreateGroup={openCreateGroup}
-            onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
-            onEditGroup={startGroupEdit}
-            onDeleteGroup={(groupId) => void deleteGroup(groupId)}
-            onDraftChange={updateGroupDraft}
-            onToggleDay={toggleGroupDay}
-            onSubmit={createGroup}
-            onCloseForm={chrome.closeMobileForm}
-            onCancelEdit={cancelGroupEdit}
-            onCopyInvite={() => void copyMemberInvite()}
-            onCloseInvite={closeMemberInvite}
-            onShareInvite={() => void shareMemberInvite()}
-          />
-        ) : null}
-
-        {activeSection === 'schedule' ? (
-          <ScheduleSection
-            activeUser={activeUser}
-            visibleMembers={visibleMembers}
-            activeMemberGroup={activeMemberGroup}
-            activeMemberSchedule={activeMemberSchedule}
-            activeMemberTrainer={activeMemberTrainer}
-            userName={userName}
-            trainerFor={trainerFor}
-            scheduleEditFor={scheduleEditFor}
-            updateScheduleEdit={updateScheduleEdit}
-            saveSchedule={saveSchedule}
-          />
-        ) : null}
-        {activeSection === 'expenses' && activeUser.role === 'owner' ? (
-          <ExpensesSection
-            workspace={workspace}
-            currentExpenses={currentExpenses}
-            paidExpenses={paidExpenses}
-            pendingExpenses={pendingExpenses}
-            expenseDraft={expenseDraft}
-            onExpenseDraftChange={setExpenseDraft}
-            onCreateExpense={createExpense}
-            onMarkExpensePaid={markExpensePaid}
-          />
-        ) : null}
-        {activeSection === 'settings' ? (
-          <SettingsSection
-            activeUser={activeUser}
-            settingsDraft={settingsDraft}
-            pushStatus={pushStatus}
-            isLocalMode={isLocalMode}
-            isPendingAction={isPendingAction}
-            onSettingsDraftChange={setSettingsDraft}
-            onSaveProfile={saveProfileSettings}
-            onSaveOrganization={saveOrganizationSettings}
-            onEnablePush={() => void enablePush()}
-            onSignOut={() => void signOut()}
-          />
-        ) : null}
+        <DashboardSections
+          activeSection={activeSection}
+          activeUser={activeUser}
+          overviewProps={overviewProps}
+          peopleProps={peopleProps}
+          personFormProps={personFormProps}
+          memberPaymentProps={memberPaymentProps}
+          paymentWorkspaceProps={paymentWorkspaceProps}
+          groupsProps={groupsProps}
+          scheduleProps={scheduleProps}
+          expensesProps={expensesProps}
+          settingsProps={settingsProps}
+        />
     </DashboardShell>
   );
 }
