@@ -63,6 +63,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/account/actions/accountActions.ts` owns profile and organization settings save actions.
 - `src/modules/schedule/actions/scheduleActions.ts` owns schedule edit helpers and schedule save action.
 - `src/modules/expenses/actions/expenseActions.ts` owns expense creation and mark-paid action.
+- `src/features/dashboard/model/useExpensesController.ts` owns expenses draft state, create expense and mark-paid handlers.
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
 - `src/features/dashboard/model/useAccountRuntime.ts` owns push status, enable push, local reset, new window and sign-out actions.
 - `src/features/dashboard/model/useDashboardChrome.ts` owns dashboard chrome state and common open/close transitions for sections, mobile form, account menu, notifications, invite picker and logout confirmation.

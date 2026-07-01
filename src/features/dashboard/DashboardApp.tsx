@@ -23,7 +23,6 @@ import {
   upsertGroupInWorkspace
 } from '@/modules/groups';
 import {
-  emptyExpenseDraft,
   emptyGroupDraft,
   emptyPersonDraft,
   formatLabels,
@@ -32,7 +31,6 @@ import {
 } from './constants';
 import type {
   DashboardSection,
-  ExpenseDraft,
   GroupDraft,
   MemberInviteResult,
   PersonDraft,
@@ -60,10 +58,6 @@ import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import { markNotificationsReadAction } from '@/modules/notifications';
-import {
-  createExpenseAction,
-  markExpensePaidAction
-} from '@/modules/expenses';
 import {
   patchScheduleEdit,
   saveScheduleAction,
@@ -99,6 +93,7 @@ import {
 } from './model/navigation';
 import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
+import { useExpensesController } from './model/useExpensesController';
 import { usePendingAction } from './model/usePendingAction';
 import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
@@ -107,7 +102,6 @@ export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
   const [personDraft, setPersonDraft] = useState<PersonDraft>(emptyPersonDraft);
-  const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(emptyExpenseDraft);
   const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [editingGroupId, setEditingGroupId] = useState('');
@@ -161,6 +155,19 @@ export function DashboardApp(): React.ReactElement {
     setActiveUserId,
     setMessage,
     setWorkspace
+  });
+  const {
+    createExpense,
+    expenseDraft,
+    markExpensePaid,
+    setExpenseDraft
+  } = useExpensesController({
+    createId,
+    nextMonthDate,
+    periodLabel,
+    saveWorkspace,
+    setMessage,
+    workspace
   });
 
   useEffect(() => {
@@ -825,43 +832,6 @@ export function DashboardApp(): React.ReactElement {
       prepaymentPeriodLabel
     });
   }
-  function createExpense(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-
-    const result = createExpenseAction({
-      workspace,
-      draft: expenseDraft,
-      now: new Date().toISOString(),
-      createId,
-      periodLabel
-    });
-
-    if (!result) return;
-    if ('error' in result) {
-      setMessage(result.error);
-      return;
-    }
-
-    saveWorkspace(result.workspace);
-    setExpenseDraft(emptyExpenseDraft);
-    setMessage(result.message);
-  }
-
-  function markExpensePaid(expenseId: string): void {
-    const result = markExpensePaidAction({
-      workspace,
-      expenseId,
-      now: new Date().toISOString(),
-      createId,
-      nextMonthDate,
-      periodLabel
-    });
-
-    if (!result) return;
-    saveWorkspace(result.workspace);
-    setMessage(result.message);
-  }
-
   function scheduleEditFor(memberId: string): ScheduleEdit {
     return scheduleEditForMember({
       workspace,
