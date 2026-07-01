@@ -37,12 +37,12 @@ import { useDashboardChrome } from './model/useDashboardChrome';
 import { useExpensesController } from './model/useExpensesController';
 import { useGroupsController } from './model/useGroupsController';
 import { useNotificationsController } from './model/useNotificationsController';
+import { useOverviewController } from './model/useOverviewController';
 import { usePendingAction } from './model/usePendingAction';
 import { usePeopleActionsController } from './model/usePeopleActionsController';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
-import { usePaymentNavigation } from './model/usePaymentNavigation';
 import { usePaymentActionsController } from './model/usePaymentActionsController';
-import { useOverviewController } from './model/useOverviewController';
+import { usePaymentNavigation } from './model/usePaymentNavigation';
 import { useScheduleController } from './model/useScheduleController';
 import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
@@ -50,6 +50,8 @@ import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
+
+  // Dashboard runtime and shared UI state.
   const { message, setMessage } = useDashboardNotice();
   const chrome = useDashboardChrome('overview');
   const {
@@ -119,6 +121,7 @@ export function DashboardApp(): React.ReactElement {
     workspace
   });
 
+  // Derived workspace data used by feature controllers and pages.
   const dashboardData = useDashboardData({
     workspace,
     activeUserId,
@@ -202,6 +205,8 @@ export function DashboardApp(): React.ReactElement {
     openPaymentsView: openPaymentUiView,
     selectPaymentMember
   } = paymentUi;
+
+  // Feature controllers own mutations and flow-specific state.
   const {
     saveOrganizationSettings,
     saveProfileSettings,
@@ -382,8 +387,8 @@ export function DashboardApp(): React.ReactElement {
     openPaymentsView,
     openPrepayment,
     paymentOverview,
-    requestPaymentDelay: (paymentId) => void requestPaymentDelay(paymentId),
-    submitPaymentConfirmation: (paymentId) => void submitPaymentConfirmation(paymentId),
+    requestPaymentDelay,
+    submitPaymentConfirmation,
     updateDelayDraft,
     visibleGroups
   });
@@ -400,6 +405,7 @@ export function DashboardApp(): React.ReactElement {
     );
   }
 
+  // Typed page contracts keep DashboardSections independent from controller details.
   const peopleProps = {
     activeUser,
     people: peopleForView,
@@ -416,8 +422,8 @@ export function DashboardApp(): React.ReactElement {
     onSearchChange: setPeopleSearch,
     onTogglePerson: togglePersonExpanded,
     onToggleGroupEditor: toggleGroupEditor,
-    onAssignMemberToGroup: (memberId: string, groupId: string) => void assignMemberToGroup(memberId, groupId),
-    onDeleteMember: (memberId: string) => void deleteMember(memberId),
+    onAssignMemberToGroup: assignMemberToGroup,
+    onDeleteMember: deleteMember,
     onCreateGroup: openCreateGroup,
     onOpenInviteFlow: openInviteFlow
   };
@@ -433,9 +439,9 @@ export function DashboardApp(): React.ReactElement {
     onClose: chrome.closeMobileForm,
     onDraftChange: updatePersonDraft,
     onClearInvite: clearMemberInvite,
-    onCopyInvite: () => void copyMemberInvite(),
+    onCopyInvite: copyMemberInvite,
     onCloseInvite: closeMemberInvite,
-    onShareInvite: () => void shareMemberInvite()
+    onShareInvite: shareMemberInvite
   };
   const memberPaymentProps = {
     activeUser,
@@ -459,10 +465,10 @@ export function DashboardApp(): React.ReactElement {
     setPrepaymentMonths,
     setHistoryOpenByMember,
     isPendingAction,
-    submitPaymentConfirmation: (paymentId: string) => void submitPaymentConfirmation(paymentId),
-    requestPaymentDelay: (paymentId: string) => void requestPaymentDelay(paymentId),
+    submitPaymentConfirmation,
+    requestPaymentDelay,
     openPrepayment,
-    submitPrepayment: (paymentId: string) => void submitPrepayment(paymentId)
+    submitPrepayment
   };
   const paymentWorkspaceProps = {
     activeUser,
@@ -511,15 +517,14 @@ export function DashboardApp(): React.ReactElement {
     buttonLabel,
     paymentEditFor,
     updatePaymentEdit,
-    saveMemberPayment: (memberId: string) => void saveMemberPayment(memberId),
-    updatePaymentStatus: (paymentId: string, status: Parameters<typeof updatePaymentStatus>[1]) =>
-      void updatePaymentStatus(paymentId, status),
-    decidePaymentDelay: (paymentId: string, approved: boolean) => void decidePaymentDelay(paymentId, approved),
-    submitPaymentConfirmation: (paymentId: string) => void submitPaymentConfirmation(paymentId),
-    requestPaymentDelay: (paymentId: string) => void requestPaymentDelay(paymentId),
+    saveMemberPayment,
+    updatePaymentStatus,
+    decidePaymentDelay,
+    submitPaymentConfirmation,
+    requestPaymentDelay,
     openPrepayment,
-    submitPrepayment: (paymentId: string) => void submitPrepayment(paymentId),
-    deleteMemberPayment: (payment: Parameters<typeof deleteMemberPayment>[0]) => void deleteMemberPayment(payment)
+    submitPrepayment,
+    deleteMemberPayment
   };
   const groupsProps = {
     activeUser,
@@ -544,17 +549,17 @@ export function DashboardApp(): React.ReactElement {
     isPendingAction,
     buttonLabel,
     onCreateGroup: openCreateGroup,
-    onCreateInvite: (groupId: string) => void createMemberInviteForGroup(groupId),
+    onCreateInvite: createMemberInviteForGroup,
     onEditGroup: startGroupEdit,
-    onDeleteGroup: (groupId: string) => void deleteGroup(groupId),
+    onDeleteGroup: deleteGroup,
     onDraftChange: updateGroupDraft,
     onToggleDay: toggleGroupDay,
     onSubmit: createGroup,
     onCloseForm: chrome.closeMobileForm,
     onCancelEdit: cancelGroupEdit,
-    onCopyInvite: () => void copyMemberInvite(),
+    onCopyInvite: copyMemberInvite,
     onCloseInvite: closeMemberInvite,
-    onShareInvite: () => void shareMemberInvite()
+    onShareInvite: shareMemberInvite
   };
   const scheduleProps = {
     activeUser,
@@ -587,8 +592,8 @@ export function DashboardApp(): React.ReactElement {
     onSettingsDraftChange: setSettingsDraft,
     onSaveProfile: saveProfileSettings,
     onSaveOrganization: saveOrganizationSettings,
-    onEnablePush: () => void enablePush(),
-    onSignOut: () => void signOut()
+    onEnablePush: enablePush,
+    onSignOut: signOut
   };
 
   return (
@@ -606,7 +611,7 @@ export function DashboardApp(): React.ReactElement {
       onSelectActiveUser={selectActiveUser}
       onOpenNewWindow={openNewWindow}
       onReset={handleReset}
-      onSignOut={() => void signOut()}
+      onSignOut={signOut}
       onRequestLogout={chrome.requestLogout}
       onToggleMobileAccount={chrome.toggleMobileAccount}
       onCloseMobileAccount={chrome.closeMobileAccount}
@@ -630,16 +635,16 @@ export function DashboardApp(): React.ReactElement {
           isPendingAction={isPendingAction}
           isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
           onCloseNotifications={chrome.closeNotifications}
-          onEnablePush={() => void enablePush()}
-          onMarkNotificationsRead={() => void markNotificationsRead()}
-          onDecidePayment={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
-          onDecideDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
+          onEnablePush={enablePush}
+          onMarkNotificationsRead={markNotificationsRead}
+          onDecidePayment={updatePaymentStatus}
+          onDecideDelay={decidePaymentDelay}
           onOpenNotificationPayment={openNotificationPayment}
           onCancelLogout={chrome.closeLogoutConfirm}
-          onConfirmLogout={() => void signOut()}
-          onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
-          onCopyInvite={() => void copyMemberInvite()}
-          onShareInvite={() => void shareMemberInvite()}
+          onConfirmLogout={signOut}
+          onCreateInvite={createMemberInviteForGroup}
+          onCopyInvite={copyMemberInvite}
+          onShareInvite={shareMemberInvite}
           onCloseInvite={closeOverviewInviteModal}
         />
         <DashboardSections
