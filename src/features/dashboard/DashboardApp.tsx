@@ -44,8 +44,7 @@ import type {
   GroupDraft,
   MemberInviteResult,
   PersonDraft,
-  ScheduleEdit,
-  SettingsDraft
+  ScheduleEdit
 } from './types';
 import {
   addMonthsDate,
@@ -69,10 +68,6 @@ import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import { markNotificationsReadAction } from '@/modules/notifications';
-import {
-  saveOrganizationSettingsAction,
-  saveProfileSettingsAction
-} from '@/modules/account';
 import {
   createExpenseAction,
   markExpensePaidAction
@@ -112,6 +107,7 @@ import {
 } from './model/navigation';
 import { useDashboardChrome } from './model/useDashboardChrome';
 import { usePendingAction } from './model/usePendingAction';
+import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 
 export function DashboardApp(): React.ReactElement {
@@ -121,12 +117,6 @@ export function DashboardApp(): React.ReactElement {
   const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(emptyExpenseDraft);
   const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
-  const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    organizationName: ''
-  });
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
   const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
@@ -294,6 +284,20 @@ export function DashboardApp(): React.ReactElement {
     openPaymentsView: openPaymentUiView,
     selectPaymentMember
   } = paymentUi;
+  const {
+    saveOrganizationSettings,
+    saveProfileSettings,
+    setSettingsDraft,
+    settingsDraft
+  } = useSettingsController({
+    activeUser,
+    isLocalMode,
+    runRemoteActionWithPending,
+    saveWorkspace,
+    setMessage,
+    setWorkspace,
+    workspace
+  });
 
   const isMemberInviteForm =
     Boolean(activeUser) &&
@@ -939,35 +943,6 @@ export function DashboardApp(): React.ReactElement {
     }
   }
 
-  async function saveProfileSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-
-    await saveProfileSettingsAction({
-      workspace,
-      activeUser,
-      draft: settingsDraft,
-      isLocalMode,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage
-    });
-  }
-
-  async function saveOrganizationSettings(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-
-    await saveOrganizationSettingsAction({
-      workspace,
-      activeUser,
-      draft: settingsDraft,
-      isLocalMode,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage
-    });
-  }
   function handleReset(): void {
     const nextWorkspace = resetWorkspace();
     const owner = nextWorkspace.users[0];

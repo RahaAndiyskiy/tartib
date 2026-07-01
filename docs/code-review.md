@@ -121,6 +121,7 @@ Recent progress:
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers were moved into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and the remote action pending wrapper were moved into `src/features/dashboard/model/usePendingAction.ts`.
+- Account/organization settings draft sync and save handlers were moved into `src/features/dashboard/model/useSettingsController.ts`.
 - Dashboard navigation labels and active-user section correction were moved into `src/features/dashboard/model/navigation.ts`.
 - Dashboard visual shell, global overlays plus overview, schedule, settings and expenses JSX sections were moved out of `DashboardApp` into dashboard section components.
 - Group list UI, visible group selectors and basic group permissions were started in `src/modules/groups`.
