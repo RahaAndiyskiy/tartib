@@ -115,6 +115,7 @@ import {
   buildSectionMeta,
   sectionForActiveUserChange
 } from './model/navigation';
+import { useDashboardChrome } from './model/useDashboardChrome';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -135,12 +136,15 @@ export function DashboardApp(): React.ReactElement {
   const [message, setMessage] = useState('');
   const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
   const [workspaceLoadError, setWorkspaceLoadError] = useState('');
-  const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
-  const [mobileFormOpen, setMobileFormOpen] = useState(false);
-  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [invitePickerOpen, setInvitePickerOpen] = useState(false);
+  const chrome = useDashboardChrome('overview');
+  const {
+    activeSection,
+    mobileFormOpen,
+    mobileAccountOpen,
+    notificationsOpen,
+    logoutConfirmOpen,
+    invitePickerOpen
+  } = chrome;
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
@@ -520,38 +524,24 @@ export function DashboardApp(): React.ReactElement {
     const nextUser = workspace?.users.find((user) => user.id === userId);
     setActiveUserId(userId);
     writeActiveUserId(userId);
-    setActiveSection(sectionForActiveUserChange({ currentSection: activeSection, nextUser }));
+    chrome.switchActiveUserSection(sectionForActiveUserChange({ currentSection: activeSection, nextUser }));
     setMessage('');
-    setMobileFormOpen(false);
-    setMobileAccountOpen(false);
-    setNotificationsOpen(false);
-    setInvitePickerOpen(false);
   }
 
   function openSection(section: DashboardSection): void {
-    setActiveSection(section);
-    setMobileFormOpen(false);
-    setMobileAccountOpen(false);
-    setNotificationsOpen(false);
-    setInvitePickerOpen(false);
+    chrome.openSection(section);
   }
 
   function openNotifications(): void {
-    setNotificationsOpen(true);
-    setMobileFormOpen(false);
-    setMobileAccountOpen(false);
-    setInvitePickerOpen(false);
+    chrome.openNotifications();
     if (unreadNotifications.length > 0) {
       void markNotificationsRead();
     }
   }
 
   function openPaymentsView(view: PaymentView): void {
-    setActiveSection('payments');
+    chrome.openPayments();
     openPaymentUiView(view);
-    setMobileFormOpen(false);
-    setMobileAccountOpen(false);
-    setNotificationsOpen(false);
   }
 
   function openNotificationPayment(paymentId?: string | null): void {
@@ -559,11 +549,8 @@ export function DashboardApp(): React.ReactElement {
     const payment = workspace.payments.find((item) => item.id === paymentId);
     if (!payment) return;
 
-    setActiveSection('payments');
+    chrome.openPayments();
     selectPaymentMember(payment.member_id, payment.status === 'paid' ? 'paid' : 'all');
-    setMobileFormOpen(false);
-    setMobileAccountOpen(false);
-    setNotificationsOpen(false);
   }
 
   function notificationPayment(notification: LocalNotification): PaymentRequest | null {
@@ -580,7 +567,7 @@ export function DashboardApp(): React.ReactElement {
   }
 
   function openPrepayment(payment: PaymentRequest): void {
-    setActiveSection('payments');
+    chrome.openPayments();
     selectPaymentMember(payment.member_id, 'all');
     window.setTimeout(() => {
       document.getElementById(`prepayment-${payment.id}`)?.scrollIntoView({
@@ -591,16 +578,14 @@ export function DashboardApp(): React.ReactElement {
   }
 
   function openCreateGroup(): void {
-    setActiveSection('groups');
-    setMobileFormOpen(true);
+    chrome.openFormSection('groups');
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
     setMessage('');
   }
 
   function openInviteFlow(groupId?: string): void {
-    setActiveSection(groupId ? 'groups' : 'people');
-    setMobileFormOpen(true);
+    chrome.openFormSection(groupId ? 'groups' : 'people');
     setMemberInvite(null);
     setMessage('');
     setPersonDraft((current) => ({
@@ -623,11 +608,11 @@ export function DashboardApp(): React.ReactElement {
       return;
     }
 
-    setInvitePickerOpen(true);
+    chrome.openInvitePicker();
   }
 
   function closeOverviewInviteModal(): void {
-    setInvitePickerOpen(false);
+    chrome.closeInvitePicker();
     setMemberInvite(null);
     setMessage('');
   }
@@ -690,7 +675,7 @@ export function DashboardApp(): React.ReactElement {
 
     if (result.kind === 'remote_trainer_created') {
       setPersonDraft(emptyPersonDraft);
-      setMobileFormOpen(false);
+      chrome.closeMobileForm();
       setMessage(result.message);
       return;
     }
@@ -761,7 +746,7 @@ export function DashboardApp(): React.ReactElement {
 
     setGroupDraft(emptyGroupDraft);
     setEditingGroupId('');
-    setMobileFormOpen(false);
+    chrome.closeMobileForm();
     setLastCreatedGroupId(result.wasEditing ? '' : result.group.id);
     if (result.refreshRemote) {
       void refreshRemoteWorkspace('group-save', 0);
@@ -775,14 +760,14 @@ export function DashboardApp(): React.ReactElement {
     setLastCreatedGroupId('');
     setMemberInvite(null);
     setGroupDraft(buildGroupDraftFromGroup(group));
-    setMobileFormOpen(true);
+    chrome.openMobileForm();
     setMessage('Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РіСЂСѓРїРїС‹. Р’РЅРµСЃРёС‚Рµ РёР·РјРµРЅРµРЅРёСЏ Рё СЃРѕС…СЂР°РЅРёС‚Рµ.');
   }
 
   function cancelGroupEdit(): void {
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
-    setMobileFormOpen(false);
+    chrome.closeMobileForm();
     setMessage('');
   }
 
@@ -1262,14 +1247,11 @@ export function DashboardApp(): React.ReactElement {
       onOpenNewWindow={openNewWindow}
       onReset={handleReset}
       onSignOut={() => void signOut()}
-      onRequestLogout={() => {
-        setMobileAccountOpen(false);
-        setLogoutConfirmOpen(true);
-      }}
-      onToggleMobileAccount={() => setMobileAccountOpen((current) => !current)}
-      onCloseMobileAccount={() => setMobileAccountOpen(false)}
-      onOpenMobileForm={() => setMobileFormOpen(true)}
-      onCloseMobileForm={() => setMobileFormOpen(false)}
+      onRequestLogout={chrome.requestLogout}
+      onToggleMobileAccount={chrome.toggleMobileAccount}
+      onCloseMobileAccount={chrome.closeMobileAccount}
+      onOpenMobileForm={chrome.openMobileForm}
+      onCloseMobileForm={chrome.closeMobileForm}
       onOpenNotifications={openNotifications}
     >
         {message ? <p className="notice success">{message}</p> : null}
@@ -1287,13 +1269,13 @@ export function DashboardApp(): React.ReactElement {
           canDecidePayment={canDecideNotificationPayment}
           isPendingAction={isPendingAction}
           isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
-          onCloseNotifications={() => setNotificationsOpen(false)}
+          onCloseNotifications={chrome.closeNotifications}
           onEnablePush={() => void enablePush()}
           onMarkNotificationsRead={() => void markNotificationsRead()}
           onDecidePayment={(paymentId, status) => void updatePaymentStatus(paymentId, status)}
           onDecideDelay={(paymentId, approved) => void decidePaymentDelay(paymentId, approved)}
           onOpenNotificationPayment={openNotificationPayment}
-          onCancelLogout={() => setLogoutConfirmOpen(false)}
+          onCancelLogout={chrome.closeLogoutConfirm}
           onConfirmLogout={() => void signOut()}
           onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
           onCopyInvite={() => void copyMemberInvite()}
@@ -1368,7 +1350,7 @@ export function DashboardApp(): React.ReactElement {
               isOpen={mobileFormOpen}
               isMemberInviteForm={isMemberInviteForm}
               onSubmit={addPerson}
-              onClose={() => setMobileFormOpen(false)}
+              onClose={chrome.closeMobileForm}
               onDraftChange={(patch) => setPersonDraft((current) => ({ ...current, ...patch }))}
               onClearInvite={() => setMemberInvite(null)}
               onCopyInvite={() => void copyMemberInvite()}
@@ -1495,7 +1477,7 @@ export function DashboardApp(): React.ReactElement {
             onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
             onToggleDay={toggleGroupDay}
             onSubmit={createGroup}
-            onCloseForm={() => setMobileFormOpen(false)}
+            onCloseForm={chrome.closeMobileForm}
             onCancelEdit={cancelGroupEdit}
             onCopyInvite={() => void copyMemberInvite()}
             onCloseInvite={closeMemberInvite}
