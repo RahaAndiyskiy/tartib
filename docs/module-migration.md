@@ -49,6 +49,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/modules/groups/actions/groupActions.ts` owns group deletion.
 - `src/modules/groups/actions/groupActions.ts` also owns remote group save and workspace group upsert/replace helpers.
 - `src/modules/groups/actions/groupActions.ts` owns group submit decisions for create/edit, while payment default synchronization remains injected from the payments module.
+- `src/features/dashboard/model/useGroupsController.ts` owns group draft state, create/edit/delete handlers and the default-payment sync trigger.
 - `src/modules/payments/model/selectors.ts` owns visible payment selection, current payment maps, active plan maps, payment overview counts, registry filtering, selected payment details, member payment details and payment form-state helpers.
 - `src/modules/payments/actions/paymentActions.ts` owns save-payment validation/build, remote save wrapper, group-default payment synchronization, high-level payment action wrappers, and payment workspace mutation helpers for remote responses, deletion, confirmation, prepayment and delay decisions.
 - `src/modules/payments/components/MemberPaymentPanel.tsx` owns the member-facing payment page UI.

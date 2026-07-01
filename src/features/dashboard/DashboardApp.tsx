@@ -1,33 +1,21 @@
 ﻿'use client';
 
-import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import {
-  createId,
-  type LocalTrainingGroup
-} from '@shared/lib/localWorkspace';
+import { createId } from '@shared/lib/localWorkspace';
 import type { PaymentRequest } from '@shared/types/domain';
 import {
   hasRole
 } from '@/core/roles';
 import {
-  buildGroupDraftFromGroup,
   canManageGroups,
-  canViewGroups,
-  deleteGroupAction,
-  submitGroupDraftAction,
-  upsertGroupInWorkspace
+  canViewGroups
 } from '@/modules/groups';
 import {
-  emptyGroupDraft,
   formatLabels,
   planLabels,
   statusLabels
 } from './constants';
-import type {
-  DashboardSection,
-  GroupDraft
-} from './types';
+import type { DashboardSection } from './types';
 import {
   addMonthsDate,
   canSubmitPayment,
@@ -55,7 +43,6 @@ import {
   PeoplePanel,
 } from '@/modules/people';
 import {
-  applyGroupDefaultPaymentToMembers,
   decidePaymentDelayAction,
   decidePaymentStatusAction,
   deleteMemberPaymentAction,
@@ -74,6 +61,7 @@ import { buildSectionMeta } from './model/navigation';
 import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
 import { useExpensesController } from './model/useExpensesController';
+import { useGroupsController } from './model/useGroupsController';
 import { useNotificationsController } from './model/useNotificationsController';
 import { usePendingAction } from './model/usePendingAction';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
@@ -85,8 +73,6 @@ import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
-  const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
-  const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
   const chrome = useDashboardChrome('overview');
   const {
@@ -160,20 +146,6 @@ export function DashboardApp(): React.ReactElement {
   }, [message]);
 
   const weekDays = ['РџРЅ', 'Р’С‚', 'РЎСЂ', 'Р§С‚', 'РџС‚', 'РЎР±', 'Р’СЃ'];
-
-  const toggleGroupDay = (day: string): void => {
-    setGroupDraft((current) => {
-      const selectedDays = current.days ? current.days.split(', ').filter(Boolean) : [];
-      const nextDays = selectedDays.includes(day)
-        ? selectedDays.filter((item) => item !== day)
-        : [...selectedDays, day];
-
-      return {
-        ...current,
-        days: nextDays.join(', ')
-      };
-    });
-  };
 
   const dashboardData = useDashboardData({
     workspace,
@@ -355,107 +327,39 @@ export function DashboardApp(): React.ReactElement {
     users: workspace?.users ?? [],
     workspace
   });
+  const {
+    cancelGroupEdit,
+    createGroup,
+    deleteGroup,
+    editingGroupId,
+    groupDraft,
+    openCreateGroup,
+    startGroupEdit,
+    toggleGroupDay,
+    updateGroupDraft
+  } = useGroupsController({
+    activeUser,
+    clearMemberInvite,
+    closeMobileForm: chrome.closeMobileForm,
+    createId,
+    dateAtNoon,
+    dueDateForBillingDay,
+    isLocalMode,
+    openFormSection: chrome.openFormSection,
+    openMobileForm: chrome.openMobileForm,
+    periodLabel,
+    refreshRemoteWorkspace,
+    runRemoteActionWithPending,
+    saveWorkspace,
+    setLastCreatedGroupId,
+    setMessage,
+    setWorkspace,
+    todayString,
+    workspace
+  });
 
   function openSection(section: DashboardSection): void {
     chrome.openSection(section);
-  }
-
-  function openCreateGroup(): void {
-    chrome.openFormSection('groups');
-    setEditingGroupId('');
-    setGroupDraft(emptyGroupDraft);
-    setMessage('');
-  }
-
-  async function createGroup(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-
-    const result = await submitGroupDraftAction({
-      workspace,
-      activeUser,
-      editingGroupId,
-      draft: groupDraft,
-      isLocalMode,
-      now: new Date().toISOString(),
-      createId,
-      runRemoteActionWithPending,
-      syncDefaultPayments: ({ workspace: syncWorkspace, memberIds, trainerId, amount, billingDay, now }) =>
-        applyGroupDefaultPaymentToMembers({
-          workspace: syncWorkspace,
-          memberIds,
-          trainerId,
-          amount,
-          billingDay,
-          dueDate: dueDateForBillingDay(billingDay),
-          now,
-          createId,
-          periodLabel,
-          statusForDueDate: (date) =>
-            dateAtNoon(date) < dateAtNoon(todayString()) ? 'overdue' : 'active'
-        })
-    });
-
-    if (result.kind === 'idle') return;
-
-    if (result.kind === 'validation_error') {
-      setMessage(result.message);
-      return;
-    }
-
-    if (result.workspace) {
-      saveWorkspace(result.workspace);
-    } else {
-      setWorkspace((current) => (current ? upsertGroupInWorkspace(current, result.group) : current));
-    }
-
-    setGroupDraft(emptyGroupDraft);
-    setEditingGroupId('');
-    chrome.closeMobileForm();
-    setLastCreatedGroupId(result.wasEditing ? '' : result.group.id);
-    if (result.refreshRemote) {
-      void refreshRemoteWorkspace('group-save', 0);
-    }
-    setMessage(result.message);
-  }
-  function startGroupEdit(group: LocalTrainingGroup): void {
-    if (!activeUser || !hasRole(activeUser, 'trainer')) return;
-
-    setEditingGroupId(group.id);
-    setLastCreatedGroupId('');
-    clearMemberInvite();
-    setGroupDraft(buildGroupDraftFromGroup(group));
-    chrome.openMobileForm();
-    setMessage('Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РіСЂСѓРїРїС‹. Р’РЅРµСЃРёС‚Рµ РёР·РјРµРЅРµРЅРёСЏ Рё СЃРѕС…СЂР°РЅРёС‚Рµ.');
-  }
-
-  function cancelGroupEdit(): void {
-    setEditingGroupId('');
-    setGroupDraft(emptyGroupDraft);
-    chrome.closeMobileForm();
-    setMessage('');
-  }
-
-  async function deleteGroup(groupId: string): Promise<void> {
-    if (!workspace || !activeUser || !hasRole(activeUser, 'trainer')) return;
-
-    const deleted = await deleteGroupAction({
-      workspace,
-      groupId,
-      isLocalMode,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace
-    });
-    if (!deleted) return;
-
-    if (editingGroupId === groupId) {
-      cancelGroupEdit();
-    }
-    if (lastCreatedGroupId === groupId) {
-      setLastCreatedGroupId('');
-    }
-
-    setMessage('Р“СЂСѓРїРїР° СѓРґР°Р»РµРЅР°.');
   }
 
   async function assignMemberToGroup(memberId: string, groupId: string): Promise<void> {
@@ -967,7 +871,7 @@ export function DashboardApp(): React.ReactElement {
             onCreateInvite={(groupId) => void createMemberInviteForGroup(groupId)}
             onEditGroup={startGroupEdit}
             onDeleteGroup={(groupId) => void deleteGroup(groupId)}
-            onDraftChange={(patch) => setGroupDraft((current) => ({ ...current, ...patch }))}
+            onDraftChange={updateGroupDraft}
             onToggleDay={toggleGroupDay}
             onSubmit={createGroup}
             onCloseForm={chrome.closeMobileForm}
