@@ -22,11 +22,9 @@ import {
   buildMemberPaymentDetails,
   buildPaymentOverview,
   buildPaymentRegistry,
-  buildPaymentTasks,
   buildSelectedPaymentDetails,
   mapActivePlansByMemberId,
   mapCurrentPaymentsByMemberId,
-  paymentTaskHeadline,
   selectVisiblePayments,
   usePaymentUiState
 } from '@/modules/payments';
@@ -97,8 +95,7 @@ export function useDashboardData({
   const {
     paymentView,
     paymentSearch,
-    selectedPaymentMemberId,
-    openPaymentsView
+    selectedPaymentMemberId
   } = paymentUi;
 
   const trainerFor = useCallback(
@@ -171,24 +168,6 @@ export function useDashboardData({
       visiblePayments
     ]
   );
-  const todayTasks = useMemo(
-    () =>
-      buildPaymentTasks({
-        confirmationPayments: paymentOverview.confirmationPayments,
-        delayRequestedPayments: paymentOverview.delayRequestedPayments,
-        overduePayments: paymentOverview.overduePayments
-      }).map((task) => ({
-        ...task,
-        onClick: () => openPaymentsView(task.id === 'overdue' ? 'overdue' : 'actions')
-      })),
-    [
-      openPaymentsView,
-      paymentOverview.confirmationPayments,
-      paymentOverview.delayRequestedPayments,
-      paymentOverview.overduePayments
-    ]
-  );
-  const todayTaskCount = todayTasks.reduce((sum, task) => sum + task.count, 0);
   const activeMemberDetails = useMemo(
     () =>
       buildMemberPaymentDetails({
@@ -292,9 +271,6 @@ export function useDashboardData({
     paymentOverview,
     paymentRegistry,
     selectedPaymentDetails,
-    todayTasks,
-    todayTaskCount,
-    todayTaskHeadline: paymentTaskHeadline(todayTaskCount),
     activeMemberDetails,
     activeMemberTrainer,
     activeMemberGroup,

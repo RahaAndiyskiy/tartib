@@ -135,6 +135,7 @@ Important modules:
 - Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`; schedule edit state/update/save handlers are extracted into `src/features/dashboard/model/useScheduleController.ts`.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; expenses draft state and handlers are extracted into `src/features/dashboard/model/useExpensesController.ts`.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
+- Overview-page props and today task navigation are extracted into `src/features/dashboard/model/useOverviewController.ts`; `useDashboardData` stays closer to data derivation instead of owning click callbacks.
 - Temporary dashboard notice state and auto-clear timing are extracted into `src/features/dashboard/model/useDashboardNotice.ts`.
 - Local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion is extracted into `src/features/dashboard/model/useDashboardUiState.ts`.
 - Push status, enable push, local reset, new window and sign-out actions are extracted into `src/features/dashboard/model/useAccountRuntime.ts`.

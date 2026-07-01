@@ -53,6 +53,7 @@ import { usePeopleActionsController } from './model/usePeopleActionsController';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
 import { usePaymentNavigation } from './model/usePaymentNavigation';
 import { usePaymentActionsController } from './model/usePaymentActionsController';
+import { useOverviewController } from './model/useOverviewController';
 import { useScheduleController } from './model/useScheduleController';
 import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
@@ -154,9 +155,6 @@ export function DashboardApp(): React.ReactElement {
     paymentOverview,
     paymentRegistry,
     selectedPaymentDetails,
-    todayTasks,
-    todayTaskCount,
-    todayTaskHeadline,
     activeMemberDetails,
     activeMemberTrainer,
     activeMemberGroup,
@@ -172,11 +170,7 @@ export function DashboardApp(): React.ReactElement {
   } = dashboardData;
 
   const {
-    currentPayments,
-    paidAmount,
-    delayRequestedPayments,
     overduePayments,
-    delayedPayments,
     paymentActionCount
   } = paymentOverview;
   const {
@@ -389,6 +383,23 @@ export function DashboardApp(): React.ReactElement {
     todayString,
     workspace
   });
+  const overviewProps = useOverviewController({
+    activeUser,
+    activeMemberPayment,
+    activeMemberTrainer,
+    activeMemberGroup,
+    activeMemberSchedule,
+    delayDraftFor,
+    isPendingAction,
+    openOverviewInviteFlow,
+    openPaymentsView,
+    openPrepayment,
+    paymentOverview,
+    requestPaymentDelay: (paymentId) => void requestPaymentDelay(paymentId),
+    submitPaymentConfirmation: (paymentId) => void submitPaymentConfirmation(paymentId),
+    updateDelayDraft,
+    visibleGroups
+  });
 
   function openSection(section: DashboardSection): void {
     chrome.openSection(section);
@@ -470,31 +481,8 @@ export function DashboardApp(): React.ReactElement {
           onShareInvite={() => void shareMemberInvite()}
           onCloseInvite={closeOverviewInviteModal}
         />
-        {activeSection === 'overview' ? (
-          <OverviewSection
-            activeUser={activeUser}
-            activeMemberPayment={activeMemberPayment}
-            activeMemberTrainer={activeMemberTrainer}
-            activeMemberGroup={activeMemberGroup}
-            activeMemberSchedule={activeMemberSchedule}
-            todayTasks={todayTasks}
-            todayTaskCount={todayTaskCount}
-            todayTaskHeadline={todayTaskHeadline}
-            visibleGroups={visibleGroups}
-            paidAmount={paidAmount}
-            currentPayments={currentPayments}
-            overduePayments={overduePayments}
-            delayRequestedPayments={delayRequestedPayments}
-            delayedPayments={delayedPayments}
-            delayDraftFor={delayDraftFor}
-            updateDelayDraft={updateDelayDraft}
-            submitPaymentConfirmation={(paymentId) => void submitPaymentConfirmation(paymentId)}
-            requestPaymentDelay={(paymentId) => void requestPaymentDelay(paymentId)}
-            openPrepayment={openPrepayment}
-            openPaymentsView={openPaymentsView}
-            openOverviewInviteFlow={openOverviewInviteFlow}
-            isPendingAction={isPendingAction}
-          />
+        {activeSection === 'overview' && overviewProps ? (
+          <OverviewSection {...overviewProps} />
         ) : null}
         {activeSection === 'people' ? (
           <section className="crm-content-grid">

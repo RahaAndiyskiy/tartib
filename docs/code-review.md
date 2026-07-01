@@ -125,6 +125,7 @@ Recent progress:
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers were moved into `src/features/dashboard/model/useExpensesController.ts`.
 - Opening notifications and marking them as read were moved into `src/features/dashboard/model/useNotificationsController.ts`.
+- Overview-page props and today task navigation were moved into `src/features/dashboard/model/useOverviewController.ts`; `useDashboardData` no longer owns click callbacks for today tasks.
 - Member group assignment and member deletion orchestration were moved into `src/features/dashboard/model/usePeopleActionsController.ts`.
 - Person draft state, member invite links, share/copy actions and active-user switching were moved into `src/features/dashboard/model/usePeopleFlowController.ts`.
 - Payment view navigation, notification payment lookup and prepayment affordance checks were moved into `src/features/dashboard/model/usePaymentNavigation.ts`.

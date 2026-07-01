@@ -72,6 +72,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useDashboardNotice.ts` owns temporary dashboard notice state and auto-clear timing.
 - `src/features/dashboard/model/useDashboardUiState.ts` owns local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion.
 - `src/features/dashboard/model/useNotificationsController.ts` owns opening notifications and marking them as read.
+- `src/features/dashboard/model/useOverviewController.ts` owns overview-page props and today task navigation.
 - `src/features/dashboard/model/usePeopleFlowController.ts` owns person draft state, member invite links, share/copy actions and active-user switching.
 - `src/features/dashboard/model/usePaymentNavigation.ts` owns payment view navigation, notification payment lookup and prepayment affordance checks.
 - `src/features/dashboard/model/usePaymentActionsController.ts` owns dashboard-side payment action orchestration: save/delete payment, approve/reject confirmation, request/decide delay and submit prepayment.
