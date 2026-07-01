@@ -4,7 +4,6 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import {
   createId,
-  writeActiveUserId,
   type LocalTrainingGroup
 } from '@shared/lib/localWorkspace';
 import type { PaymentRequest } from '@shared/types/domain';
@@ -21,16 +20,13 @@ import {
 } from '@/modules/groups';
 import {
   emptyGroupDraft,
-  emptyPersonDraft,
   formatLabels,
   planLabels,
   statusLabels
 } from './constants';
 import type {
   DashboardSection,
-  GroupDraft,
-  MemberInviteResult,
-  PersonDraft
+  GroupDraft
 } from './types';
 import {
   addMonthsDate,
@@ -55,10 +51,8 @@ import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
 import {
   assignMemberToGroupAction,
-  createMemberInviteAction,
   deleteMemberAction,
   PeoplePanel,
-  submitPersonDraftAction
 } from '@/modules/people';
 import {
   applyGroupDefaultPaymentToMembers,
@@ -76,15 +70,13 @@ import {
   validateSavePaymentDraft
 } from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
-import {
-  buildSectionMeta,
-  sectionForActiveUserChange
-} from './model/navigation';
+import { buildSectionMeta } from './model/navigation';
 import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
 import { useExpensesController } from './model/useExpensesController';
 import { useNotificationsController } from './model/useNotificationsController';
 import { usePendingAction } from './model/usePendingAction';
+import { usePeopleFlowController } from './model/usePeopleFlowController';
 import { usePaymentNavigation } from './model/usePaymentNavigation';
 import { useScheduleController } from './model/useScheduleController';
 import { useSettingsController } from './model/useSettingsController';
@@ -93,7 +85,6 @@ import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
-  const [personDraft, setPersonDraft] = useState<PersonDraft>(emptyPersonDraft);
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
@@ -106,9 +97,6 @@ export function DashboardApp(): React.ReactElement {
     logoutConfirmOpen,
     invitePickerOpen
   } = chrome;
-  const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
-  const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
-  const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
   const [peopleSearch, setPeopleSearch] = useState('');
   const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
   const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
@@ -331,20 +319,42 @@ export function DashboardApp(): React.ReactElement {
     selectPaymentMember,
     workspace
   });
-
-  const isMemberInviteForm =
-    Boolean(activeUser) &&
-    !isLocalMode &&
-    ((hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')) ||
-      personDraft.role === 'member');
-
-  function selectActiveUser(userId: string): void {
-    const nextUser = workspace?.users.find((user) => user.id === userId);
-    setActiveUserId(userId);
-    writeActiveUserId(userId);
-    chrome.switchActiveUserSection(sectionForActiveUserChange({ currentSection: activeSection, nextUser }));
-    setMessage('');
-  }
+  const {
+    addPerson,
+    clearMemberInvite,
+    closeMemberInvite,
+    closeOverviewInviteModal,
+    copyMemberInvite,
+    createMemberInviteForGroup,
+    isMemberInviteForm,
+    lastCreatedGroupId,
+    memberInvite,
+    openInviteFlow,
+    openOverviewInviteFlow,
+    personDraft,
+    selectActiveUser,
+    setLastCreatedGroupId,
+    shareMemberInvite,
+    updatePersonDraft
+  } = usePeopleFlowController({
+    activeSection,
+    activeUser,
+    closeInvitePicker: chrome.closeInvitePicker,
+    closeMobileForm: chrome.closeMobileForm,
+    groups: visibleGroups,
+    isLocalMode,
+    openFormSection: chrome.openFormSection,
+    openInvitePicker: chrome.openInvitePicker,
+    periodLabel,
+    runRemoteAction,
+    runRemoteActionWithPending,
+    saveWorkspace,
+    setActiveUserId,
+    setMessage,
+    switchActiveUserSection: chrome.switchActiveUserSection,
+    users: workspace?.users ?? [],
+    workspace
+  });
 
   function openSection(section: DashboardSection): void {
     chrome.openSection(section);
@@ -355,125 +365,6 @@ export function DashboardApp(): React.ReactElement {
     setEditingGroupId('');
     setGroupDraft(emptyGroupDraft);
     setMessage('');
-  }
-
-  function openInviteFlow(groupId?: string): void {
-    chrome.openFormSection(groupId ? 'groups' : 'people');
-    setMemberInvite(null);
-    setMessage('');
-    setPersonDraft((current) => ({
-      ...current,
-      role: 'member',
-      groupId: groupId ?? current.groupId
-    }));
-  }
-
-  function openOverviewInviteFlow(): void {
-    if (visibleGroups.length === 0) {
-      setMessage('РЎРЅР°С‡Р°Р»Р° СЃРѕР·РґР°Р№С‚Рµ РіСЂСѓРїРїСѓ, С‡С‚РѕР±С‹ РґР°С‚СЊ СЃСЃС‹Р»РєСѓ РЅР° РІСЃС‚СѓРїР»РµРЅРёРµ.');
-      return;
-    }
-
-    setMessage('');
-    setMemberInvite(null);
-    if (visibleGroups.length === 1) {
-      void createMemberInviteForGroup(visibleGroups[0].id);
-      return;
-    }
-
-    chrome.openInvitePicker();
-  }
-
-  function closeOverviewInviteModal(): void {
-    chrome.closeInvitePicker();
-    setMemberInvite(null);
-    setMessage('');
-  }
-
-  async function createMemberInviteForGroup(groupId: string): Promise<void> {
-    const selectedGroup = workspace?.groups.find((group) => group.id === groupId);
-    if (!workspace) return;
-
-    const result = await createMemberInviteAction({
-      group: selectedGroup ?? null,
-      groupId,
-      cachedInvite: memberInvitesByGroup[groupId],
-      isLocalMode,
-      origin: window.location.origin,
-      runRemoteActionWithPending
-    });
-
-    if (result) {
-      setMemberInvite(result.invite);
-      setMemberInvitesByGroup((current) => ({ ...current, [groupId]: result.invite }));
-      setLastCreatedGroupId('');
-      setMessage(result.localMode ? 'Р’ Р»РѕРєР°Р»СЊРЅРѕРј СЂРµР¶РёРјРµ СЃСЃС‹Р»РєР° РїРѕРєР°Р·Р°РЅР° РґР»СЏ РїСЂРѕРІРµСЂРєРё РёРЅС‚РµСЂС„РµР№СЃР°.' : '');
-    }
-  }
-
-  function closeMemberInvite(): void {
-    setMemberInvite(null);
-    setMessage('');
-  }
-
-  async function addPerson(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-
-    const result = await submitPersonDraftAction({
-      workspace,
-      activeUser,
-      draft: personDraft,
-      isLocalMode,
-      runRemoteAction,
-      now: new Date().toISOString(),
-      periodLabel
-    });
-
-    if (result.kind === 'idle') return;
-
-    if (result.kind === 'validation_error') {
-      setMessage(result.message);
-      return;
-    }
-
-    if (result.kind === 'create_member_invite') {
-      await createMemberInviteForGroup(result.groupId);
-      setPersonDraft((current) => ({
-        ...emptyPersonDraft,
-        role: 'member',
-        groupId: current.groupId
-      }));
-      return;
-    }
-
-    if (result.kind === 'remote_trainer_created') {
-      setPersonDraft(emptyPersonDraft);
-      chrome.closeMobileForm();
-      setMessage(result.message);
-      return;
-    }
-
-    saveWorkspace(result.workspace);
-    setPersonDraft(emptyPersonDraft);
-    setMessage(result.message);
-  }
-  async function copyMemberInvite(): Promise<void> {
-    if (!memberInvite) return;
-    await navigator.clipboard.writeText(memberInvite.inviteUrl);
-    setMessage('РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°.');
-  }
-
-  async function shareMemberInvite(): Promise<void> {
-    if (!memberInvite) return;
-    if (navigator.share) {
-      await navigator.share({
-        title: `РџСЂРёРіР»Р°С€РµРЅРёРµ РІ РіСЂСѓРїРїСѓ ${memberInvite.groupName}`,
-        text: 'Р—Р°РІРµСЂС€РёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ РІ Tartib Рё РїСЂРёСЃРѕРµРґРёРЅРёС‚РµСЃСЊ Рє РіСЂСѓРїРїРµ.',
-        url: memberInvite.inviteUrl
-      });
-      return;
-    }
-    await copyMemberInvite();
   }
 
   async function createGroup(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -531,7 +422,7 @@ export function DashboardApp(): React.ReactElement {
 
     setEditingGroupId(group.id);
     setLastCreatedGroupId('');
-    setMemberInvite(null);
+    clearMemberInvite();
     setGroupDraft(buildGroupDraftFromGroup(group));
     chrome.openMobileForm();
     setMessage('Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РіСЂСѓРїРїС‹. Р’РЅРµСЃРёС‚Рµ РёР·РјРµРЅРµРЅРёСЏ Рё СЃРѕС…СЂР°РЅРёС‚Рµ.');
@@ -953,8 +844,8 @@ export function DashboardApp(): React.ReactElement {
               isMemberInviteForm={isMemberInviteForm}
               onSubmit={addPerson}
               onClose={chrome.closeMobileForm}
-              onDraftChange={(patch) => setPersonDraft((current) => ({ ...current, ...patch }))}
-              onClearInvite={() => setMemberInvite(null)}
+              onDraftChange={updatePersonDraft}
+              onClearInvite={clearMemberInvite}
               onCopyInvite={() => void copyMemberInvite()}
               onCloseInvite={closeMemberInvite}
               onShareInvite={() => void shareMemberInvite()}

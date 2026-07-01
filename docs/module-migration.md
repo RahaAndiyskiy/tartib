@@ -68,6 +68,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useAccountRuntime.ts` owns push status, enable push, local reset, new window and sign-out actions.
 - `src/features/dashboard/model/useDashboardChrome.ts` owns dashboard chrome state and common open/close transitions for sections, mobile form, account menu, notifications, invite picker and logout confirmation.
 - `src/features/dashboard/model/useNotificationsController.ts` owns opening notifications and marking them as read.
+- `src/features/dashboard/model/usePeopleFlowController.ts` owns person draft state, member invite links, share/copy actions and active-user switching.
 - `src/features/dashboard/model/usePaymentNavigation.ts` owns payment view navigation, notification payment lookup and prepayment affordance checks.
 - `src/features/dashboard/model/useScheduleController.ts` owns schedule edit state, update and save handlers.
 - `src/features/dashboard/model/useWorkspaceRuntime.ts` owns workspace loading, local workspace sync, remote refresh, workspace persistence and remote action helpers.

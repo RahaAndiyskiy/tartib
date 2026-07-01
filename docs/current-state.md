@@ -125,6 +125,7 @@ Important modules:
 - Trainer creation and member invite creation helpers are extracted into `src/modules/people/actions`.
 - Local person creation is extracted into `src/modules/people/actions`; it covers local trainer/member creation, member group assignment and optional initial payment creation.
 - Add-person submit decisions are extracted into `src/modules/people/actions`; dashboard now reacts to result objects instead of owning the full remote/local branch.
+- Person draft state, member invite links, share/copy actions and active-user switching are extracted into `src/features/dashboard/model/usePeopleFlowController.ts`.
 - Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
 - Dashboard-level groups composition is extracted into `src/features/dashboard/components/GroupsSection.tsx`.
 - Notification modal UI and mark-read action are extracted into `src/modules/notifications`; opening notifications and marking them as read are extracted into `src/features/dashboard/model/useNotificationsController.ts`.
