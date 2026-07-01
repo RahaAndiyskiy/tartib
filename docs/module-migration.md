@@ -66,6 +66,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useDashboardData.ts` owns the dashboard view model: derived users, groups, payments, expenses, notifications and lookup helpers.
 - `src/features/dashboard/model/useDashboardChrome.ts` owns dashboard chrome state and common open/close transitions for sections, mobile form, account menu, notifications, invite picker and logout confirmation.
 - `src/features/dashboard/model/useWorkspaceRuntime.ts` owns workspace loading, local workspace sync, remote refresh, workspace persistence and remote action helpers.
+- `src/features/dashboard/model/usePendingAction.ts` owns pending action state, loading button labels and the remote action pending wrapper.
 - `src/features/dashboard/model/navigation.ts` owns dashboard section labels and safe section correction when switching active users.
 - `src/features/dashboard/components/DashboardOverlays.tsx` owns global dashboard overlays wiring for notifications, logout confirmation and overview invite link modal.
 - `src/features/dashboard/components/DashboardShell.tsx` owns the dashboard visual shell: sidebar, mobile topbar, header and navigation.

@@ -111,6 +111,7 @@ import {
   sectionForActiveUserChange
 } from './model/navigation';
 import { useDashboardChrome } from './model/useDashboardChrome';
+import { usePendingAction } from './model/usePendingAction';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 
 export function DashboardApp(): React.ReactElement {
@@ -141,7 +142,6 @@ export function DashboardApp(): React.ReactElement {
   const [memberInvite, setMemberInvite] = useState<MemberInviteResult | null>(null);
   const [memberInvitesByGroup, setMemberInvitesByGroup] = useState<Record<string, MemberInviteResult>>({});
   const [lastCreatedGroupId, setLastCreatedGroupId] = useState('');
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [peopleSearch, setPeopleSearch] = useState('');
   const [peopleGroupFilter, setPeopleGroupFilter] = useState('all');
   const [expandedPeople, setExpandedPeople] = useState<Record<string, boolean>>({});
@@ -163,6 +163,11 @@ export function DashboardApp(): React.ReactElement {
     isLocalMode,
     setMessage
   });
+  const {
+    buttonLabel,
+    isPendingAction,
+    runRemoteActionWithPending
+  } = usePendingAction({ runRemoteActionData });
 
   useEffect(() => {
     if (!message) return;
@@ -290,26 +295,6 @@ export function DashboardApp(): React.ReactElement {
     selectPaymentMember
   } = paymentUi;
 
-  const isPendingAction = (key: string): boolean => pendingAction === key;
-  const buttonLabel = (key: string, defaultLabel: string): string =>
-    isPendingAction(key)
-      ? key.startsWith('create-invite:')
-        ? 'Р“РѕС‚РѕРІРёРј СЃСЃС‹Р»РєСѓ...'
-        : defaultLabel.toLowerCase().includes('СѓРґР°Р»')
-          ? 'РЈРґР°Р»СЏРµРј...'
-          : 'РЎРѕС…СЂР°РЅСЏРµРј...'
-      : defaultLabel;
-  const runRemoteActionWithPending = async <T,>(
-    payload: Record<string, unknown>,
-    pendingKey: string
-  ): Promise<T | null> => {
-    setPendingAction(pendingKey);
-    try {
-      return await runRemoteActionData<T>(payload);
-    } finally {
-      setPendingAction((current) => (current === pendingKey ? null : current));
-    }
-  };
   const isMemberInviteForm =
     Boolean(activeUser) &&
     !isLocalMode &&
@@ -962,10 +947,9 @@ export function DashboardApp(): React.ReactElement {
       activeUser,
       draft: settingsDraft,
       isLocalMode,
-      runRemoteActionData,
+      runRemoteActionWithPending,
       saveWorkspace,
       setWorkspace,
-      setPendingAction,
       setMessage
     });
   }
@@ -978,10 +962,9 @@ export function DashboardApp(): React.ReactElement {
       activeUser,
       draft: settingsDraft,
       isLocalMode,
-      runRemoteActionData,
+      runRemoteActionWithPending,
       saveWorkspace,
       setWorkspace,
-      setPendingAction,
       setMessage
     });
   }

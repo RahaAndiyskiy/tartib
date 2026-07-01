@@ -2,9 +2,11 @@ import type { LocalWorkspace } from '@shared/lib/localWorkspace';
 import type { AppUser } from '@shared/types/domain';
 import { hasRole } from '@/core/roles';
 
-type RunRemoteActionData = <T>(payload: Record<string, unknown>) => Promise<T | null>;
+type RunRemoteActionWithPending = <T>(
+  payload: Record<string, unknown>,
+  pendingKey: string
+) => Promise<T | null>;
 type SetWorkspace = (updater: (current: LocalWorkspace | null) => LocalWorkspace | null) => void;
-type SetPendingAction = (action: string | null) => void;
 
 type SettingsDraftLike = {
   firstName: string;
@@ -18,20 +20,18 @@ export async function saveProfileSettingsAction({
   activeUser,
   draft,
   isLocalMode,
-  runRemoteActionData,
+  runRemoteActionWithPending,
   saveWorkspace,
   setWorkspace,
-  setPendingAction,
-  setMessage
+  setMessage,
 }: {
   workspace: LocalWorkspace | null;
   activeUser: AppUser | null;
   draft: SettingsDraftLike;
   isLocalMode: boolean;
-  runRemoteActionData: RunRemoteActionData;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
   saveWorkspace: (workspace: LocalWorkspace) => void;
   setWorkspace: SetWorkspace;
-  setPendingAction: SetPendingAction;
   setMessage: (message: string) => void;
 }): Promise<void> {
   if (!workspace || !activeUser) return;
@@ -46,34 +46,32 @@ export async function saveProfileSettingsAction({
   }
 
   if (!isLocalMode) {
-    setPendingAction('update-profile');
-    try {
-      const data = await runRemoteActionData<{ user: AppUser }>({
+    const data = await runRemoteActionWithPending<{ user: AppUser }>(
+      {
         action: 'update_profile',
         firstName,
         lastName,
-        phone
-      });
-      if (data?.user) {
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                users: current.users.map((user) =>
-                  user.id === data.user.id
-                    ? {
-                        ...data.user,
-                        roles: user.roles
-                      }
-                    : user
-                )
-              }
-            : current
-        );
-        setMessage('Профиль сохранён.');
-      }
-    } finally {
-      setPendingAction(null);
+        phone,
+      },
+      'update-profile'
+    );
+    if (data?.user) {
+      setWorkspace((current) =>
+        current
+          ? {
+              ...current,
+              users: current.users.map((user) =>
+                user.id === data.user.id
+                  ? {
+                      ...data.user,
+                      roles: user.roles,
+                    }
+                  : user
+              ),
+            }
+          : current
+      );
+      setMessage('Профиль сохранён.');
     }
     return;
   }
@@ -86,10 +84,10 @@ export async function saveProfileSettingsAction({
             ...user,
             first_name: firstName,
             last_name: lastName,
-            phone: phone || null
+            phone: phone || null,
           }
         : user
-    )
+    ),
   });
   setMessage('Профиль сохранён.');
 }
@@ -99,20 +97,18 @@ export async function saveOrganizationSettingsAction({
   activeUser,
   draft,
   isLocalMode,
-  runRemoteActionData,
+  runRemoteActionWithPending,
   saveWorkspace,
   setWorkspace,
-  setPendingAction,
-  setMessage
+  setMessage,
 }: {
   workspace: LocalWorkspace | null;
   activeUser: AppUser | null;
   draft: SettingsDraftLike;
   isLocalMode: boolean;
-  runRemoteActionData: RunRemoteActionData;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
   saveWorkspace: (workspace: LocalWorkspace) => void;
   setWorkspace: SetWorkspace;
-  setPendingAction: SetPendingAction;
   setMessage: (message: string) => void;
 }): Promise<void> {
   if (!workspace || !activeUser || !hasRole(activeUser, 'owner')) return;
@@ -124,25 +120,23 @@ export async function saveOrganizationSettingsAction({
   }
 
   if (!isLocalMode) {
-    setPendingAction('update-organization');
-    try {
-      const data = await runRemoteActionData<{ organization: LocalWorkspace['organization'] }>({
+    const data = await runRemoteActionWithPending<{ organization: LocalWorkspace['organization'] }>(
+      {
         action: 'update_organization',
-        name
-      });
-      if (data?.organization) {
-        setWorkspace((current) =>
-          current
-            ? {
-                ...current,
-                organization: data.organization
-              }
-            : current
-        );
-        setMessage('Настройки клуба сохранены.');
-      }
-    } finally {
-      setPendingAction(null);
+        name,
+      },
+      'update-organization'
+    );
+    if (data?.organization) {
+      setWorkspace((current) =>
+        current
+          ? {
+              ...current,
+              organization: data.organization,
+            }
+          : current
+      );
+      setMessage('Настройки клуба сохранены.');
     }
     return;
   }
@@ -151,8 +145,8 @@ export async function saveOrganizationSettingsAction({
     ...workspace,
     organization: {
       ...workspace.organization,
-      name
-    }
+      name,
+    },
   });
   setMessage('Настройки клуба сохранены.');
 }
