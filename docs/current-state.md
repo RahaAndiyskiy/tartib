@@ -132,6 +132,7 @@ Important modules:
 - Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; dashboard still renders the expenses UI.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
+- Dashboard section labels and safe section correction on active-user switch are extracted into `src/features/dashboard/model/navigation.ts`.
 - Overview, schedule, settings, expenses, global overlays and the visual dashboard shell are extracted into dashboard components.
 - Group list UI, visibility selectors and basic permissions are started in `src/modules/groups`.
 - Group deletion action is extracted into `src/modules/groups/actions`.

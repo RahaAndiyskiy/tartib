@@ -111,6 +111,10 @@ import {
   type PaymentView
 } from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
+import {
+  buildSectionMeta,
+  sectionForActiveUserChange
+} from './model/navigation';
 
 export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
@@ -516,18 +520,7 @@ export function DashboardApp(): React.ReactElement {
     const nextUser = workspace?.users.find((user) => user.id === userId);
     setActiveUserId(userId);
     writeActiveUserId(userId);
-    if (activeSection === 'expenses') {
-      setActiveSection('overview');
-    }
-    if (activeSection === 'people' && nextUser?.role === 'member') {
-      setActiveSection('overview');
-    }
-    if (activeSection === 'groups' && nextUser?.role === 'member') {
-      setActiveSection('overview');
-    }
-    if (activeSection === 'schedule' && nextUser?.role !== 'member') {
-      setActiveSection('groups');
-    }
+    setActiveSection(sectionForActiveUserChange({ currentSection: activeSection, nextUser }));
     setMessage('');
     setMobileFormOpen(false);
     setMobileAccountOpen(false);
@@ -1228,42 +1221,7 @@ export function DashboardApp(): React.ReactElement {
     window.location.href = '/login';
   }
 
-  const sectionMeta: Record<DashboardSection, { title: string; description: string }> = {
-    overview: {
-      title: 'РћР±Р·РѕСЂ',
-      description: 'Р“Р»Р°РІРЅС‹Рµ РїРѕРєР°Р·Р°С‚РµР»Рё Рё С‚РµРєСѓС‰Р°СЏ СЃРёС‚СѓР°С†РёСЏ РІ РєР»СѓР±Рµ'
-    },
-    people: {
-      title:
-        activeUser && hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-          ? 'РњРѕРё СѓС‡РµРЅРёРєРё'
-          : 'РљРѕРјР°РЅРґР°',
-      description: 'РўСЂРµРЅРµСЂС‹, СѓС‡РµРЅРёРєРё Рё СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ РѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕСЃС‚Рё'
-    },
-    payments: {
-      title: activeUser?.role === 'member' ? 'РњРѕСЏ РѕРїР»Р°С‚Р°' : 'РћРїР»Р°С‚С‹',
-      description: 'РўРµРєСѓС‰РёРµ СЃСѓРјРјС‹, СЃСЂРѕРєРё Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ СѓС‡РµРЅРёРєРѕРІ'
-    },
-    groups: {
-      title: 'Р“СЂСѓРїРїС‹',
-      description: 'РќР°РїСЂР°РІР»РµРЅРёСЏ, РґРЅРё Рё РІСЂРµРјСЏ Р·Р°РЅСЏС‚РёР№ С‚СЂРµРЅРµСЂРѕРІ'
-    },
-    schedule: {
-      title: activeUser?.role === 'member' ? 'РњРѕС‘ СЂР°СЃРїРёСЃР°РЅРёРµ' : 'Р Р°СЃРїРёСЃР°РЅРёРµ',
-      description:
-        activeUser?.role === 'member'
-          ? 'Р”РЅРё Рё РІСЂРµРјСЏ РІР°С€РёС… С‚СЂРµРЅРёСЂРѕРІРѕРє'
-          : 'Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє СѓС‡РµРЅРёРєРѕРІ'
-    },
-    expenses: {
-      title: 'Р Р°СЃС…РѕРґС‹',
-      description: 'РђСЂРµРЅРґР°, РєРѕРјРјСѓРЅР°Р»СЊРЅС‹Рµ Рё РґСЂСѓРіРёРµ Р·Р°С‚СЂР°С‚С‹ РєР»СѓР±Р°'
-    },
-    settings: {
-      title: 'РќР°СЃС‚СЂРѕР№РєРё',
-      description: 'РџСЂРѕС„РёР»СЊ, СѓРІРµРґРѕРјР»РµРЅРёСЏ Рё РїР°СЂР°РјРµС‚СЂС‹ РєР»СѓР±Р°'
-    }
-  };
+  const sectionMeta = buildSectionMeta(activeUser);
 
   if (!workspace || !activeUser) {
     return (
