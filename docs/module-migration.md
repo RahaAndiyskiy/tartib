@@ -23,7 +23,7 @@ Each module is considered migrated only when all layers are moved:
 | --- | --- | --- | --- | --- | --- | --- |
 | `people` | done | partial | partial | done | partial | `PeoplePanel`, `PersonFormPanel`, people selectors, permissions, invite creation, trainer creation, local person creation, add-person submit decision, member assignment and member deletion actions are extracted; dashboard still owns form state and cross-module UI reactions. |
 | `groups` | partial | partial | partial | partial | partial | `GroupsPanel`, dashboard `GroupsSection`, visible group selectors, draft validation/build, draft-from-group mapping, workspace group upsert/replace helpers, remote save, submit decision, basic permissions and group deletion are extracted; dashboard still owns cross-module payment-sync callback and UI reactions. |
-| `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, dashboard `PaymentWorkspaceSection`, `usePaymentUiState`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted; dashboard still owns cross-module callbacks. |
+| `payments` | done | partial | partial | pending | partial | `PaymentRegistryRow`, `MemberPaymentPanel`, `PaymentWorkspaceRegistryPanel`, `PaymentDrawer`, dashboard `PaymentWorkspaceSection`, `usePaymentUiState`, `usePaymentNavigation`, `usePaymentActionsController`, payment view selectors, form-state helpers, save-payment validation/build, remote save wrapper, group-default payment sync and high-level payment action wrappers are extracted; dashboard still wires props into payment UI. |
 | `notifications` | partial | pending | partial | pending | partial | Notification modal UI and mark-read action are in `src/modules/notifications`; dashboard still owns modal open state, payment action callbacks and push enable flow. |
 | `account` | partial | pending | partial | pending | partial | Profile and organization settings save actions are in `src/modules/account`; settings page UI is in `src/features/dashboard/components/SettingsSection.tsx`; dashboard still owns draft state and orchestration. |
 | `schedule` | partial | partial | partial | pending | partial | Schedule page UI is in `src/features/dashboard/components/ScheduleSection.tsx`; schedule edit helpers and save action are in `src/modules/schedule`; dashboard still owns draft state and orchestration. |
@@ -71,6 +71,7 @@ Each module is considered migrated only when all layers are moved:
 - `src/features/dashboard/model/useNotificationsController.ts` owns opening notifications and marking them as read.
 - `src/features/dashboard/model/usePeopleFlowController.ts` owns person draft state, member invite links, share/copy actions and active-user switching.
 - `src/features/dashboard/model/usePaymentNavigation.ts` owns payment view navigation, notification payment lookup and prepayment affordance checks.
+- `src/features/dashboard/model/usePaymentActionsController.ts` owns dashboard-side payment action orchestration: save/delete payment, approve/reject confirmation, request/decide delay and submit prepayment.
 - `src/features/dashboard/model/useScheduleController.ts` owns schedule edit state, update and save handlers.
 - `src/features/dashboard/model/useWorkspaceRuntime.ts` owns workspace loading, local workspace sync, remote refresh, workspace persistence and remote action helpers.
 - `src/features/dashboard/model/usePendingAction.ts` owns pending action state, loading button labels and the remote action pending wrapper.
@@ -96,7 +97,7 @@ Each module is considered migrated only when all layers are moved:
    - keep only cross-module orchestration in `DashboardApp.tsx`;
    - keep payment default synchronization explicit instead of importing payment ownership into `groups`.
 4. Continue `payments` module:
-   - move remaining payment callback adapters out of `DashboardApp.tsx` only when it can be done without hiding cross-module dependencies;
+   - keep `usePaymentActionsController.ts` as the dashboard/payment boundary until payment UI and action props can be composed closer to the payments module;
    - keep group-default payment sync inside `payments/actions` and add tests before extending tariff rules.
 
 ## Rule

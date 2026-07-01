@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createId } from '@shared/lib/localWorkspace';
-import type { PaymentRequest } from '@shared/types/domain';
-import {
-  hasRole
-} from '@/core/roles';
+import { hasRole } from '@/core/roles';
 import {
   canManageGroups,
   canViewGroups
@@ -43,18 +40,7 @@ import {
   PeoplePanel,
 } from '@/modules/people';
 import {
-  decidePaymentDelayAction,
-  decidePaymentStatusAction,
-  deleteMemberPaymentAction,
   MemberPaymentPanel,
-  requestPaymentDelayAction,
-  saveLocalMemberPayment,
-  saveRemoteMemberPaymentAction,
-  submitPaymentConfirmationAction,
-  submitPrepaymentAction,
-  upsertBillingPlan,
-  upsertPayment,
-  validateSavePaymentDraft
 } from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
 import { buildSectionMeta } from './model/navigation';
@@ -66,6 +52,7 @@ import { useNotificationsController } from './model/useNotificationsController';
 import { usePendingAction } from './model/usePendingAction';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
 import { usePaymentNavigation } from './model/usePaymentNavigation';
+import { usePaymentActionsController } from './model/usePaymentActionsController';
 import { useScheduleController } from './model/useScheduleController';
 import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
@@ -292,6 +279,42 @@ export function DashboardApp(): React.ReactElement {
     workspace
   });
   const {
+    decidePaymentDelay,
+    deleteMemberPayment,
+    requestPaymentDelay,
+    saveMemberPayment,
+    submitPaymentConfirmation,
+    submitPrepayment,
+    updateDelayDraft,
+    updatePaymentStatus
+  } = usePaymentActionsController({
+    activePlanByMemberId,
+    activeUser,
+    activeUserId,
+    addMonthsDate,
+    assignmentsByMemberId,
+    canSubmitPayment,
+    canSubmitPrepayment,
+    clearPaymentEdit,
+    createId,
+    currentPaymentByMemberId,
+    dateAtNoon,
+    delayDraftFor,
+    isLocalMode,
+    paymentEdits,
+    periodLabel,
+    prepaymentMonthsFor,
+    prepaymentPeriodLabel,
+    runRemoteActionWithPending,
+    saveWorkspace,
+    setMessage,
+    setWorkspace,
+    todayString,
+    updatePaymentDelayDraft,
+    userName,
+    workspace
+  });
+  const {
     addPerson,
     clearMemberInvite,
     closeMemberInvite,
@@ -388,221 +411,6 @@ export function DashboardApp(): React.ReactElement {
     });
   }
 
-  async function saveMemberPayment(memberId: string): Promise<void> {
-    if (!workspace || !activeUser) return;
-
-    const edit = paymentEdits[memberId];
-    const assignment = assignmentsByMemberId.get(memberId);
-    const trainerId =
-      hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner')
-        ? activeUser.id
-        : assignment?.trainer_id;
-
-    const validation = validateSavePaymentDraft({ edit, trainerId });
-    if (!validation.ok && validation.reason === 'missing_trainer') {
-      setMessage('РЈ СЌС‚РѕРіРѕ СѓС‡РµРЅРёРєР° РЅРµ РЅР°Р·РЅР°С‡РµРЅ С‚СЂРµРЅРµСЂ.');
-      return;
-    }
-    if (!validation.ok && validation.reason === 'missing_due_date') {
-      setMessage('РЈРєР°Р¶РёС‚Рµ СЃСѓРјРјСѓ Рё СЃСЂРѕРє РѕРїР»Р°С‚С‹.');
-      return;
-    }
-    if (!validation.ok && validation.reason === 'invalid_amount') {
-      setMessage('РЎСѓРјРјР° РѕРїР»Р°С‚С‹ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РЅСѓР»СЏ.');
-      return;
-    }
-    if (!edit || !trainerId || !validation.ok) return;
-
-    if (!isLocalMode) {
-      const data = await saveRemoteMemberPaymentAction({
-        memberId,
-        edit,
-        amount: validation.amount,
-        source: validation.source,
-        runRemoteActionWithPending
-      });
-      if (data?.payment && data.billingPlan) {
-        setWorkspace((current) =>
-          current ? upsertPayment(upsertBillingPlan(current, data.billingPlan), data.payment) : current
-        );
-        clearPaymentEdit(memberId);
-        setMessage('РћРїР»Р°С‚Р° СЃРѕС…СЂР°РЅРµРЅР°.');
-      }
-      return;
-    }
-
-    const existingPayment = currentPaymentByMemberId.get(memberId);
-    const existingPlan = activePlanByMemberId.get(memberId);
-    const result = saveLocalMemberPayment({
-      workspace,
-      memberId,
-      trainerId,
-      edit,
-      amount: validation.amount,
-      source: validation.source,
-      existingPayment,
-      existingPlan,
-      now: new Date().toISOString(),
-      createId,
-      periodLabel
-    });
-    saveWorkspace(result.workspace);
-    clearPaymentEdit(memberId);
-    setMessage(result.paymentExisted ? 'РћРїР»Р°С‚Р° РѕР±РЅРѕРІР»РµРЅР°.' : 'РћРїР»Р°С‚Р° РЅР°Р·РЅР°С‡РµРЅР°.');
-  }
-
-  async function deleteMemberPayment(payment: PaymentRequest): Promise<void> {
-    await deleteMemberPaymentAction({
-      workspace,
-      payment,
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      clearPaymentEdit,
-      confirmDelete: (message) => window.confirm(message),
-      now: new Date().toISOString(),
-      createId
-    });
-  }
-
-  async function updatePaymentStatus(paymentId: string, status: PaymentRequest['status']): Promise<void> {
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-
-    await decidePaymentStatusAction({
-      workspace,
-      payment,
-      status,
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      clearPaymentEdit,
-      now: new Date().toISOString(),
-      createId,
-      statusAfterRejectedAction: (item) =>
-        item.delay_status === 'approved' &&
-        item.delay_requested_date &&
-        dateAtNoon(item.delay_requested_date) >= dateAtNoon(todayString())
-          ? 'delayed'
-          : dateAtNoon(item.due_date) < dateAtNoon(todayString())
-            ? 'overdue'
-            : 'active',
-      addMonthsDate,
-      periodLabel
-    });
-  }
-
-  function updateDelayDraft(paymentId: string, patch: Parameters<typeof updatePaymentDelayDraft>[1]): void {
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-    if (!payment) return;
-
-    updatePaymentDelayDraft(payment, patch);
-  }
-
-  async function requestPaymentDelay(paymentId: string): Promise<void> {
-    if (!activeUser || !hasRole(activeUser, 'member')) return;
-
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-    const draft = payment ? delayDraftFor(payment) : { requestedDate: '', comment: '' };
-
-    await requestPaymentDelayAction({
-      workspace,
-      payment,
-      requestedDate: draft.requestedDate,
-      comment: draft.comment,
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      now: new Date().toISOString(),
-      createId,
-      userName,
-      isInvalidRequestedDate: (requestedDate, dueDate) =>
-        !requestedDate ||
-        dateAtNoon(requestedDate) <= dateAtNoon(dueDate) ||
-        dateAtNoon(requestedDate) < dateAtNoon(todayString())
-    });
-  }
-
-  async function decidePaymentDelay(paymentId: string, approved: boolean): Promise<void> {
-    if (!activeUser || (!hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner'))) {
-      return;
-    }
-
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-
-    await decidePaymentDelayAction({
-      workspace,
-      payment,
-      approved,
-      actorId: activeUser.id,
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      now: new Date().toISOString(),
-      createId,
-      statusForDueDate: (dueDate) =>
-        dateAtNoon(dueDate) < dateAtNoon(todayString())
-          ? 'overdue'
-          : approved
-            ? 'delayed'
-            : 'active',
-      periodLabel
-    });
-  }
-
-  async function submitPaymentConfirmation(paymentId: string): Promise<void> {
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-
-    await submitPaymentConfirmationAction({
-      workspace,
-      payment,
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      canSubmitPayment,
-      now: new Date().toISOString(),
-      createId,
-      userName
-    });
-  }
-
-  async function submitPrepayment(paymentId: string): Promise<void> {
-    if (!activeUser || !hasRole(activeUser, 'member')) return;
-
-    const payment = workspace?.payments.find((item) => item.id === paymentId);
-    if (!payment || !canSubmitPrepayment(payment)) return;
-
-    await submitPrepaymentAction({
-      workspace,
-      payment,
-      plan: activePlanByMemberId.get(payment.member_id),
-      months: prepaymentMonthsFor(paymentId),
-      isLocalMode,
-      activeUserId,
-      runRemoteActionWithPending,
-      saveWorkspace,
-      setWorkspace,
-      setMessage,
-      now: new Date().toISOString(),
-      createId,
-      userName,
-      prepaymentPeriodLabel
-    });
-  }
   const sectionMeta = buildSectionMeta(activeUser);
 
   if (!workspace || !activeUser) {

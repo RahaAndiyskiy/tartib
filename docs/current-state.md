@@ -1,6 +1,6 @@
 # Tartib Current State
 
-Last updated: 2026-06-28
+Last updated: 2026-07-01
 
 This document is the practical snapshot of the project after the MVP core stabilization pass. Use it together with:
 
@@ -138,6 +138,7 @@ Important modules:
 - Dashboard chrome state and common open/close transitions are extracted into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers are extracted into `src/features/dashboard/model/useExpensesController.ts`.
 - Payment view navigation, notification payment lookup and prepayment affordance checks are extracted into `src/features/dashboard/model/usePaymentNavigation.ts`.
+- Dashboard-side payment action orchestration is extracted into `src/features/dashboard/model/usePaymentActionsController.ts`; it coordinates save/delete payment, confirmation decisions, delay requests/decisions and prepayment submission through the payments module actions.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers are extracted into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and remote action pending wrapper are extracted into `src/features/dashboard/model/usePendingAction.ts`.
 - Account/organization settings draft sync and save handlers are extracted into `src/features/dashboard/model/useSettingsController.ts`.

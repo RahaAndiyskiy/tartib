@@ -1,6 +1,6 @@
 # Code Review
 
-Last reviewed: 2026-06-28
+Last reviewed: 2026-07-01
 
 Related docs:
 
@@ -125,6 +125,7 @@ Recent progress:
 - Opening notifications and marking them as read were moved into `src/features/dashboard/model/useNotificationsController.ts`.
 - Person draft state, member invite links, share/copy actions and active-user switching were moved into `src/features/dashboard/model/usePeopleFlowController.ts`.
 - Payment view navigation, notification payment lookup and prepayment affordance checks were moved into `src/features/dashboard/model/usePaymentNavigation.ts`.
+- Dashboard-side payment action orchestration was moved into `src/features/dashboard/model/usePaymentActionsController.ts`.
 - Schedule edit state, update and save handlers were moved into `src/features/dashboard/model/useScheduleController.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers were moved into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and the remote action pending wrapper were moved into `src/features/dashboard/model/usePendingAction.ts`.
@@ -147,9 +148,9 @@ Recommended next step:
 
 - do not rewrite it wholesale;
 - extract only around touched features:
-  - `TeamList`
-  - payment helpers/hooks
-  - message/toast helper
+  - remaining team/group cross-module adapters;
+  - shared message/toast helper;
+  - final dashboard composition cleanup after controllers settle.
 
 ### 5. Temporary notices are still global and fragile
 
