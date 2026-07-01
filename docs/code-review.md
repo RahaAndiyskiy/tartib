@@ -121,6 +121,9 @@ Recent progress:
 - Push status, enable push, local reset, new window and sign-out actions were moved into `src/features/dashboard/model/useAccountRuntime.ts`.
 - Dashboard chrome state and repeated open/close transitions were moved into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers were moved into `src/features/dashboard/model/useExpensesController.ts`.
+- Opening notifications and marking them as read were moved into `src/features/dashboard/model/useNotificationsController.ts`.
+- Payment view navigation, notification payment lookup and prepayment affordance checks were moved into `src/features/dashboard/model/usePaymentNavigation.ts`.
+- Schedule edit state, update and save handlers were moved into `src/features/dashboard/model/useScheduleController.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers were moved into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and the remote action pending wrapper were moved into `src/features/dashboard/model/usePendingAction.ts`.
 - Account/organization settings draft sync and save handlers were moved into `src/features/dashboard/model/useSettingsController.ts`.

@@ -72,7 +72,10 @@ Dashboard support modules:
 - `src/features/dashboard/model/useAccountRuntime.ts` - push status, enable push, local reset, new window and sign-out actions.
 - `src/features/dashboard/model/useDashboardChrome.ts` - dashboard section, modal and chrome state transitions.
 - `src/features/dashboard/model/useExpensesController.ts` - expenses draft state, create expense and mark-paid handlers.
+- `src/features/dashboard/model/useNotificationsController.ts` - open notifications and mark-read workflow.
 - `src/features/dashboard/model/usePendingAction.ts` - pending action state, loading button labels and remote action pending wrapper.
+- `src/features/dashboard/model/usePaymentNavigation.ts` - payment view navigation, notification payment lookup and prepayment affordance checks.
+- `src/features/dashboard/model/useScheduleController.ts` - schedule edit state, update and save handlers.
 - `src/features/dashboard/model/useSettingsController.ts` - account/organization settings draft sync and save handlers.
 - `src/features/dashboard/model/useWorkspaceRuntime.ts` - workspace loading, local sync, remote refresh, persistence and remote action helpers.
 - `src/features/dashboard/LogoutConfirmModal.tsx` - logout confirmation modal UI.

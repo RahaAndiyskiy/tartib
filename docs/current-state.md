@@ -127,14 +127,15 @@ Important modules:
 - Add-person submit decisions are extracted into `src/modules/people/actions`; dashboard now reacts to result objects instead of owning the full remote/local branch.
 - Group create/edit submit decisions are extracted into `src/modules/groups/actions`; dashboard provides the payment-sync callback and applies the returned UI/workspace result.
 - Dashboard-level groups composition is extracted into `src/features/dashboard/components/GroupsSection.tsx`.
-- Notification modal UI and mark-read action are extracted into `src/modules/notifications`; dashboard still owns payment action callbacks.
+- Notification modal UI and mark-read action are extracted into `src/modules/notifications`; opening notifications and marking them as read are extracted into `src/features/dashboard/model/useNotificationsController.ts`.
 - Profile and organization settings save actions are extracted into `src/modules/account`; settings draft sync and save handlers are extracted into `src/features/dashboard/model/useSettingsController.ts`.
-- Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`.
+- Schedule edit/save logic is extracted into `src/modules/schedule`; schedule page UI is extracted into `src/features/dashboard/components/ScheduleSection.tsx`; schedule edit state/update/save handlers are extracted into `src/features/dashboard/model/useScheduleController.ts`.
 - Expense create/mark-paid logic is extracted into `src/modules/expenses`; expenses draft state and handlers are extracted into `src/features/dashboard/model/useExpensesController.ts`.
 - Dashboard derived data is extracted into `src/features/dashboard/model/useDashboardData.ts`; `DashboardApp` now consumes a prepared view model instead of calculating most lists/maps inline.
 - Push status, enable push, local reset, new window and sign-out actions are extracted into `src/features/dashboard/model/useAccountRuntime.ts`.
 - Dashboard chrome state and common open/close transitions are extracted into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers are extracted into `src/features/dashboard/model/useExpensesController.ts`.
+- Payment view navigation, notification payment lookup and prepayment affordance checks are extracted into `src/features/dashboard/model/usePaymentNavigation.ts`.
 - Workspace loading, local sync, remote refresh, persistence and remote action helpers are extracted into `src/features/dashboard/model/useWorkspaceRuntime.ts`.
 - Pending action state, loading button labels and remote action pending wrapper are extracted into `src/features/dashboard/model/usePendingAction.ts`.
 - Account/organization settings draft sync and save handlers are extracted into `src/features/dashboard/model/useSettingsController.ts`.

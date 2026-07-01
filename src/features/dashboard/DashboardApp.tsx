@@ -5,12 +5,9 @@ import { useEffect, useState } from 'react';
 import {
   createId,
   writeActiveUserId,
-  type LocalNotification,
   type LocalTrainingGroup
 } from '@shared/lib/localWorkspace';
-import type {
-  PaymentRequest,
-} from '@shared/types/domain';
+import type { PaymentRequest } from '@shared/types/domain';
 import {
   hasRole
 } from '@/core/roles';
@@ -33,8 +30,7 @@ import type {
   DashboardSection,
   GroupDraft,
   MemberInviteResult,
-  PersonDraft,
-  ScheduleEdit
+  PersonDraft
 } from './types';
 import {
   addMonthsDate,
@@ -57,12 +53,6 @@ import { PersonFormPanel } from './components/PersonFormPanel';
 import { PaymentWorkspaceSection } from './components/PaymentWorkspaceSection';
 import { ScheduleSection } from './components/ScheduleSection';
 import { SettingsSection } from './components/SettingsSection';
-import { markNotificationsReadAction } from '@/modules/notifications';
-import {
-  patchScheduleEdit,
-  saveScheduleAction,
-  scheduleEditForMember
-} from '@/modules/schedule';
 import {
   assignMemberToGroupAction,
   createMemberInviteAction,
@@ -83,8 +73,7 @@ import {
   submitPrepaymentAction,
   upsertBillingPlan,
   upsertPayment,
-  validateSavePaymentDraft,
-  type PaymentView
+  validateSavePaymentDraft
 } from '@/modules/payments';
 import { useDashboardData } from './model/useDashboardData';
 import {
@@ -94,7 +83,10 @@ import {
 import { useAccountRuntime } from './model/useAccountRuntime';
 import { useDashboardChrome } from './model/useDashboardChrome';
 import { useExpensesController } from './model/useExpensesController';
+import { useNotificationsController } from './model/useNotificationsController';
 import { usePendingAction } from './model/usePendingAction';
+import { usePaymentNavigation } from './model/usePaymentNavigation';
+import { useScheduleController } from './model/useScheduleController';
 import { useSettingsController } from './model/useSettingsController';
 import { useWorkspaceRuntime } from './model/useWorkspaceRuntime';
 
@@ -102,7 +94,6 @@ export function DashboardApp(): React.ReactElement {
   const isLocalMode = process.env.NEXT_PUBLIC_DATA_MODE === 'local';
   const debugPerformance = process.env.NEXT_PUBLIC_DEBUG_PERFORMANCE === 'true';
   const [personDraft, setPersonDraft] = useState<PersonDraft>(emptyPersonDraft);
-  const [scheduleEdits, setScheduleEdits] = useState<Record<string, ScheduleEdit>>({});
   const [groupDraft, setGroupDraft] = useState<GroupDraft>(emptyGroupDraft);
   const [editingGroupId, setEditingGroupId] = useState('');
   const [message, setMessage] = useState('');
@@ -300,6 +291,46 @@ export function DashboardApp(): React.ReactElement {
     setWorkspace,
     workspace
   });
+  const {
+    markNotificationsRead,
+    openNotifications
+  } = useNotificationsController({
+    activeUserId,
+    isLocalMode,
+    openNotificationsPanel: chrome.openNotifications,
+    runRemoteActionData,
+    saveWorkspace,
+    setWorkspace,
+    unreadNotifications,
+    workspace
+  });
+  const {
+    saveSchedule,
+    scheduleEditFor,
+    updateScheduleEdit
+  } = useScheduleController({
+    activeUser,
+    createId,
+    saveWorkspace,
+    setMessage,
+    trainerFor,
+    workspace
+  });
+  const {
+    canDecideNotificationPayment,
+    canSubmitPrepayment,
+    notificationPayment,
+    openNotificationPayment,
+    openPaymentsView,
+    openPrepayment
+  } = usePaymentNavigation({
+    activePlanByMemberId,
+    activeUser,
+    openPaymentUiView,
+    openPayments: chrome.openPayments,
+    selectPaymentMember,
+    workspace
+  });
 
   const isMemberInviteForm =
     Boolean(activeUser) &&
@@ -317,51 +348,6 @@ export function DashboardApp(): React.ReactElement {
 
   function openSection(section: DashboardSection): void {
     chrome.openSection(section);
-  }
-
-  function openNotifications(): void {
-    chrome.openNotifications();
-    if (unreadNotifications.length > 0) {
-      void markNotificationsRead();
-    }
-  }
-
-  function openPaymentsView(view: PaymentView): void {
-    chrome.openPayments();
-    openPaymentUiView(view);
-  }
-
-  function openNotificationPayment(paymentId?: string | null): void {
-    if (!paymentId || !workspace) return;
-    const payment = workspace.payments.find((item) => item.id === paymentId);
-    if (!payment) return;
-
-    chrome.openPayments();
-    selectPaymentMember(payment.member_id, payment.status === 'paid' ? 'paid' : 'all');
-  }
-
-  function notificationPayment(notification: LocalNotification): PaymentRequest | null {
-    if (!notification.paymentId || !workspace) return null;
-    return workspace.payments.find((payment) => payment.id === notification.paymentId) ?? null;
-  }
-
-  function canDecideNotificationPayment(payment: PaymentRequest): boolean {
-    return Boolean(
-      activeUser &&
-        (hasRole(activeUser, 'owner') ||
-          (hasRole(activeUser, 'trainer') && payment.trainer_id === activeUser.id))
-    );
-  }
-
-  function openPrepayment(payment: PaymentRequest): void {
-    chrome.openPayments();
-    selectPaymentMember(payment.member_id, 'all');
-    window.setTimeout(() => {
-      document.getElementById(`prepayment-${payment.id}`)?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }, 80);
   }
 
   function openCreateGroup(): void {
@@ -723,16 +709,6 @@ export function DashboardApp(): React.ReactElement {
     updatePaymentDelayDraft(payment, patch);
   }
 
-  function canSubmitPrepayment(payment: PaymentRequest): boolean {
-    const plan = activePlanByMemberId.get(payment.member_id);
-    return (
-      hasRole(activeUser, 'member') &&
-      payment.member_id === activeUser?.id &&
-      ['active', 'overdue', 'delayed'].includes(payment.status) &&
-      Boolean(plan?.active && plan.type === 'monthly')
-    );
-  }
-
   async function requestPaymentDelay(paymentId: string): Promise<void> {
     if (!activeUser || !hasRole(activeUser, 'member')) return;
 
@@ -832,57 +808,6 @@ export function DashboardApp(): React.ReactElement {
       prepaymentPeriodLabel
     });
   }
-  function scheduleEditFor(memberId: string): ScheduleEdit {
-    return scheduleEditForMember({
-      workspace,
-      edits: scheduleEdits,
-      memberId
-    });
-  }
-
-  function updateScheduleEdit(memberId: string, patch: Partial<ScheduleEdit>): void {
-    setScheduleEdits((current) =>
-      patchScheduleEdit({
-        current,
-        workspace,
-        memberId,
-        patch
-      })
-    );
-  }
-
-  function saveSchedule(memberId: string): void {
-    const result = saveScheduleAction({
-      workspace,
-      activeUser,
-      memberId,
-      edit: scheduleEdits[memberId] ?? scheduleEditFor(memberId),
-      trainer: trainerFor(memberId),
-      now: new Date().toISOString(),
-      createId
-    });
-
-    if (!result) return;
-    if ('error' in result) {
-      setMessage(result.error);
-      return;
-    }
-
-    saveWorkspace(result.workspace);
-    setMessage(result.message);
-  }
-  async function markNotificationsRead(): Promise<void> {
-    await markNotificationsReadAction({
-      workspace,
-      unreadCount: unreadNotifications.length,
-      activeUserId,
-      isLocalMode,
-      runRemoteActionData,
-      saveWorkspace,
-      setWorkspace
-    });
-  }
-
   const sectionMeta = buildSectionMeta(activeUser);
 
   if (!workspace || !activeUser) {
