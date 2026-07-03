@@ -173,7 +173,6 @@ export function DashboardApp(): React.ReactElement {
     payment: selectedPayment,
     plan: selectedPaymentPlan,
     group: selectedPaymentGroup,
-    trainer: selectedPaymentTrainer,
     history: selectedPaymentHistory,
     historyOpen: selectedPaymentHistoryOpen
   } = selectedPaymentDetails;
@@ -488,13 +487,11 @@ export function DashboardApp(): React.ReactElement {
     selectedPayment,
     selectedPaymentPlan,
     selectedPaymentGroup,
-    selectedPaymentTrainer,
     selectedPaymentHistory,
     selectedPaymentHistoryOpen,
     paymentEditOpen,
     statusLabels,
     planLabels,
-    formatLabels,
     userName,
     groupFor,
     formatShortDate,

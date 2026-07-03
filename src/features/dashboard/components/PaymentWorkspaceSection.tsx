@@ -7,8 +7,7 @@ import type {
   AppUser,
   BillingPlanType,
   PaymentRequest,
-  PaymentRequestStatus,
-  TrainingFormat
+  PaymentRequestStatus
 } from '@shared/types/domain';
 import { hasRole } from '@/core/roles';
 import {
@@ -38,13 +37,11 @@ type PaymentWorkspaceSectionProps = {
   selectedPayment?: PaymentRequest | null;
   selectedPaymentPlan?: LocalBillingPlan | null;
   selectedPaymentGroup?: LocalTrainingGroup | null;
-  selectedPaymentTrainer?: AppUser | null;
   selectedPaymentHistory: PaymentRequest[];
   selectedPaymentHistoryOpen: boolean;
   paymentEditOpen: boolean;
   statusLabels: Record<PaymentRequestStatus | 'not-set', string>;
   planLabels: Record<BillingPlanType, string>;
-  formatLabels: Record<TrainingFormat, string>;
   userName: (userId: string) => string;
   groupFor: (memberId: string) => LocalTrainingGroup | null;
   formatShortDate: (date?: string | null) => string;
@@ -95,13 +92,11 @@ export function PaymentWorkspaceSection({
   selectedPayment,
   selectedPaymentPlan,
   selectedPaymentGroup,
-  selectedPaymentTrainer,
   selectedPaymentHistory,
   selectedPaymentHistoryOpen,
   paymentEditOpen,
   statusLabels,
   planLabels,
-  formatLabels,
   userName,
   groupFor,
   formatShortDate,
@@ -168,14 +163,12 @@ export function PaymentWorkspaceSection({
           selectedPayment={selectedPayment}
           selectedPaymentPlan={selectedPaymentPlan}
           selectedPaymentGroup={selectedPaymentGroup}
-          selectedPaymentTrainer={selectedPaymentTrainer}
           selectedPaymentHistory={selectedPaymentHistory}
           selectedPaymentHistoryOpen={selectedPaymentHistoryOpen}
           paymentEditOpen={paymentEditOpen}
           paymentEdit={paymentEditFor(selectedPaymentMember.id)}
           statusLabels={statusLabels}
           planLabels={planLabels}
-          formatLabels={formatLabels}
           userName={userName}
           formatShortDate={formatShortDate}
           todayString={todayString}

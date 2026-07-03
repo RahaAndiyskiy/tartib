@@ -1,5 +1,6 @@
 ﻿import type { Dispatch, SetStateAction } from 'react';
-import { ChevronRight, MoreHorizontal, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { ChevronRight, Pencil, Trash2, X } from 'lucide-react';
 import { formatMoney } from '@shared/constants/app';
 import type {
   LocalBillingPlan,
@@ -151,14 +152,12 @@ type PaymentDrawerProps = {
   selectedPayment?: PaymentRequest | null;
   selectedPaymentPlan?: LocalBillingPlan | null;
   selectedPaymentGroup?: LocalTrainingGroup | null;
-  selectedPaymentTrainer?: AppUser | null;
   selectedPaymentHistory: PaymentRequest[];
   selectedPaymentHistoryOpen: boolean;
   paymentEditOpen: boolean;
   paymentEdit: PaymentEditFormValue;
   statusLabels: Record<PaymentRequestStatus | 'not-set', string>;
   planLabels: Record<BillingPlanType, string>;
-  formatLabels: Record<TrainingFormat, string>;
   userName: (userId: string) => string;
   formatShortDate: (date?: string | null) => string;
   todayString: () => string;
@@ -193,14 +192,12 @@ export function PaymentDrawer({
   selectedPayment,
   selectedPaymentPlan,
   selectedPaymentGroup,
-  selectedPaymentTrainer,
   selectedPaymentHistory,
   selectedPaymentHistoryOpen,
   paymentEditOpen,
   paymentEdit,
   statusLabels,
   planLabels,
-  formatLabels,
   userName,
   formatShortDate,
   todayString,
@@ -228,6 +225,44 @@ export function PaymentDrawer({
   onSubmitPrepayment,
   onDeletePayment
 }: PaymentDrawerProps): React.ReactElement {
+  useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    const scrollY = window.scrollY;
+    const previousBodyStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width
+    };
+    const previousRootOverflow = root.style.overflow;
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    root.style.overflow = 'hidden';
+
+    return () => {
+      body.style.overflow = previousBodyStyles.overflow;
+      body.style.position = previousBodyStyles.position;
+      body.style.top = previousBodyStyles.top;
+      body.style.width = previousBodyStyles.width;
+      root.style.overflow = previousRootOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  const paymentPlanSummary = selectedPaymentPlan
+    ? [
+        planLabels[selectedPaymentPlan.type],
+        formatMoney(selectedPaymentPlan.baseAmount),
+        selectedPaymentPlan.type === 'monthly' && selectedPaymentPlan.billingDay
+          ? `${selectedPaymentPlan.billingDay}-го числа`
+          : 'разово'
+      ].join(' · ')
+    : 'Условия не настроены';
+
   return (
     <>
       <button
@@ -239,12 +274,8 @@ export function PaymentDrawer({
       <aside className="payment-drawer" aria-label={`Оплата: ${userName(selectedPaymentMember.id)}`}>
         <div className="payment-drawer-header">
           <div>
-            <span>Оплата ученика</span>
             <h2>{userName(selectedPaymentMember.id)}</h2>
-            <p>
-              {selectedPaymentGroup?.activity ?? 'Без группы'}
-              {selectedPayment?.period_label ? ` · ${selectedPayment.period_label}` : ''}
-            </p>
+            <p>{selectedPaymentGroup?.activity ?? 'Без группы'}</p>
           </div>
           <button className="icon-button" aria-label="Закрыть" type="button" onClick={onClose}>
             <X size={20} />
@@ -252,92 +283,33 @@ export function PaymentDrawer({
         </div>
 
         <div className="payment-drawer-body">
-          <div className="payment-concept-strip">
-            <div>
-              <span>Условия</span>
-              <strong>{selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : 'Не настроены'}</strong>
-            </div>
-            <ChevronRight size={16} />
-            <div>
+          <section className="payment-current-card">
+            <div className="payment-card-heading">
               <span>Текущий счёт</span>
-              <strong>{selectedPayment ? statusLabels[selectedPayment.status] : 'Нет счёта'}</strong>
+              <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>
+                {statusLabels[selectedPayment?.status ?? 'not-set']}
+              </span>
             </div>
-            <ChevronRight size={16} />
-            <div>
-              <span>История</span>
-              <strong>{selectedPaymentHistory.length} оплат</strong>
-            </div>
-          </div>
-          <div className="payment-split-overview">
-            <section className="payment-current-card">
-              <div className="payment-card-heading">
-                <span>Текущий счёт</span>
-                <span className={`status-pill ${selectedPayment?.status ?? 'not-set'}`}>{statusLabels[selectedPayment?.status ?? 'not-set']}</span>
+            <strong>{selectedPayment ? formatMoney(selectedPayment.amount) : 'Не назначен'}</strong>
+            <dl>
+              <div>
+                <dt>Оплатить до</dt>
+                <dd>{formatShortDate(selectedPayment?.due_date)}</dd>
               </div>
-              <strong>{selectedPayment ? formatMoney(selectedPayment.amount) : 'Не назначен'}</strong>
-              <dl>
-                <div>
-                  <dt>Период</dt>
-                  <dd>{selectedPayment?.period_label ?? 'Текущий период'}</dd>
-                </div>
-                <div>
-                  <dt>Оплатить до</dt>
-                  <dd>{formatShortDate(selectedPayment?.due_date)}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="payment-plan-card">
-              <div className="payment-card-heading">
-                <span>Условия оплаты</span>
-                <strong>{selectedPaymentPlan ? 'Настроены' : 'Не настроены'}</strong>
+              <div>
+                <dt>Период</dt>
+                <dd>{selectedPayment?.period_label ?? 'Текущий период'}</dd>
               </div>
-              <dl>
-                <div>
-                  <dt>Схема</dt>
-                  <dd>{selectedPaymentPlan ? planLabels[selectedPaymentPlan.type] : '—'}</dd>
-                </div>
-                <div>
-                  <dt>Формат</dt>
-                  <dd>
-                    {selectedPaymentPlan?.type === 'monthly'
-                      ? formatLabels[selectedPaymentPlan.trainingFormat]
-                      : '—'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Источник</dt>
-                  <dd>
-                    {selectedPaymentPlan?.source === 'individual'
-                      ? 'Индивидуальные'
-                      : selectedPaymentPlan
-                        ? 'Условия группы'
-                        : '—'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Базовая сумма</dt>
-                  <dd>{selectedPaymentPlan ? formatMoney(selectedPaymentPlan.baseAmount) : '—'}</dd>
-                </div>
-                <div>
-                  <dt>День оплаты</dt>
-                  <dd>
-                    {selectedPaymentPlan?.billingDay
-                      ? `${selectedPaymentPlan.billingDay} число`
-                      : selectedPaymentPlan?.type === 'one_time'
-                        ? 'Разово'
-                        : '—'}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-          </div>
+            </dl>
+          </section>
 
-          {canManagePayments && !paymentEditOpen ? (
-            <button className="ghost-button payment-edit-trigger" type="button" onClick={() => onEditOpenChange(true)}>
-              {selectedPayment ? 'Изменить' : 'Настроить'}
-            </button>
-          ) : null}
+          <div className="payment-plan-summary-row">
+            <span>
+              <strong>Условия оплаты</strong>
+              <small>{paymentPlanSummary}</small>
+            </span>
+            {selectedPaymentPlan?.source === 'individual' ? <em>Индивидуальные</em> : null}
+          </div>
 
           {canManagePayments && paymentEditOpen ? (
             <PaymentEditForm
@@ -476,16 +448,6 @@ export function PaymentDrawer({
           ) : null}
 
           <div className="payment-detail-section">
-            <div className="payment-detail-section-heading">
-              <h3>Ответственность</h3>
-            </div>
-            <dl className="payment-detail-list">
-              <div><dt>Группа</dt><dd>{selectedPaymentGroup?.activity ?? 'Без группы'}</dd></div>
-              <div><dt>Тренер</dt><dd>{selectedPaymentTrainer ? `${selectedPaymentTrainer.first_name} ${selectedPaymentTrainer.last_name}` : '—'}</dd></div>
-            </dl>
-          </div>
-
-          <div className="payment-detail-section">
             <button
               className="payment-history-toggle"
               type="button"
@@ -515,13 +477,28 @@ export function PaymentDrawer({
             ) : null}
           </div>
 
-          {canManagePayments && selectedPayment && selectedPayment.status !== 'paid' ? (
-            <details className="payment-more-actions">
-              <summary><MoreHorizontal size={18} /> Другие действия</summary>
-              <button className="ghost-button danger" type="button" disabled={isPendingAction(`delete-payment:${selectedPayment.id}`)} onClick={() => onDeletePayment(selectedPayment)}>
-                Удалить счёт
+          {canManagePayments && !paymentEditOpen ? (
+            <div className="payment-detail-actions">
+              <button
+                className="small-button secondary payment-edit-action"
+                type="button"
+                onClick={() => onEditOpenChange(true)}
+              >
+                <Pencil size={16} />
+                {selectedPayment ? 'Изменить счёт' : 'Настроить оплату'}
               </button>
-            </details>
+              {selectedPayment && selectedPayment.status !== 'paid' ? (
+                <button
+                  aria-label="Удалить счёт"
+                  className="small-button danger payment-delete-action"
+                  type="button"
+                  disabled={isPendingAction(`delete-payment:${selectedPayment.id}`)}
+                  onClick={() => onDeletePayment(selectedPayment)}
+                >
+                  <Trash2 size={17} />
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </aside>
