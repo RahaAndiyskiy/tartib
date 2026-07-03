@@ -111,7 +111,7 @@ Related docs:
 
 ### PWA / Mobile Shell
 
-- Description: manifest, service worker, mobile layout and bottom navigation.
+- Description: manifest, service worker, mobile layout, bottom navigation and pull-to-refresh that reloads workspace data without restarting the PWA.
 - Pages: all user-facing pages
 - Tables: not applicable
 

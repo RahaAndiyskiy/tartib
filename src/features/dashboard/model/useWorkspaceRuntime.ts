@@ -24,6 +24,7 @@ type WorkspaceRuntime = {
   setWorkspace: React.Dispatch<React.SetStateAction<LocalWorkspace | null>>;
   setActiveUserId: React.Dispatch<React.SetStateAction<string>>;
   saveWorkspace: (nextWorkspace: LocalWorkspace) => void;
+  refreshWorkspace: () => Promise<void>;
   refreshRemoteWorkspace: (reason: string, minIntervalMs?: number) => Promise<void>;
   runRemoteAction: (payload: Record<string, unknown>) => Promise<boolean>;
   runRemoteActionData: <T>(payload: Record<string, unknown>) => Promise<T | null>;
@@ -212,6 +213,26 @@ export function useWorkspaceRuntime({
     setWorkspace(reconciledWorkspace);
   }, []);
 
+  const refreshWorkspace = useCallback(async (): Promise<void> => {
+    if (!isLocalMode) {
+      await refreshRemoteWorkspace('pull-to-refresh', 0);
+      return;
+    }
+
+    const nextWorkspace = readWorkspace();
+    const savedActiveUserId = readActiveUserId();
+    const nextActiveUser =
+      nextWorkspace.users.find((user) => user.id === savedActiveUserId) ??
+      nextWorkspace.users.find((user) => user.role === 'owner') ??
+      nextWorkspace.users[0];
+
+    setWorkspace(nextWorkspace);
+    if (nextActiveUser) {
+      setActiveUserId(nextActiveUser.id);
+      writeActiveUserId(nextActiveUser.id);
+    }
+  }, [isLocalMode, refreshRemoteWorkspace]);
+
   const runRemoteActionData = useCallback(async <T,>(payload: Record<string, unknown>): Promise<T | null> => {
     const token = await getAccessToken();
     if (!token) {
@@ -264,6 +285,7 @@ export function useWorkspaceRuntime({
     setWorkspace,
     setActiveUserId,
     saveWorkspace,
+    refreshWorkspace,
     refreshRemoteWorkspace,
     runRemoteAction,
     runRemoteActionData

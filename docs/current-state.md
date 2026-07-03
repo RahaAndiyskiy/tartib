@@ -235,6 +235,7 @@ Direction:
 - compact mobile-first screens;
 - bottom navigation on mobile;
 - notifications moved to the top area;
+- dashboard data can be refreshed with a native-style pull gesture from the top of the page;
 - settings section contains profile fields, club name for owners and push enablement;
 - no green as a main brand accent.
 

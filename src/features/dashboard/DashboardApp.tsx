@@ -39,6 +39,7 @@ import { useGroupsController } from './model/useGroupsController';
 import { useNotificationsController } from './model/useNotificationsController';
 import { useOverviewController } from './model/useOverviewController';
 import { usePendingAction } from './model/usePendingAction';
+import { usePullToRefresh } from './model/usePullToRefresh';
 import { usePeopleActionsController } from './model/usePeopleActionsController';
 import { usePeopleFlowController } from './model/usePeopleFlowController';
 import { usePaymentActionsController } from './model/usePaymentActionsController';
@@ -81,6 +82,7 @@ export function DashboardApp(): React.ReactElement {
     setWorkspace,
     setActiveUserId,
     saveWorkspace,
+    refreshWorkspace,
     refreshRemoteWorkspace,
     runRemoteAction,
     runRemoteActionData
@@ -90,6 +92,7 @@ export function DashboardApp(): React.ReactElement {
     isLocalMode,
     setMessage
   });
+  const pullToRefresh = usePullToRefresh(refreshWorkspace);
   const {
     buttonLabel,
     isPendingAction,
@@ -604,6 +607,8 @@ export function DashboardApp(): React.ReactElement {
       mobileFormOpen={mobileFormOpen}
       notificationsOpen={notificationsOpen}
       unreadNotificationCount={unreadNotifications.length}
+      pullDistance={pullToRefresh.pullDistance}
+      pullRefreshing={pullToRefresh.isRefreshing}
       onOpenSection={chrome.openSection}
       onSelectActiveUser={selectActiveUser}
       onOpenNewWindow={openNewWindow}

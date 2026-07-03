@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Plus,
+  RefreshCw,
   RotateCcw,
   Settings,
   UserRound,
@@ -32,6 +33,8 @@ type DashboardShellProps = {
   mobileFormOpen: boolean;
   notificationsOpen: boolean;
   unreadNotificationCount: number;
+  pullDistance: number;
+  pullRefreshing: boolean;
   children: ReactNode;
   onOpenSection: (section: DashboardSection) => void;
   onSelectActiveUser: (userId: string) => void;
@@ -56,6 +59,8 @@ export function DashboardShell({
   mobileFormOpen,
   notificationsOpen,
   unreadNotificationCount,
+  pullDistance,
+  pullRefreshing,
   children,
   onOpenSection,
   onSelectActiveUser,
@@ -75,6 +80,17 @@ export function DashboardShell({
 
   return (
     <div className="crm-shell">
+      <div
+        aria-label={pullRefreshing ? 'Обновление данных' : undefined}
+        className={`pull-refresh-indicator${pullRefreshing ? ' refreshing' : ''}`}
+        role={pullRefreshing ? 'status' : undefined}
+        style={{
+          opacity: Math.min(1, pullDistance / 36),
+          transform: `translate3d(-50%, ${pullDistance - 48}px, 0)`
+        }}
+      >
+        <RefreshCw size={18} />
+      </div>
       <aside className="crm-sidebar">
         <div className="crm-brand">
           <span className="crm-brand-mark">T</span>
