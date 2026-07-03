@@ -1,4 +1,5 @@
 import { useScrollLock } from '@shared/ui/useScrollLock';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 
 type LogoutConfirmModalProps = {
   onCancel: () => void;
@@ -20,9 +21,12 @@ export function LogoutConfirmModal({
         role="dialog"
         onClick={(event) => event.stopPropagation()}
       >
-        <div>
-          <h2 id="logout-confirm-title">Выйти из аккаунта?</h2>
-          <p>После выхода нужно будет снова ввести логин и пароль.</p>
+        <div className="modal-standard-header">
+          <div>
+            <h2 id="logout-confirm-title">Выйти из аккаунта?</h2>
+            <p>После выхода нужно будет снова ввести логин и пароль.</p>
+          </div>
+          <ModalCloseButton label="Закрыть подтверждение выхода" onClick={onCancel} />
         </div>
         <div className="confirm-modal-actions">
           <button className="primary-button danger-soft" type="button" onClick={onConfirm}>

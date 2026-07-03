@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
-import { Plus } from 'lucide-react';
 import type { LocalTrainingGroup } from '@shared/lib/localWorkspace';
 import type { AppUser } from '@shared/types/domain';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 import { hasRole } from '@/core/roles';
 import { InviteResultCard } from '../InviteResultCard';
 import type {
@@ -60,14 +60,7 @@ export function PersonFormPanel({
           <h2>{trainerOnly ? 'Новый ученик' : 'Новый человек'}</h2>
           <p>Добавление в клуб</p>
         </div>
-        <button
-          className="form-close-button"
-          aria-label="Закрыть форму"
-          type="button"
-          onClick={onClose}
-        >
-          <Plus size={20} />
-        </button>
+        <ModalCloseButton label="Закрыть форму" onClick={onClose} />
       </div>
 
       {hasRole(activeUser, 'owner') ? (

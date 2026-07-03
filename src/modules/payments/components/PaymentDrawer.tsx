@@ -1,5 +1,5 @@
 ﻿import type { Dispatch, SetStateAction } from 'react';
-import { CheckCircle2, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { formatMoney } from '@shared/constants/app';
 import type {
   LocalBillingPlan,
@@ -13,6 +13,7 @@ import type {
   TrainingFormat
 } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 
 export type PaymentEditFormValue = {
   type: BillingPlanType;
@@ -246,14 +247,12 @@ export function PaymentDrawer({
         onClick={onClose}
       />
       <aside className="payment-drawer" aria-label={`Оплата: ${userName(selectedPaymentMember.id)}`}>
-        <div className="payment-drawer-header">
+        <div className="modal-standard-header payment-drawer-header">
           <div>
             <h2>{userName(selectedPaymentMember.id)}</h2>
             <p>{selectedPaymentGroup?.activity ?? 'Без группы'}</p>
           </div>
-          <button className="icon-button" aria-label="Закрыть" type="button" onClick={onClose}>
-            <X size={20} />
-          </button>
+          <ModalCloseButton onClick={onClose} />
         </div>
 
         <div className="payment-drawer-body">

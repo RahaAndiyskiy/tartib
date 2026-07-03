@@ -1,8 +1,9 @@
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import type { LocalNotification } from '@shared/lib/localWorkspace';
 import type { PushAvailability } from '@shared/lib/pushClient';
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 
 type NotificationsModalProps = {
   notifications: LocalNotification[];
@@ -44,14 +45,12 @@ export function NotificationsModal({
         role="dialog"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="notifications-modal-header">
+        <div className="modal-standard-header notifications-modal-header">
           <div>
             <h2 id="notifications-modal-title">Уведомления</h2>
             <p>События и действия, которые можно обработать сразу</p>
           </div>
-          <button className="icon-button" aria-label="Закрыть уведомления" type="button" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <ModalCloseButton label="Закрыть уведомления" onClick={onClose} />
         </div>
         <div className="notification-header-actions">
           {pushStatus === 'granted' ? (

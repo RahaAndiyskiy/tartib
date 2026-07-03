@@ -2,6 +2,7 @@ import { Copy, Share2 } from 'lucide-react';
 import { formatMoney } from '@shared/constants/app';
 import type { LocalTrainingGroup } from '@shared/lib/localWorkspace';
 import { useScrollLock } from '@shared/ui/useScrollLock';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 import type { MemberInviteResult } from './types';
 
 type InviteLinkModalProps = {
@@ -36,9 +37,12 @@ export function InviteLinkModal({
       >
         {invite ? (
           <>
-            <div>
-              <h2 id="overview-invite-title">Ссылка на вступление</h2>
-              <p>Группа: {invite.groupName}</p>
+            <div className="modal-standard-header">
+              <div>
+                <h2 id="overview-invite-title">Ссылка на вступление</h2>
+                <p>Группа: {invite.groupName}</p>
+              </div>
+              <ModalCloseButton label="Закрыть ссылку" onClick={onClose} />
             </div>
             <input aria-label="Ссылка на вступление" readOnly value={invite.inviteUrl} />
             <div className="confirm-modal-actions">
@@ -57,9 +61,12 @@ export function InviteLinkModal({
           </>
         ) : (
           <>
-            <div>
-              <h2 id="overview-invite-title">Выберите группу</h2>
-              <p>Для этой группы будет создана ссылка на вступление.</p>
+            <div className="modal-standard-header">
+              <div>
+                <h2 id="overview-invite-title">Выберите группу</h2>
+                <p>Для этой группы будет создана ссылка на вступление.</p>
+              </div>
+              <ModalCloseButton label="Закрыть выбор группы" onClick={onClose} />
             </div>
             <div className="invite-group-options">
               {groups.map((group) => (

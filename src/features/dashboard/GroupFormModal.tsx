@@ -1,6 +1,6 @@
-import { Plus } from 'lucide-react';
 import type { FormEvent } from 'react';
 import type { AppUser } from '@shared/types/domain';
+import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
 import type { GroupDraft } from './types';
 
 type GroupFormModalProps = {
@@ -43,14 +43,10 @@ export function GroupFormModal({
           <h2>Новая группа</h2>
           <p>Одно направление и расписание</p>
         </div>
-        <button
-          className="form-close-button"
-          aria-label="Закрыть форму"
-          type="button"
+        <ModalCloseButton
+          label="Закрыть форму"
           onClick={isEditing ? onCancelEdit : onClose}
-        >
-          <Plus size={20} />
-        </button>
+        />
       </div>
       {isOwner ? (
         <label>
