@@ -175,6 +175,8 @@ Tartib UI direction is **clean CRM + soft violet glass layer**:
 ## Overlay and modal rules
 
 - Every modal, drawer, sheet or full-screen overlay must lock the page behind it with `useScrollLock` from `src/shared/ui/useScrollLock`.
+- All modal surfaces are centered against the viewport on desktop and mobile. Do not anchor a modal to the header, page content or bottom edge.
+- Use safe outer padding and `max-height` based on `100dvh`; long content scrolls inside the modal while its header and the background remain stable.
 - Do not implement one-off `document.body.style.overflow` effects inside components.
 - The overlay itself may scroll when its content exceeds the viewport; the underlying page must remain fixed and return to the same scroll position after closing.
 - Conditional overlays pass their open state to `useScrollLock(active)`. Components that only mount while open call `useScrollLock()` directly.

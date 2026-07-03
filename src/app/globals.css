@@ -1835,8 +1835,12 @@ button:disabled {
 
 .confirm-modal {
   width: min(420px, 100%);
+  max-height: calc(100dvh - 40px);
   display: grid;
   gap: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.92);
@@ -2250,13 +2254,15 @@ button:disabled {
   width: min(440px, calc(100vw - 24px));
   position: fixed;
   z-index: 90;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  top: 50%;
+  left: 50%;
+  max-height: calc(100dvh - 40px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #ffffff;
-  box-shadow: -20px 0 60px rgba(19, 31, 25, 0.16);
+  box-shadow: 0 24px 70px rgba(19, 31, 25, 0.18);
+  transform: translate(-50%, -50%);
 }
 
 .payment-drawer-header {
@@ -2304,6 +2310,7 @@ button:disabled {
 }
 
 .payment-drawer-body {
+  min-height: 0;
   display: grid;
   align-content: start;
   gap: 18px;
@@ -4358,13 +4365,12 @@ button:disabled {
   }
 
   .notification-modal-backdrop {
-    align-items: end;
-    padding: 16px 12px calc(18px + env(safe-area-inset-bottom));
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   }
 
   .notifications-modal {
     width: 100%;
-    max-height: min(76dvh, 680px);
+    max-height: min(86dvh, 680px);
     border-radius: 28px;
     padding: 16px;
   }
@@ -4396,12 +4402,12 @@ button:disabled {
   @keyframes mobileSheetIn {
     from {
       opacity: 0;
-      transform: translateY(18px) scale(0.98);
+      transform: translate(-50%, calc(-50% + 18px)) scale(0.98);
     }
 
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translate(-50%, -50%) scale(1);
     }
   }
 
@@ -4409,14 +4415,15 @@ button:disabled {
     display: none;
     position: fixed;
     z-index: 75;
-    right: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 12px;
-    width: auto;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(560px, calc(100vw - 24px));
     min-width: 0;
     max-width: calc(100vw - 24px);
-    height: min(82dvh, 720px);
-    max-height: min(82dvh, 720px);
+    height: auto;
+    max-height: min(86dvh, 720px);
     grid-auto-rows: max-content;
     align-content: start;
     overflow-x: hidden;
@@ -4427,6 +4434,7 @@ button:disabled {
     gap: 12px;
     padding: 0 14px 18px;
     box-shadow: 0 28px 90px rgba(63, 53, 101, 0.22);
+    transform: translate(-50%, -50%);
     animation: mobileSheetIn 260ms cubic-bezier(0.2, 0.9, 0.22, 1);
   }
 
@@ -4648,11 +4656,14 @@ button:disabled {
   }
 
   .payment-drawer {
-    width: 100%;
-    left: 0;
-    top: calc(88px + env(safe-area-inset-top));
-    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
-    box-shadow: none;
+    width: calc(100vw - 24px);
+    left: 50%;
+    top: 50%;
+    bottom: auto;
+    max-height: min(86dvh, 760px);
+    border-radius: 28px;
+    box-shadow: 0 28px 90px rgba(43, 35, 75, 0.22);
+    transform: translate(-50%, -50%);
   }
 
   .payment-drawer-header {
