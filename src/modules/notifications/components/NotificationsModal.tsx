@@ -2,6 +2,7 @@ import { Bell, X } from 'lucide-react';
 import type { LocalNotification } from '@shared/lib/localWorkspace';
 import type { PushAvailability } from '@shared/lib/pushClient';
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
+import { useScrollLock } from '@shared/ui/useScrollLock';
 
 type NotificationsModalProps = {
   notifications: LocalNotification[];
@@ -32,6 +33,8 @@ export function NotificationsModal({
   onDecideDelay,
   onOpenPayment
 }: NotificationsModalProps): React.ReactElement {
+  useScrollLock();
+
   return (
     <div className="modal-backdrop notification-modal-backdrop" role="presentation" onClick={onClose}>
       <section

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { LocalWorkspace } from '@shared/lib/localWorkspace';
 import type { AppUser } from '@shared/types/domain';
+import { useScrollLock } from '@shared/ui/useScrollLock';
 import { hasRole, roleLabel } from '@/core/roles';
 import type { DashboardSection } from '../types';
 
@@ -70,6 +71,7 @@ export function DashboardShell({
 }: DashboardShellProps): React.ReactElement {
   const isMember = hasRole(activeUser, 'member');
   const canCreateFromHeader = !isMember && (activeSection === 'people' || activeSection === 'groups');
+  useScrollLock(mobileFormOpen);
 
   return (
     <div className="crm-shell">

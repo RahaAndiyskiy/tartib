@@ -27,6 +27,8 @@ Current migration sequence:
 13. `012_lock_payment_confirmation_rpc.sql`
 14. `013_push_subscriptions.sql`
 15. `014_group_payment_defaults.sql`
+16. `015_billing_plan_source.sql`
+17. `016_direct_payment_confirmation.sql`
 
 Never edit old applied migrations. Add a new migration.
 
@@ -199,6 +201,10 @@ Daily reminder/overdue function. Creates reminders:
 Atomically confirms a payment and creates the next monthly payment if needed.
 
 This prevents the dangerous state where the current invoice is marked paid but the next invoice was not created.
+
+`confirm_payment_direct_and_advance(p_payment_id, p_organization_id)`
+
+Allows an owner or trainer to mark an active, overdue or delayed invoice as paid without a prior member confirmation. The protected server action validates organization access, then this service-role-only RPC reuses the same atomic confirmation and recurring-invoice advancement as the normal confirmation flow.
 
 ## RLS And Server Checks
 

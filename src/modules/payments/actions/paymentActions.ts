@@ -138,12 +138,18 @@ export async function decidePaymentStatusAction({
   if (!workspace || !payment) return;
 
   if (!isLocalMode) {
+    const isDirectConfirmation = status === 'paid' && payment.status !== 'payment_confirmation';
     const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
-      {
-        action: 'decide_payment',
-        paymentId: payment.id,
-        approved: status === 'paid'
-      },
+      isDirectConfirmation
+        ? {
+            action: 'mark_payment_paid',
+            paymentId: payment.id
+          }
+        : {
+            action: 'decide_payment',
+            paymentId: payment.id,
+            approved: status === 'paid'
+          },
       `decide-payment:${payment.id}`
     );
     if (data?.payment) {

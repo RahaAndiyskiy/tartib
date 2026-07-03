@@ -212,6 +212,15 @@ export async function paymentLifecycleAction(
     return decideDelayAction(identity, payment as PaymentRequest, body.approved);
   }
 
+  if (body.action === 'mark_payment_paid') {
+    return confirmAndAdvancePayment(
+      identity,
+      payment as PaymentRequest,
+      'confirm_payment_direct_and_advance',
+      'mark_payment_paid'
+    );
+  }
+
   return decidePaymentAction(identity, payment as PaymentRequest, body.approved);
 }
 
@@ -455,18 +464,70 @@ async function rejectPaymentAction(identity: ServerIdentity, payment: PaymentReq
 }
 
 async function approvePaymentAction(identity: ServerIdentity, payment: PaymentRequest): Promise<NextResponse> {
+  return confirmAndAdvancePayment(
+    identity,
+    payment,
+    'confirm_payment_and_advance',
+    'approve_payment'
+  );
+}
+
+async function confirmAndAdvancePayment(
+  identity: ServerIdentity,
+  payment: PaymentRequest,
+  rpcName: 'confirm_payment_and_advance' | 'confirm_payment_direct_and_advance',
+  notificationContext: string
+): Promise<NextResponse> {
   const admin = getSupabaseAdmin();
   const organizationId = identity.profile.organization_id;
-  const confirmationResult = await admin.rpc('confirm_payment_and_advance', {
+  let usedCompatibilityFallback = false;
+  let confirmationResult = await admin.rpc(rpcName, {
     p_payment_id: payment.id,
     p_organization_id: organizationId
   });
+
+  // Deploys remain usable while the direct-confirmation migration is being applied.
+  // Once RPC 016 exists, this branch is never entered and the whole transition is atomic.
+  if (
+    rpcName === 'confirm_payment_direct_and_advance' &&
+    confirmationResult.error?.code === 'PGRST202'
+  ) {
+    const stagedPayment = await admin
+      .from('payment_requests')
+      .update({ status: 'payment_confirmation' })
+      .eq('id', payment.id)
+      .eq('organization_id', organizationId)
+      .in('status', ['active', 'overdue', 'delayed'])
+      .select('id')
+      .maybeSingle();
+
+    if (stagedPayment.error || !stagedPayment.data) {
+      return NextResponse.json(
+        { error: stagedPayment.error?.message ?? 'Не удалось отметить оплату.' },
+        { status: 400 }
+      );
+    }
+
+    usedCompatibilityFallback = true;
+    confirmationResult = await admin.rpc('confirm_payment_and_advance', {
+      p_payment_id: payment.id,
+      p_organization_id: organizationId
+    });
+  }
   const confirmationRow = Array.isArray(confirmationResult.data)
     ? confirmationResult.data[0]
     : confirmationResult.data;
   const confirmedPayment = confirmationRow?.payment as PaymentRequest | undefined;
   const nextPayment = (confirmationRow?.next_payment ?? null) as PaymentRequest | null;
   if (confirmationResult.error || !confirmedPayment) {
+    if (usedCompatibilityFallback) {
+      await admin
+        .from('payment_requests')
+        .update({ status: payment.status })
+        .eq('id', payment.id)
+        .eq('organization_id', organizationId)
+        .eq('status', 'payment_confirmation');
+    }
     return NextResponse.json({ error: confirmationResult.error?.message ?? 'Не удалось подтвердить оплату.' }, { status: 400 });
   }
 
@@ -477,7 +538,7 @@ async function approvePaymentAction(identity: ServerIdentity, payment: PaymentRe
     payment.id
   );
   if (!notification) {
-    logNotificationFailure('approve_payment', payment.id, payment.member_id);
+    logNotificationFailure(notificationContext, payment.id, payment.member_id);
   }
 
   return NextResponse.json({

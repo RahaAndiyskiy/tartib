@@ -66,10 +66,10 @@ Related docs:
 
 ### Payment Confirmation
 
-- Description: member confirms payment; trainer/owner approves or rejects.
+- Description: member confirms payment and trainer/owner approves or rejects it. Trainer/owner can also mark an active, overdue or delayed invoice as paid directly with one action.
 - Pages: `/dashboard`
 - Tables: `payment_requests`, `notifications`
-- RPC: `confirm_payment_and_advance()`
+- RPC: `confirm_payment_and_advance()`, `confirm_payment_direct_and_advance()`
 
 ### Next Monthly Payment
 

@@ -1,6 +1,5 @@
 ﻿import type { Dispatch, SetStateAction } from 'react';
-import { useEffect } from 'react';
-import { ChevronRight, Pencil, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
 import { formatMoney } from '@shared/constants/app';
 import type {
   LocalBillingPlan,
@@ -13,6 +12,7 @@ import type {
   PaymentRequestStatus,
   TrainingFormat
 } from '@shared/types/domain';
+import { useScrollLock } from '@shared/ui/useScrollLock';
 
 export type PaymentEditFormValue = {
   type: BillingPlanType;
@@ -225,33 +225,7 @@ export function PaymentDrawer({
   onSubmitPrepayment,
   onDeletePayment
 }: PaymentDrawerProps): React.ReactElement {
-  useEffect(() => {
-    const body = document.body;
-    const root = document.documentElement;
-    const scrollY = window.scrollY;
-    const previousBodyStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width
-    };
-    const previousRootOverflow = root.style.overflow;
-
-    body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.width = '100%';
-    root.style.overflow = 'hidden';
-
-    return () => {
-      body.style.overflow = previousBodyStyles.overflow;
-      body.style.position = previousBodyStyles.position;
-      body.style.top = previousBodyStyles.top;
-      body.style.width = previousBodyStyles.width;
-      root.style.overflow = previousRootOverflow;
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
+  useScrollLock();
 
   const paymentPlanSummary = selectedPaymentPlan
     ? [
@@ -301,6 +275,17 @@ export function PaymentDrawer({
                 <dd>{selectedPayment?.period_label ?? 'Текущий период'}</dd>
               </div>
             </dl>
+            {canManagePayments && selectedPayment && ['active', 'overdue', 'delayed'].includes(selectedPayment.status) ? (
+              <button
+                className="small-button secondary payment-mark-paid-action"
+                type="button"
+                disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)}
+                onClick={() => onUpdatePaymentStatus(selectedPayment.id, 'paid')}
+              >
+                <CheckCircle2 size={16} />
+                Отметить оплаченным
+              </button>
+            ) : null}
           </section>
 
           <div className="payment-plan-summary-row">

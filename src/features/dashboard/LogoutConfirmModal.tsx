@@ -1,3 +1,5 @@
+import { useScrollLock } from '@shared/ui/useScrollLock';
+
 type LogoutConfirmModalProps = {
   onCancel: () => void;
   onConfirm: () => void;
@@ -7,6 +9,8 @@ export function LogoutConfirmModal({
   onCancel,
   onConfirm
 }: LogoutConfirmModalProps): React.ReactElement {
+  useScrollLock();
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onCancel}>
       <section

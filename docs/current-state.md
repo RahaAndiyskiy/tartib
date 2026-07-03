@@ -58,7 +58,7 @@ Implemented flow:
 7. Trainer can adjust the student's payment if needed.
 8. Student sees the current payment.
 9. Student confirms payment or requests a delay.
-10. Trainer approves/rejects the payment or delay.
+10. Trainer approves/rejects the payment or delay, or directly marks an invoice as paid when payment was received offline.
 11. Paid monthly payment atomically creates the next current payment.
 12. Owner/trainer/member see role-appropriate payment state.
 13. User can update basic profile data from settings.
@@ -191,10 +191,12 @@ Important RPC/functions:
 - `get_workspace()`
 - `process_payment_reminders()`
 - `confirm_payment_and_advance(payment_id, organization_id)`
+- `confirm_payment_direct_and_advance(payment_id, organization_id)`
 
 Important current rule:
 
 - Monthly payment confirmation is atomic in `confirm_payment_and_advance`.
+- Direct owner/trainer confirmation uses the service-role-only `confirm_payment_direct_and_advance` RPC and preserves the same atomic recurring-payment behavior.
 - Direct browser/client execution of `confirm_payment_and_advance` is revoked; use the protected workspace action route.
 - Paid payment history is never deleted.
 - A member currently belongs to one group.

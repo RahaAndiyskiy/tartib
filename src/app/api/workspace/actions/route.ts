@@ -19,7 +19,8 @@ const paymentActions = new Set<ActionBody['action']>([
   'submit_prepayment',
   'request_delay',
   'decide_delay',
-  'decide_payment'
+  'decide_payment',
+  'mark_payment_paid'
 ]);
 
 export async function POST(request: Request): Promise<NextResponse> {

@@ -284,6 +284,16 @@ export type Database = {
           next_payment: PaymentRequest | null;
         }>;
       };
+      confirm_payment_direct_and_advance: {
+        Args: {
+          p_payment_id: string;
+          p_organization_id: string;
+        };
+        Returns: Array<{
+          payment: PaymentRequest;
+          next_payment: PaymentRequest | null;
+        }>;
+      };
     };
     Enums: {
       user_role: UserRole;

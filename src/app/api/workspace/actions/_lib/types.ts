@@ -71,6 +71,7 @@ export type ActionBody =
     }
   | { action: 'decide_delay'; paymentId: string; approved: boolean }
   | { action: 'decide_payment'; paymentId: string; approved: boolean }
+  | { action: 'mark_payment_paid'; paymentId: string }
   | { action: 'mark_notifications_read' };
 
 export type NotificationRow = {
@@ -126,6 +127,7 @@ export type PaymentActionBody = Extract<
   | { action: 'request_delay' }
   | { action: 'decide_delay' }
   | { action: 'decide_payment' }
+  | { action: 'mark_payment_paid' }
 >;
 
 export type { PaymentRequestStatus };

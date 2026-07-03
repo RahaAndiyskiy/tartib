@@ -171,3 +171,10 @@ Tartib UI direction is **clean CRM + soft violet glass layer**:
 - Use design tokens from `src/app/globals.css`; do not hard-code new shared colors, shadows or radii.
 - New UI must use primitives from `src/shared/ui` when possible: `Button`, `Panel`, `TextField`, `SelectField`, `Badge`, `EmptyState`, `SegmentedControl`.
 - Existing dashboard UI may keep compatible classes such as `crm-panel`, `crm-table`, `crm-list-row`, `primary-button`, `ghost-button`, `small-button`, `segmented-control` and `status-pill` while it is migrated gradually.
+
+## Overlay and modal rules
+
+- Every modal, drawer, sheet or full-screen overlay must lock the page behind it with `useScrollLock` from `src/shared/ui/useScrollLock`.
+- Do not implement one-off `document.body.style.overflow` effects inside components.
+- The overlay itself may scroll when its content exceeds the viewport; the underlying page must remain fixed and return to the same scroll position after closing.
+- Conditional overlays pass their open state to `useScrollLock(active)`. Components that only mount while open call `useScrollLock()` directly.

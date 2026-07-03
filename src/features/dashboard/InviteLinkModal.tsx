@@ -1,6 +1,7 @@
 import { Copy, Share2 } from 'lucide-react';
 import { formatMoney } from '@shared/constants/app';
 import type { LocalTrainingGroup } from '@shared/lib/localWorkspace';
+import { useScrollLock } from '@shared/ui/useScrollLock';
 import type { MemberInviteResult } from './types';
 
 type InviteLinkModalProps = {
@@ -22,6 +23,8 @@ export function InviteLinkModal({
   onShare,
   onClose
 }: InviteLinkModalProps): React.ReactElement {
+  useScrollLock();
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section
