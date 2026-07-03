@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useRef } from 'react';
 import {
   Bell,
@@ -76,6 +76,9 @@ export function DashboardShell({
 }: DashboardShellProps): React.ReactElement {
   const isMember = hasRole(activeUser, 'member');
   const canCreateFromHeader = !isMember && (activeSection === 'people' || activeSection === 'groups');
+  const pullContentStyle = {
+    '--pull-content-offset': `${pullDistance}px`
+  } as CSSProperties;
   useScrollLock(mobileFormOpen);
 
   return (
@@ -186,7 +189,10 @@ export function DashboardShell({
         </div>
       </aside>
 
-      <main className="crm-main">
+      <main
+        className={`crm-main${pullDistance > 0 && !pullRefreshing ? ' pull-following' : ''}${pullRefreshing ? ' pull-refreshing' : ''}`}
+        style={pullContentStyle}
+      >
         {mobileAccountOpen ? (
           <button
             aria-label="Закрыть меню аккаунта"
