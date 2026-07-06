@@ -44,9 +44,14 @@ export function useAccountRuntime({
     }
 
     let mounted = true;
-    void pushSubscriptionState().then((status) => {
-      if (mounted) setPushStatus(status);
-    });
+    void pushSubscriptionState()
+      .then((status) => {
+        if (mounted) setPushStatus(status);
+      })
+      .catch((error) => {
+        console.warn('[push] status check failed', error);
+        if (mounted) setPushStatus(pushSupported() ? 'enabled' : 'unsupported');
+      });
 
     return () => {
       mounted = false;
@@ -54,6 +59,8 @@ export function useAccountRuntime({
   }, [isLocalMode]);
 
   async function togglePush(): Promise<void> {
+    if (pushPending) return;
+
     if (!pushSupported()) {
       setPushStatus('unsupported');
       setMessage('Push-уведомления не поддерживаются этим браузером.');

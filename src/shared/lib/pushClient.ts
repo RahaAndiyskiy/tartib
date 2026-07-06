@@ -61,7 +61,11 @@ async function fetchWithTimeout(
 }
 
 async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
-  const existingRegistration = await navigator.serviceWorker.getRegistration();
+  const existingRegistration = await withTimeout(
+    navigator.serviceWorker.getRegistration(),
+    4_000,
+    'Не удалось проверить службу уведомлений.'
+  );
   if (existingRegistration?.active) return existingRegistration;
 
   if (!existingRegistration) {
@@ -70,7 +74,7 @@ async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
 
   return withTimeout(
     navigator.serviceWorker.ready,
-    10_000,
+    6_000,
     'Приложение ещё готовит уведомления. Закройте и снова откройте Tartib.'
   );
 }
@@ -95,15 +99,27 @@ export async function pushSubscriptionState(): Promise<PushAvailability> {
   const permissionState = pushPermissionState();
   if (permissionState !== 'granted') return permissionState;
 
-  const registration = await navigator.serviceWorker.getRegistration();
+  const registration = await withTimeout(
+    navigator.serviceWorker.getRegistration(),
+    4_000,
+    'Не удалось проверить службу уведомлений.'
+  );
   if (!registration) return 'enabled';
-  const subscription = await registration.pushManager.getSubscription();
+  const subscription = await withTimeout(
+    registration.pushManager.getSubscription(),
+    5_000,
+    'Не удалось проверить push-подписку.'
+  );
   return subscription ? 'granted' : 'enabled';
 }
 
 async function authHeaders(): Promise<HeadersInit> {
   const supabase = getSupabaseClient();
-  const session = await supabase.auth.getSession();
+  const session = await withTimeout(
+    supabase.auth.getSession(),
+    5_000,
+    'Не удалось проверить вход. Откройте приложение заново.'
+  );
   const token = session.data.session?.access_token;
   if (!token) throw new Error('Требуется вход.');
 
@@ -138,7 +154,11 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
   if (!publicKeyData.enabled || !publicKeyData.publicKey) return 'disabled';
 
   const registration = await readyServiceWorker();
-  const existingSubscription = await registration.pushManager.getSubscription();
+  const existingSubscription = await withTimeout(
+    registration.pushManager.getSubscription(),
+    5_000,
+    'Не удалось проверить текущую push-подписку.'
+  );
   const subscription =
     existingSubscription ??
     (await withTimeout(
@@ -146,7 +166,7 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToArrayBuffer(publicKeyData.publicKey)
       }),
-      12_000,
+      8_000,
       'Не удалось создать подписку на этом устройстве.'
     ));
 
@@ -167,9 +187,17 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
 export async function disablePushNotifications(): Promise<void> {
   if (!pushSupported()) return;
 
-  const registration = await navigator.serviceWorker.getRegistration();
+  const registration = await withTimeout(
+    navigator.serviceWorker.getRegistration(),
+    4_000,
+    'Не удалось проверить службу уведомлений.'
+  );
   if (!registration) return;
-  const subscription = await registration.pushManager.getSubscription();
+  const subscription = await withTimeout(
+    registration.pushManager.getSubscription(),
+    5_000,
+    'Не удалось проверить push-подписку.'
+  );
   if (!subscription) return;
 
   const response = await fetchWithTimeout('/api/push/subscription', {
@@ -183,5 +211,9 @@ export async function disablePushNotifications(): Promise<void> {
     throw new Error(data?.error ?? 'Не удалось отключить push-уведомления.');
   }
 
-  await subscription.unsubscribe();
+  await withTimeout(
+    subscription.unsubscribe(),
+    5_000,
+    'Подписка удалена с сервера, но устройство не успело завершить отключение.'
+  );
 }
