@@ -99,11 +99,12 @@ export function DashboardApp(): React.ReactElement {
     runRemoteActionWithPending
   } = usePendingAction({ runRemoteActionData });
   const {
-    enablePush,
     handleReset,
     openNewWindow,
+    pushPending,
     pushStatus,
-    signOut
+    signOut,
+    togglePush
   } = useAccountRuntime({
     isLocalMode,
     setActiveUserId,
@@ -586,13 +587,14 @@ export function DashboardApp(): React.ReactElement {
   const settingsProps = {
     activeUser,
     settingsDraft,
+    pushPending,
     pushStatus,
     isLocalMode,
     isPendingAction,
     onSettingsDraftChange: setSettingsDraft,
     onSaveProfile: saveProfileSettings,
     onSaveOrganization: saveOrganizationSettings,
-    onEnablePush: enablePush,
+    onTogglePush: togglePush,
     onSignOut: signOut
   };
 
@@ -629,6 +631,7 @@ export function DashboardApp(): React.ReactElement {
           inviteModalOpen={invitePickerOpen || (activeSection === 'overview' && Boolean(memberInvite))}
           notifications={userNotifications}
           unreadCount={unreadNotifications.length}
+          pushPending={pushPending}
           pushStatus={pushStatus}
           invite={memberInvite}
           groups={visibleGroups}
@@ -637,7 +640,7 @@ export function DashboardApp(): React.ReactElement {
           isPendingAction={isPendingAction}
           isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
           onCloseNotifications={chrome.closeNotifications}
-          onEnablePush={enablePush}
+          onTogglePush={togglePush}
           onMarkNotificationsRead={markNotificationsRead}
           onDecidePayment={updatePaymentStatus}
           onDecideDelay={decidePaymentDelay}

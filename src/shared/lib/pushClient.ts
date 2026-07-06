@@ -39,6 +39,16 @@ export function pushPermissionState(): PushAvailability {
   return 'enabled';
 }
 
+export async function pushSubscriptionState(): Promise<PushAvailability> {
+  const permissionState = pushPermissionState();
+  if (permissionState !== 'granted') return permissionState;
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return 'enabled';
+  const subscription = await registration.pushManager.getSubscription();
+  return subscription ? 'granted' : 'enabled';
+}
+
 async function authHeaders(): Promise<HeadersInit> {
   const supabase = getSupabaseClient();
   const session = await supabase.auth.getSession();
@@ -95,10 +105,16 @@ export async function disablePushNotifications(): Promise<void> {
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
 
-  await fetch('/api/push/subscription', {
+  const response = await fetch('/api/push/subscription', {
     method: 'DELETE',
     headers: await authHeaders(),
     body: JSON.stringify({ endpoint: subscription.endpoint })
   });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error ?? 'Не удалось отключить push-уведомления.');
+  }
+
   await subscription.unsubscribe();
 }

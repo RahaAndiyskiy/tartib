@@ -3266,6 +3266,25 @@ button:disabled {
   gap: 8px;
 }
 
+.push-toggle-button {
+  width: 100%;
+  gap: 8px;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.push-toggle-button.enabled {
+  min-height: var(--control-height);
+  border: 1px solid rgba(141, 112, 254, 0.28);
+  background: rgba(238, 234, 255, 0.82);
+  color: var(--color-primary-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.push-toggle-button.compact {
+  width: auto;
+  min-height: 36px;
+}
+
 .notification-modal-backdrop {
   background: rgba(36, 28, 55, 0.16);
 }

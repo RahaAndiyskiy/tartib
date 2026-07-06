@@ -4,8 +4,9 @@ import {
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import {
+  disablePushNotifications,
   enablePushNotifications,
-  pushPermissionState,
+  pushSubscriptionState,
   pushSupported,
   type PushAvailability
 } from '@shared/lib/pushClient';
@@ -19,11 +20,12 @@ type UseAccountRuntimeOptions = {
 };
 
 type AccountRuntime = {
-  enablePush: () => Promise<void>;
+  pushPending: boolean;
   handleReset: () => void;
   openNewWindow: () => void;
   pushStatus: PushAvailability;
   signOut: () => Promise<void>;
+  togglePush: () => Promise<void>;
 };
 
 export function useAccountRuntime({
@@ -33,6 +35,7 @@ export function useAccountRuntime({
   setWorkspace
 }: UseAccountRuntimeOptions): AccountRuntime {
   const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
+  const [pushPending, setPushPending] = useState(false);
 
   useEffect(() => {
     if (isLocalMode) {
@@ -40,31 +43,48 @@ export function useAccountRuntime({
       return;
     }
 
-    setPushStatus(pushPermissionState());
+    let mounted = true;
+    void pushSubscriptionState().then((status) => {
+      if (mounted) setPushStatus(status);
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, [isLocalMode]);
 
-  async function enablePush(): Promise<void> {
+  async function togglePush(): Promise<void> {
     if (!pushSupported()) {
       setPushStatus('unsupported');
-      setMessage('Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЌС‚РёРј Р±СЂР°СѓР·РµСЂРѕРј.');
+      setMessage('Push-уведомления не поддерживаются этим браузером.');
       return;
     }
 
+    setPushPending(true);
     try {
+      if (pushStatus === 'granted') {
+        await disablePushNotifications();
+        setPushStatus('enabled');
+        setMessage('Push-уведомления отключены на этом устройстве.');
+        return;
+      }
+
       const nextStatus = await enablePushNotifications();
       setPushStatus(nextStatus);
       setMessage(
         nextStatus === 'granted'
-          ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РІРєР»СЋС‡РµРЅС‹.'
+          ? 'Push-уведомления включены.'
           : nextStatus === 'disabled'
-            ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РїРѕРєР° РЅРµ РЅР°СЃС‚СЂРѕРµРЅС‹ РЅР° СЃРµСЂРІРµСЂРµ.'
+            ? 'Push-уведомления пока не настроены на сервере.'
             : nextStatus === 'blocked'
-              ? 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅС‹ РІ РЅР°СЃС‚СЂРѕР№РєР°С… Р±СЂР°СѓР·РµСЂР°.'
-              : 'Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ РЅРµ РІРєР»СЋС‡РµРЅС‹.'
+              ? 'Push-уведомления заблокированы в настройках браузера.'
+              : 'Push-уведомления не включены.'
       );
     } catch (error) {
-      console.warn('[push] enable failed', error);
-      setMessage(error instanceof Error ? error.message : 'РќРµ СѓРґР°Р»РѕСЃСЊ РІРєР»СЋС‡РёС‚СЊ push-СѓРІРµРґРѕРјР»РµРЅРёСЏ.');
+      console.warn('[push] toggle failed', error);
+      setMessage(error instanceof Error ? error.message : 'Не удалось изменить push-уведомления.');
+    } finally {
+      setPushPending(false);
     }
   }
 
@@ -86,10 +106,11 @@ export function useAccountRuntime({
   }
 
   return {
-    enablePush,
+    pushPending,
     handleReset,
     openNewWindow,
     pushStatus,
-    signOut
+    signOut,
+    togglePush
   };
 }

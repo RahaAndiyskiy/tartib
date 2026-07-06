@@ -3,18 +3,20 @@ import { Bell, LogOut, Settings } from 'lucide-react';
 import type { PushAvailability } from '@shared/lib/pushClient';
 import type { AppUser } from '@shared/types/domain';
 import { hasRole, roleLabel } from '@/core/roles';
+import { PushToggleButton } from '@/modules/notifications/components/PushToggleButton';
 import type { SettingsDraft } from '../types';
 
 type SettingsSectionProps = {
   activeUser: AppUser;
   settingsDraft: SettingsDraft;
   pushStatus: PushAvailability;
+  pushPending: boolean;
   isLocalMode: boolean;
   isPendingAction: (key: string) => boolean;
   onSettingsDraftChange: (draft: SettingsDraft | ((current: SettingsDraft) => SettingsDraft)) => void;
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSaveOrganization: (event: FormEvent<HTMLFormElement>) => void;
-  onEnablePush: () => void;
+  onTogglePush: () => void;
   onSignOut: () => void;
 };
 
@@ -22,12 +24,13 @@ export function SettingsSection({
   activeUser,
   settingsDraft,
   pushStatus,
+  pushPending,
   isLocalMode,
   isPendingAction,
   onSettingsDraftChange,
   onSaveProfile,
   onSaveOrganization,
-  onEnablePush,
+  onTogglePush,
   onSignOut
 }: SettingsSectionProps): React.ReactElement {
   return (
@@ -165,15 +168,16 @@ export function SettingsSection({
               <p className="inline-note">
                 Вы будете получать важные события по оплатам, когда браузер разрешает push.
               </p>
-            ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
-              <button className="primary-button" type="button" onClick={onEnablePush}>
-                Включить push
-              </button>
-            ) : (
+            ) : pushStatus === 'unsupported' || pushStatus === 'blocked' ? (
               <p className="inline-note">
                 Проверьте разрешения браузера или откройте приложение как PWA, если push недоступен.
               </p>
-            )}
+            ) : null}
+            <PushToggleButton
+              pending={pushPending}
+              status={pushStatus}
+              onToggle={onTogglePush}
+            />
           </div>
         </section>
 

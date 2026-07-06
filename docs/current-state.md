@@ -29,6 +29,7 @@ Tartib is a lightweight CRM for clubs, trainers and students. The current produc
 - delay requests;
 - internal notifications;
 - event-based web push notifications;
+- per-device push subscription status with enable/disable control;
 - account/profile settings;
 - mobile/PWA use.
 

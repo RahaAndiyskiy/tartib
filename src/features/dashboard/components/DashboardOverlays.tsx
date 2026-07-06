@@ -19,6 +19,7 @@ type DashboardOverlaysProps = {
   notifications: LocalNotification[];
   unreadCount: number;
   pushStatus: PushAvailability;
+  pushPending: boolean;
   invite: MemberInviteResult | null;
   groups: LocalTrainingGroup[];
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
@@ -26,7 +27,7 @@ type DashboardOverlaysProps = {
   isPendingAction: (action: string) => boolean;
   isPendingInviteGroup: (groupId: string) => boolean;
   onCloseNotifications: () => void;
-  onEnablePush: () => void;
+  onTogglePush: () => void;
   onMarkNotificationsRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
@@ -46,6 +47,7 @@ export function DashboardOverlays({
   notifications,
   unreadCount,
   pushStatus,
+  pushPending,
   invite,
   groups,
   paymentForNotification,
@@ -53,7 +55,7 @@ export function DashboardOverlays({
   isPendingAction,
   isPendingInviteGroup,
   onCloseNotifications,
-  onEnablePush,
+  onTogglePush,
   onMarkNotificationsRead,
   onDecidePayment,
   onDecideDelay,
@@ -72,11 +74,12 @@ export function DashboardOverlays({
           notifications={notifications}
           unreadCount={unreadCount}
           pushStatus={pushStatus}
+          pushPending={pushPending}
           paymentForNotification={paymentForNotification}
           canDecidePayment={canDecidePayment}
           isPendingAction={isPendingAction}
           onClose={onCloseNotifications}
-          onEnablePush={onEnablePush}
+          onTogglePush={onTogglePush}
           onMarkRead={onMarkNotificationsRead}
           onDecidePayment={onDecidePayment}
           onDecideDelay={onDecideDelay}

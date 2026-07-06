@@ -4,16 +4,18 @@ import type { PushAvailability } from '@shared/lib/pushClient';
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
 import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
+import { PushToggleButton } from './PushToggleButton';
 
 type NotificationsModalProps = {
   notifications: LocalNotification[];
   unreadCount: number;
   pushStatus: PushAvailability;
+  pushPending: boolean;
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
   canDecidePayment: (payment: PaymentRequest) => boolean;
   isPendingAction: (action: string) => boolean;
   onClose: () => void;
-  onEnablePush: () => void;
+  onTogglePush: () => void;
   onMarkRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
@@ -24,11 +26,12 @@ export function NotificationsModal({
   notifications,
   unreadCount,
   pushStatus,
+  pushPending,
   paymentForNotification,
   canDecidePayment,
   isPendingAction,
   onClose,
-  onEnablePush,
+  onTogglePush,
   onMarkRead,
   onDecidePayment,
   onDecideDelay,
@@ -53,13 +56,12 @@ export function NotificationsModal({
           <ModalCloseButton label="Закрыть уведомления" onClick={onClose} />
         </div>
         <div className="notification-header-actions">
-          {pushStatus === 'granted' ? (
-            <span className="status-pill active">Push включены</span>
-          ) : pushStatus !== 'unsupported' && pushStatus !== 'blocked' ? (
-            <button className="small-button secondary" type="button" onClick={onEnablePush}>
-              Включить push
-            </button>
-          ) : null}
+          <PushToggleButton
+            compact
+            pending={pushPending}
+            status={pushStatus}
+            onToggle={onTogglePush}
+          />
           {unreadCount > 0 ? (
             <button className="small-button secondary" type="button" onClick={onMarkRead}>
               Отметить прочитанными

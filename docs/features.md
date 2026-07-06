@@ -99,13 +99,13 @@ Related docs:
 
 ### Web Push Notifications
 
-- Description: user can enable browser/PWA push notifications; payment and delay events send push through the same internal notification layer.
+- Description: user can enable and disable browser/PWA push notifications from one stateful control; payment and delay events send push through the same internal notification layer.
 - Pages: `/dashboard`
 - Tables: `push_subscriptions`, `notifications`, `payment_requests`
 
 ### Account Settings
 
-- Description: user can update first name, last name and phone; owner can update organization name; push can be enabled from settings.
+- Description: user can update first name, last name and phone; owner can update organization name; per-device push can be enabled or disabled from settings.
 - Pages: `/dashboard`
 - Tables: `users`, `organizations`, `push_subscriptions`
 
