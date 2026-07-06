@@ -23,6 +23,58 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   ) as ArrayBuffer;
 }
 
+async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  message: string
+): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = 12_000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('Сервер push-уведомлений не ответил. Попробуйте ещё раз.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
+  const existingRegistration = await navigator.serviceWorker.getRegistration();
+  if (existingRegistration?.active) return existingRegistration;
+
+  if (!existingRegistration) {
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  }
+
+  return withTimeout(
+    navigator.serviceWorker.ready,
+    10_000,
+    'Приложение ещё готовит уведомления. Закройте и снова откройте Tartib.'
+  );
+}
+
 export function pushSupported(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -64,27 +116,41 @@ async function authHeaders(): Promise<HeadersInit> {
 export async function enablePushNotifications(): Promise<PushAvailability> {
   if (!pushSupported()) return 'unsupported';
 
-  const publicKeyResponse = await fetch('/api/push/public-key');
+  // Permission must be the first awaited browser action so iOS keeps the user gesture.
+  const permission = Notification.permission === 'granted'
+    ? 'granted'
+    : await withTimeout(
+        Notification.requestPermission(),
+        30_000,
+        'Разрешение на уведомления не подтверждено.'
+      );
+  if (permission === 'denied') return 'blocked';
+  if (permission !== 'granted') return 'enabled';
+
+  const publicKeyResponse = await fetchWithTimeout('/api/push/public-key');
   const publicKeyData = (await publicKeyResponse.json()) as {
     enabled?: boolean;
     publicKey?: string | null;
   };
+  if (!publicKeyResponse.ok) {
+    throw new Error('Не удалось получить настройки push-уведомлений.');
+  }
   if (!publicKeyData.enabled || !publicKeyData.publicKey) return 'disabled';
 
-  const permission = await Notification.requestPermission();
-  if (permission === 'denied') return 'blocked';
-  if (permission !== 'granted') return 'enabled';
-
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await readyServiceWorker();
   const existingSubscription = await registration.pushManager.getSubscription();
   const subscription =
     existingSubscription ??
-    (await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToArrayBuffer(publicKeyData.publicKey)
-    }));
+    (await withTimeout(
+      registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToArrayBuffer(publicKeyData.publicKey)
+      }),
+      12_000,
+      'Не удалось создать подписку на этом устройстве.'
+    ));
 
-  const response = await fetch('/api/push/subscription', {
+  const response = await fetchWithTimeout('/api/push/subscription', {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(subscription.toJSON())
@@ -101,11 +167,12 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
 export async function disablePushNotifications(): Promise<void> {
   if (!pushSupported()) return;
 
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return;
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
 
-  const response = await fetch('/api/push/subscription', {
+  const response = await fetchWithTimeout('/api/push/subscription', {
     method: 'DELETE',
     headers: await authHeaders(),
     body: JSON.stringify({ endpoint: subscription.endpoint })
