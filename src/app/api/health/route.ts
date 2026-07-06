@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 
 type EnvCheck = {
   configured: boolean;
@@ -14,7 +15,7 @@ function envCheck(name: string, required: boolean): EnvCheck {
   };
 }
 
-export function GET(): NextResponse {
+export async function GET(): Promise<NextResponse> {
   const checks = [
     envCheck('NEXT_PUBLIC_SUPABASE_URL', true),
     envCheck('NEXT_PUBLIC_SUPABASE_ANON_KEY', true),
@@ -27,6 +28,19 @@ export function GET(): NextResponse {
   const pushConfigured = checks
     .filter((check) => check.name.includes('VAPID'))
     .every((check) => check.configured);
+  let subscriptionsTableAvailable = false;
+
+  if (missingRequired.length === 0) {
+    try {
+      const result = await getSupabaseAdmin()
+        .from('push_subscriptions')
+        .select('id')
+        .limit(1);
+      subscriptionsTableAvailable = !result.error;
+    } catch {
+      subscriptionsTableAvailable = false;
+    }
+  }
 
   return NextResponse.json(
     {
@@ -36,7 +50,9 @@ export function GET(): NextResponse {
       environment: process.env.NODE_ENV ?? 'unknown',
       checks,
       push: {
-        configured: pushConfigured
+        configured: pushConfigured,
+        subscriptionsTable: subscriptionsTableAvailable,
+        ready: pushConfigured && subscriptionsTableAvailable
       }
     },
     {
