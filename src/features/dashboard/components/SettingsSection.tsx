@@ -4,6 +4,7 @@ import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClien
 import type { AppUser } from '@shared/types/domain';
 import { hasRole, roleLabel } from '@/core/roles';
 import { PushToggleButton } from '@/modules/notifications/components/PushToggleButton';
+import type { PushNotice } from '../model/useAccountRuntime';
 import type { SettingsDraft } from '../types';
 
 type SettingsSectionProps = {
@@ -11,6 +12,7 @@ type SettingsSectionProps = {
   settingsDraft: SettingsDraft;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushNotice: PushNotice | null;
   pushStage: PushOperationStage | null;
   isLocalMode: boolean;
   isPendingAction: (key: string) => boolean;
@@ -27,6 +29,7 @@ export function SettingsSection({
   settingsDraft,
   pushStatus,
   pushPending,
+  pushNotice,
   pushStage,
   isLocalMode,
   isPendingAction,
@@ -179,6 +182,7 @@ export function SettingsSection({
             ) : null}
             <PushToggleButton
               pending={pushPending}
+              notice={pushNotice}
               stage={pushStage}
               status={pushStatus}
               onEnsure={onEnsurePush}

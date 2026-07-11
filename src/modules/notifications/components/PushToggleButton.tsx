@@ -1,8 +1,10 @@
 import { BellOff, BellRing, Send } from 'lucide-react';
 import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
+import type { PushNotice } from '@/features/dashboard/model/useAccountRuntime';
 
 type PushToggleButtonProps = {
   compact?: boolean;
+  notice: PushNotice | null;
   pending: boolean;
   stage: PushOperationStage | null;
   status: PushAvailability;
@@ -20,7 +22,7 @@ const stageLabels: Record<PushOperationStage, string> = {
 };
 
 const statusHints: Partial<Record<PushAvailability, string>> = {
-  blocked: 'Разрешите уведомления в настройках браузера или устройства.',
+  blocked: 'Разрешите уведомления в настройках браузера или телефона.',
   disabled: 'Push пока не настроен на сервере.',
   enabled: 'Нужно один раз разрешить уведомления на этом устройстве.',
   granted: 'Push включён. Tartib будет присылать важные события автоматически.',
@@ -29,6 +31,7 @@ const statusHints: Partial<Record<PushAvailability, string>> = {
 
 export function PushToggleButton({
   compact = false,
+  notice,
   pending,
   stage,
   status,
@@ -48,7 +51,8 @@ export function PushToggleButton({
         : 'Разрешить push';
   const hint = pending
     ? 'Не закрывайте приложение, это займёт несколько секунд.'
-    : statusHints[status];
+    : notice?.text ?? statusHints[status];
+  const hintTone = notice?.tone ?? (blocked ? 'error' : enabled ? 'success' : 'info');
 
   return (
     <div className={`push-toggle-control${compact ? ' compact' : ''}`}>
@@ -62,7 +66,7 @@ export function PushToggleButton({
         {enabled ? <Send size={17} /> : blocked ? <BellOff size={17} /> : <BellRing size={17} />}
         {label}
       </button>
-      {hint && !compact ? <span className="push-toggle-hint">{hint}</span> : null}
+      {hint ? <span className={`push-toggle-hint ${hintTone}`}>{hint}</span> : null}
     </div>
   );
 }

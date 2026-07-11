@@ -4,6 +4,7 @@ import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClien
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
 import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
+import type { PushNotice } from '@/features/dashboard/model/useAccountRuntime';
 import { PushToggleButton } from './PushToggleButton';
 
 type NotificationsModalProps = {
@@ -11,6 +12,7 @@ type NotificationsModalProps = {
   unreadCount: number;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushNotice: PushNotice | null;
   pushStage: PushOperationStage | null;
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
   canDecidePayment: (payment: PaymentRequest) => boolean;
@@ -29,6 +31,7 @@ export function NotificationsModal({
   unreadCount,
   pushStatus,
   pushPending,
+  pushNotice,
   pushStage,
   paymentForNotification,
   canDecidePayment,
@@ -63,6 +66,7 @@ export function NotificationsModal({
           <PushToggleButton
             compact
             pending={pushPending}
+            notice={pushNotice}
             stage={pushStage}
             status={pushStatus}
             onEnsure={onEnsurePush}

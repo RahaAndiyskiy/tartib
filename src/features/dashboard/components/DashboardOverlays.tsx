@@ -7,6 +7,7 @@ import type {
   PaymentRequest,
   PaymentRequestStatus
 } from '@shared/types/domain';
+import type { PushNotice } from '../model/useAccountRuntime';
 import type { MemberInviteResult } from '../types';
 import { InviteLinkModal } from '../InviteLinkModal';
 import { LogoutConfirmModal } from '../LogoutConfirmModal';
@@ -20,6 +21,7 @@ type DashboardOverlaysProps = {
   unreadCount: number;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushNotice: PushNotice | null;
   pushStage: PushOperationStage | null;
   invite: MemberInviteResult | null;
   groups: LocalTrainingGroup[];
@@ -50,6 +52,7 @@ export function DashboardOverlays({
   unreadCount,
   pushStatus,
   pushPending,
+  pushNotice,
   pushStage,
   invite,
   groups,
@@ -79,6 +82,7 @@ export function DashboardOverlays({
           unreadCount={unreadCount}
           pushStatus={pushStatus}
           pushPending={pushPending}
+          pushNotice={pushNotice}
           pushStage={pushStage}
           paymentForNotification={paymentForNotification}
           canDecidePayment={canDecidePayment}

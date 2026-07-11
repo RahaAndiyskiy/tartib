@@ -3279,6 +3279,7 @@ button:disabled {
 }
 
 .push-toggle-control.compact {
+  min-width: min(100%, 260px);
   width: auto;
 }
 
@@ -3287,6 +3288,14 @@ button:disabled {
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.push-toggle-hint.success {
+  color: rgba(48, 122, 91, 0.9);
+}
+
+.push-toggle-hint.error {
+  color: rgba(176, 67, 88, 0.92);
 }
 
 .push-toggle-button.enabled {
