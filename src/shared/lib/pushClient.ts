@@ -72,23 +72,44 @@ async function fetchWithTimeout(
   }
 }
 
+async function waitForActiveWorker(
+  registration: ServiceWorkerRegistration,
+  timeoutMs = 18_000
+): Promise<ServiceWorkerRegistration> {
+  if (registration.active) return registration;
+
+  const pendingWorker = registration.installing ?? registration.waiting;
+  if (!pendingWorker) return registration;
+
+  await withTimeout(
+    new Promise<void>((resolve) => {
+      if (pendingWorker.state === 'activated') {
+        resolve();
+        return;
+      }
+
+      pendingWorker.addEventListener('statechange', () => {
+        if (pendingWorker.state === 'activated') resolve();
+      });
+    }),
+    timeoutMs,
+    'Служба уведомлений ещё запускается. Подождите пару секунд и нажмите кнопку ещё раз.'
+  );
+
+  return registration;
+}
+
 async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existingRegistration = await withTimeout(
     navigator.serviceWorker.getRegistration(),
     4_000,
     'Не удалось проверить службу уведомлений.'
   );
-  if (existingRegistration?.active) return existingRegistration;
+  const registration =
+    existingRegistration ?? (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
 
-  if (!existingRegistration) {
-    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  }
-
-  return withTimeout(
-    navigator.serviceWorker.ready,
-    6_000,
-    'Приложение ещё готовит уведомления. Закройте и снова откройте Tartib.'
-  );
+  await registration.update().catch(() => undefined);
+  return waitForActiveWorker(registration);
 }
 
 export function pushSupported(): boolean {
@@ -111,12 +132,7 @@ export async function pushSubscriptionState(): Promise<PushAvailability> {
   const permissionState = pushPermissionState();
   if (permissionState !== 'granted') return permissionState;
 
-  const registration = await withTimeout(
-    navigator.serviceWorker.getRegistration(),
-    4_000,
-    'Не удалось проверить службу уведомлений.'
-  );
-  if (!registration) return 'enabled';
+  const registration = await readyServiceWorker();
   const subscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
@@ -146,7 +162,6 @@ export async function enablePushNotifications(
 ): Promise<PushAvailability> {
   if (!pushSupported()) return 'unsupported';
 
-  // Permission must be the first awaited browser action so iOS keeps the user gesture.
   options.onStage?.('checking-permission');
   const permission = Notification.permission === 'granted'
     ? 'granted'
@@ -184,7 +199,7 @@ export async function enablePushNotifications(
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToArrayBuffer(publicKeyData.publicKey)
       }),
-      8_000,
+      10_000,
       'Не удалось создать подписку на этом устройстве.'
     ));
 
@@ -201,42 +216,4 @@ export async function enablePushNotifications(
   }
 
   return 'granted';
-}
-
-export async function disablePushNotifications(
-  options: PushOperationOptions = {}
-): Promise<void> {
-  if (!pushSupported()) return;
-
-  options.onStage?.('preparing-device');
-  const registration = await withTimeout(
-    navigator.serviceWorker.getRegistration(),
-    4_000,
-    'Не удалось проверить службу уведомлений.'
-  );
-  if (!registration) return;
-  options.onStage?.('removing-subscription');
-  const subscription = await withTimeout(
-    registration.pushManager.getSubscription(),
-    5_000,
-    'Не удалось проверить push-подписку.'
-  );
-  if (!subscription) return;
-
-  const response = await fetchWithTimeout('/api/push/subscription', {
-    method: 'DELETE',
-    headers: await authHeaders(),
-    body: JSON.stringify({ endpoint: subscription.endpoint })
-  });
-
-  if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(data?.error ?? 'Не удалось отключить push-уведомления.');
-  }
-
-  await withTimeout(
-    subscription.unsubscribe(),
-    5_000,
-    'Подписка удалена с сервера, но устройство не успело завершить отключение.'
-  );
 }

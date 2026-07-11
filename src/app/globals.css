@@ -3322,6 +3322,8 @@ button:disabled {
   gap: 14px;
   overflow: hidden;
   padding: 18px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .notifications-modal-header {
