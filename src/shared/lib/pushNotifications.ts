@@ -7,6 +7,12 @@ type PushPayload = {
   url?: string;
 };
 
+type PushSendResult = {
+  failed: number;
+  sent: number;
+  subscriptions: number;
+};
+
 let configured = false;
 
 function configureWebPush(): boolean {
@@ -33,8 +39,8 @@ export async function sendPushToUser(
   organizationId: string,
   userId: string,
   payload: PushPayload
-): Promise<void> {
-  if (!configureWebPush()) return;
+): Promise<PushSendResult> {
+  if (!configureWebPush()) return { failed: 0, sent: 0, subscriptions: 0 };
 
   const admin = getSupabaseAdmin();
   const subscriptions = await admin
@@ -47,10 +53,10 @@ export async function sendPushToUser(
     if (subscriptions.error) {
       console.warn('[push] failed to load subscriptions', subscriptions.error.message);
     }
-    return;
+    return { failed: 0, sent: 0, subscriptions: 0 };
   }
 
-  await Promise.all(
+  const results = await Promise.all(
     subscriptions.data.map(async (subscription) => {
       const pushSubscription: PushSubscription = {
         endpoint: subscription.endpoint,
@@ -69,6 +75,7 @@ export async function sendPushToUser(
             url: payload.url ?? '/dashboard'
           })
         );
+        return { sent: true };
       } catch (error) {
         const statusCode =
           typeof error === 'object' && error && 'statusCode' in error
@@ -77,11 +84,19 @@ export async function sendPushToUser(
 
         if (statusCode === 404 || statusCode === 410) {
           await admin.from('push_subscriptions').delete().eq('id', subscription.id);
-          return;
+          return { sent: false };
         }
 
         console.warn('[push] failed to send notification', error);
+        return { sent: false };
       }
     })
   );
+
+  const sent = results.filter((result) => result.sent).length;
+  return {
+    failed: results.length - sent,
+    sent,
+    subscriptions: subscriptions.data.length
+  };
 }

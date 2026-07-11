@@ -4,7 +4,6 @@ import {
   type LocalWorkspace
 } from '@shared/lib/localWorkspace';
 import {
-  disablePushNotifications,
   enablePushNotifications,
   pushSubscriptionState,
   pushSupported,
@@ -21,13 +20,14 @@ type UseAccountRuntimeOptions = {
 };
 
 type AccountRuntime = {
-  pushPending: boolean;
+  ensurePushEnabled: () => Promise<void>;
   handleReset: () => void;
   openNewWindow: () => void;
+  pushPending: boolean;
   pushStage: PushOperationStage | null;
   pushStatus: PushAvailability;
+  sendTestPush: () => Promise<void>;
   signOut: () => Promise<void>;
-  togglePush: () => Promise<void>;
 };
 
 export function useAccountRuntime({
@@ -48,8 +48,15 @@ export function useAccountRuntime({
 
     let mounted = true;
     void pushSubscriptionState()
-      .then((status) => {
-        if (mounted) setPushStatus(status);
+      .then(async (status) => {
+        if (!mounted) return;
+        setPushStatus(status);
+
+        // Если пользователь уже разрешил push в браузере, Tartib сам восстанавливает подписку.
+        if (status === 'enabled' && pushSupported() && Notification.permission === 'granted') {
+          const nextStatus = await enablePushNotifications().catch(() => status);
+          if (mounted) setPushStatus(nextStatus);
+        }
       })
       .catch((error) => {
         console.warn('[push] status check failed', error);
@@ -61,8 +68,8 @@ export function useAccountRuntime({
     };
   }, [isLocalMode]);
 
-  async function togglePush(): Promise<void> {
-    if (pushPending) return;
+  async function ensurePushEnabled(): Promise<void> {
+    if (pushPending || pushStatus === 'granted') return;
 
     if (!pushSupported()) {
       setPushStatus('unsupported');
@@ -71,29 +78,58 @@ export function useAccountRuntime({
     }
 
     setPushPending(true);
-    setPushStage(pushStatus === 'granted' ? 'removing-subscription' : 'checking-permission');
+    setPushStage('checking-permission');
     try {
-      if (pushStatus === 'granted') {
-        await disablePushNotifications({ onStage: setPushStage });
-        setPushStatus('enabled');
-        setMessage('Push-уведомления отключены на этом устройстве.');
-        return;
-      }
-
       const nextStatus = await enablePushNotifications({ onStage: setPushStage });
       setPushStatus(nextStatus);
       setMessage(
         nextStatus === 'granted'
           ? 'Push-уведомления включены.'
           : nextStatus === 'disabled'
-            ? 'Push-уведомления пока не настроены на сервере.'
+            ? 'Push пока не настроен на сервере.'
             : nextStatus === 'blocked'
-              ? 'Push-уведомления заблокированы в настройках браузера.'
-              : 'Push-уведомления не включены.'
+              ? 'Push заблокирован в настройках браузера.'
+              : 'Разрешите уведомления, чтобы Tartib мог присылать важные события.'
       );
     } catch (error) {
-      console.warn('[push] toggle failed', error);
-      setMessage(error instanceof Error ? error.message : 'Не удалось изменить push-уведомления.');
+      console.warn('[push] enable failed', error);
+      setMessage(error instanceof Error ? error.message : 'Не удалось включить push-уведомления.');
+    } finally {
+      setPushPending(false);
+      setPushStage(null);
+    }
+  }
+
+  async function sendTestPush(): Promise<void> {
+    if (pushPending) return;
+    if (pushStatus !== 'granted') {
+      await ensurePushEnabled();
+      return;
+    }
+
+    setPushPending(true);
+    setPushStage('saving-subscription');
+    try {
+      const supabase = getSupabaseClient();
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) throw new Error('Требуется вход.');
+
+      const response = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? 'Не удалось отправить тестовое уведомление.');
+      }
+
+      setMessage('Тестовое push-уведомление отправлено.');
+    } catch (error) {
+      console.warn('[push] test failed', error);
+      setMessage(error instanceof Error ? error.message : 'Не удалось проверить push.');
     } finally {
       setPushPending(false);
       setPushStage(null);
@@ -105,7 +141,7 @@ export function useAccountRuntime({
     const owner = nextWorkspace.users[0];
     setWorkspace(nextWorkspace);
     setActiveUserId(owner.id);
-    setMessage('РўРµСЃС‚РѕРІС‹Рµ РґР°РЅРЅС‹Рµ СЃР±СЂРѕС€РµРЅС‹.');
+    setMessage('Тестовые данные сброшены.');
   }
 
   function openNewWindow(): void {
@@ -118,12 +154,13 @@ export function useAccountRuntime({
   }
 
   return {
-    pushPending,
+    ensurePushEnabled,
     handleReset,
     openNewWindow,
+    pushPending,
     pushStage,
     pushStatus,
-    signOut,
-    togglePush
+    sendTestPush,
+    signOut
   };
 }

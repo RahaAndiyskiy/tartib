@@ -99,13 +99,14 @@ export function DashboardApp(): React.ReactElement {
     runRemoteActionWithPending
   } = usePendingAction({ runRemoteActionData });
   const {
+    ensurePushEnabled,
     handleReset,
     openNewWindow,
     pushPending,
     pushStage,
     pushStatus,
+    sendTestPush,
     signOut,
-    togglePush
   } = useAccountRuntime({
     isLocalMode,
     setActiveUserId,
@@ -398,6 +399,10 @@ export function DashboardApp(): React.ReactElement {
   });
 
   const sectionMeta = buildSectionMeta(activeUser);
+  const openNotificationsWithPush = (): void => {
+    openNotifications();
+    void ensurePushEnabled();
+  };
 
   if (!workspace || !activeUser) {
     return (
@@ -596,7 +601,8 @@ export function DashboardApp(): React.ReactElement {
     onSettingsDraftChange: setSettingsDraft,
     onSaveProfile: saveProfileSettings,
     onSaveOrganization: saveOrganizationSettings,
-    onTogglePush: togglePush,
+    onEnsurePush: ensurePushEnabled,
+    onSendTestPush: sendTestPush,
     onSignOut: signOut
   };
 
@@ -623,7 +629,7 @@ export function DashboardApp(): React.ReactElement {
       onCloseMobileAccount={chrome.closeMobileAccount}
       onOpenMobileForm={chrome.openMobileForm}
       onCloseMobileForm={chrome.closeMobileForm}
-      onOpenNotifications={openNotifications}
+      onOpenNotifications={openNotificationsWithPush}
     >
         {message ? <p className="notice success">{message}</p> : null}
 
@@ -643,7 +649,8 @@ export function DashboardApp(): React.ReactElement {
           isPendingAction={isPendingAction}
           isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
           onCloseNotifications={chrome.closeNotifications}
-          onTogglePush={togglePush}
+          onEnsurePush={ensurePushEnabled}
+          onSendTestPush={sendTestPush}
           onMarkNotificationsRead={markNotificationsRead}
           onDecidePayment={updatePaymentStatus}
           onDecideDelay={decidePaymentDelay}

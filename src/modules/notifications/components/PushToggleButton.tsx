@@ -1,4 +1,4 @@
-import { BellOff, BellRing } from 'lucide-react';
+import { BellOff, BellRing, Send } from 'lucide-react';
 import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 
 type PushToggleButtonProps = {
@@ -6,7 +6,8 @@ type PushToggleButtonProps = {
   pending: boolean;
   stage: PushOperationStage | null;
   status: PushAvailability;
-  onToggle: () => void;
+  onEnsure: () => void;
+  onSendTest: () => void;
 };
 
 const stageLabels: Record<PushOperationStage, string> = {
@@ -14,14 +15,16 @@ const stageLabels: Record<PushOperationStage, string> = {
   'loading-config': 'Проверяем настройки',
   'preparing-device': 'Готовим устройство',
   'creating-subscription': 'Подключаем устройство',
-  'saving-subscription': 'Сохраняем',
-  'removing-subscription': 'Отключаем'
+  'saving-subscription': 'Проверяем доставку',
+  'removing-subscription': 'Обновляем'
 };
 
 const statusHints: Partial<Record<PushAvailability, string>> = {
+  blocked: 'Разрешите уведомления в настройках браузера или устройства.',
   disabled: 'Push пока не настроен на сервере.',
-  enabled: 'Нажмите, чтобы включить уведомления на этом устройстве.',
-  granted: 'Уведомления включены на этом устройстве.'
+  enabled: 'Нужно один раз разрешить уведомления на этом устройстве.',
+  granted: 'Push включён. Tartib будет присылать важные события автоматически.',
+  unsupported: 'Этот браузер не поддерживает web push.'
 };
 
 export function PushToggleButton({
@@ -29,20 +32,20 @@ export function PushToggleButton({
   pending,
   stage,
   status,
-  onToggle
-}: PushToggleButtonProps): React.ReactElement | null {
-  if (status === 'unsupported' || status === 'blocked') return null;
-
+  onEnsure,
+  onSendTest
+}: PushToggleButtonProps): React.ReactElement {
   const enabled = status === 'granted';
+  const blocked = status === 'blocked' || status === 'unsupported' || status === 'disabled';
   const label = pending
     ? stage
       ? `${stageLabels[stage]}...`
-      : enabled
-        ? 'Отключаем...'
-        : 'Включаем...'
+      : 'Проверяем...'
     : enabled
-      ? 'Push включён'
-      : 'Включить push';
+      ? 'Проверить push'
+      : blocked
+        ? 'Push недоступен'
+        : 'Разрешить push';
   const hint = pending
     ? 'Не закрывайте приложение, это займёт несколько секунд.'
     : statusHints[status];
@@ -52,12 +55,11 @@ export function PushToggleButton({
       <button
         aria-pressed={enabled}
         className={`${enabled ? 'small-button secondary' : 'primary-button'} push-toggle-button${enabled ? ' enabled' : ''}${compact ? ' compact' : ''}`}
-        disabled={pending}
-        title={enabled ? 'Нажмите, чтобы отключить push' : undefined}
+        disabled={pending || blocked}
         type="button"
-        onClick={onToggle}
+        onClick={enabled ? onSendTest : onEnsure}
       >
-        {enabled ? <BellRing size={17} /> : <BellOff size={17} />}
+        {enabled ? <Send size={17} /> : blocked ? <BellOff size={17} /> : <BellRing size={17} />}
         {label}
       </button>
       {hint && !compact ? <span className="push-toggle-hint">{hint}</span> : null}

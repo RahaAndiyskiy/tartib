@@ -17,7 +17,8 @@ type SettingsSectionProps = {
   onSettingsDraftChange: (draft: SettingsDraft | ((current: SettingsDraft) => SettingsDraft)) => void;
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSaveOrganization: (event: FormEvent<HTMLFormElement>) => void;
-  onTogglePush: () => void;
+  onEnsurePush: () => void;
+  onSendTestPush: () => void;
   onSignOut: () => void;
 };
 
@@ -32,7 +33,8 @@ export function SettingsSection({
   onSettingsDraftChange,
   onSaveProfile,
   onSaveOrganization,
-  onTogglePush,
+  onEnsurePush,
+  onSendTestPush,
   onSignOut
 }: SettingsSectionProps): React.ReactElement {
   return (
@@ -179,7 +181,8 @@ export function SettingsSection({
               pending={pushPending}
               stage={pushStage}
               status={pushStatus}
-              onToggle={onTogglePush}
+              onEnsure={onEnsurePush}
+              onSendTest={onSendTestPush}
             />
           </div>
         </section>

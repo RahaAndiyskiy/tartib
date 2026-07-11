@@ -28,7 +28,8 @@ type DashboardOverlaysProps = {
   isPendingAction: (action: string) => boolean;
   isPendingInviteGroup: (groupId: string) => boolean;
   onCloseNotifications: () => void;
-  onTogglePush: () => void;
+  onEnsurePush: () => void;
+  onSendTestPush: () => void;
   onMarkNotificationsRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
@@ -57,7 +58,8 @@ export function DashboardOverlays({
   isPendingAction,
   isPendingInviteGroup,
   onCloseNotifications,
-  onTogglePush,
+  onEnsurePush,
+  onSendTestPush,
   onMarkNotificationsRead,
   onDecidePayment,
   onDecideDelay,
@@ -82,7 +84,8 @@ export function DashboardOverlays({
           canDecidePayment={canDecidePayment}
           isPendingAction={isPendingAction}
           onClose={onCloseNotifications}
-          onTogglePush={onTogglePush}
+          onEnsurePush={onEnsurePush}
+          onSendTestPush={onSendTestPush}
           onMarkRead={onMarkNotificationsRead}
           onDecidePayment={onDecidePayment}
           onDecideDelay={onDecideDelay}

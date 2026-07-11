@@ -16,7 +16,8 @@ type NotificationsModalProps = {
   canDecidePayment: (payment: PaymentRequest) => boolean;
   isPendingAction: (action: string) => boolean;
   onClose: () => void;
-  onTogglePush: () => void;
+  onEnsurePush: () => void;
+  onSendTestPush: () => void;
   onMarkRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
@@ -33,7 +34,8 @@ export function NotificationsModal({
   canDecidePayment,
   isPendingAction,
   onClose,
-  onTogglePush,
+  onEnsurePush,
+  onSendTestPush,
   onMarkRead,
   onDecidePayment,
   onDecideDelay,
@@ -63,7 +65,8 @@ export function NotificationsModal({
             pending={pushPending}
             stage={pushStage}
             status={pushStatus}
-            onToggle={onTogglePush}
+            onEnsure={onEnsurePush}
+            onSendTest={onSendTestPush}
           />
           {unreadCount > 0 ? (
             <button className="small-button secondary" type="button" onClick={onMarkRead}>
