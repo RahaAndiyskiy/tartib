@@ -19,6 +19,8 @@ type PushOperationOptions = {
   onStage?: (stage: PushOperationStage) => void;
 };
 
+const SERVICE_WORKER_RELOAD_KEY = 'tartib:push-sw-reload';
+
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = `${base64String}${padding}`.replace(/-/g, '+').replace(/_/g, '/');
@@ -72,44 +74,70 @@ async function fetchWithTimeout(
   }
 }
 
-async function waitForActiveWorker(
-  registration: ServiceWorkerRegistration,
-  timeoutMs = 18_000
-): Promise<ServiceWorkerRegistration> {
-  if (registration.active) return registration;
+function reloadOnceForServiceWorker(): void {
+  if (window.sessionStorage.getItem(SERVICE_WORKER_RELOAD_KEY) === '1') {
+    throw new Error('Service Worker не активировался после обновления. Закройте PWA полностью и откройте заново.');
+  }
 
-  const pendingWorker = registration.installing ?? registration.waiting;
-  if (!pendingWorker) return registration;
+  window.sessionStorage.setItem(SERVICE_WORKER_RELOAD_KEY, '1');
+  window.location.reload();
+}
 
-  await withTimeout(
-    new Promise<void>((resolve) => {
-      if (pendingWorker.state === 'activated') {
-        resolve();
-        return;
-      }
+function clearServiceWorkerReloadFlag(): void {
+  window.sessionStorage.removeItem(SERVICE_WORKER_RELOAD_KEY);
+}
 
-      pendingWorker.addEventListener('statechange', () => {
-        if (pendingWorker.state === 'activated') resolve();
-      });
-    }),
-    timeoutMs,
-    'Служба уведомлений ещё запускается. Подождите пару секунд и нажмите кнопку ещё раз.'
+async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {
+  const existingRegistration = await withTimeout(
+    navigator.serviceWorker.getRegistration('/'),
+    4_000,
+    'Не удалось проверить службу уведомлений.'
   );
 
+  const registration =
+    existingRegistration ??
+    (await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none'
+    }));
+
+  await registration.update().catch(() => undefined);
   return registration;
 }
 
 async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
-  const existingRegistration = await withTimeout(
-    navigator.serviceWorker.getRegistration(),
-    4_000,
-    'Не удалось проверить службу уведомлений.'
-  );
-  const registration =
-    existingRegistration ?? (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
+  const registration = await registerServiceWorker();
+  if (registration.active) {
+    clearServiceWorkerReloadFlag();
+    return registration;
+  }
 
-  await registration.update().catch(() => undefined);
-  return waitForActiveWorker(registration);
+  const readyRegistration = await withTimeout(
+    navigator.serviceWorker.ready,
+    30_000,
+    'Служба уведомлений не успела активироваться.'
+  ).catch(() => null);
+
+  const activeRegistration = readyRegistration?.active ? readyRegistration : registration.active ? registration : null;
+  if (activeRegistration) {
+    clearServiceWorkerReloadFlag();
+    return activeRegistration;
+  }
+
+  reloadOnceForServiceWorker();
+  throw new Error('Обновляем приложение для запуска уведомлений.');
+}
+
+function assertActiveRegistration(
+  registration: ServiceWorkerRegistration
+): ServiceWorkerRegistration {
+  if (!registration.active) {
+    reloadOnceForServiceWorker();
+    throw new Error('Service Worker ещё не активен. Приложение обновляется.');
+  }
+
+  clearServiceWorkerReloadFlag();
+  return registration;
 }
 
 export function pushSupported(): boolean {
@@ -132,7 +160,7 @@ export async function pushSubscriptionState(): Promise<PushAvailability> {
   const permissionState = pushPermissionState();
   if (permissionState !== 'granted') return permissionState;
 
-  const registration = await readyServiceWorker();
+  const registration = assertActiveRegistration(await readyServiceWorker());
   const subscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
@@ -185,12 +213,13 @@ export async function enablePushNotifications(
   if (!publicKeyData.enabled || !publicKeyData.publicKey) return 'disabled';
 
   options.onStage?.('preparing-device');
-  const registration = await readyServiceWorker();
+  const registration = assertActiveRegistration(await readyServiceWorker());
   const existingSubscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
     'Не удалось проверить текущую push-подписку.'
   );
+
   if (!existingSubscription) options.onStage?.('creating-subscription');
   const subscription =
     existingSubscription ??
