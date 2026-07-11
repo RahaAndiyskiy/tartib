@@ -19,7 +19,8 @@ type PushOperationOptions = {
   onStage?: (stage: PushOperationStage) => void;
 };
 
-const SERVICE_WORKER_RELOAD_KEY = 'tartib:push-sw-reload';
+const SERVICE_WORKER_RELOAD_KEY = 'tartib:push-sw-reload-count';
+const MAX_SERVICE_WORKER_RELOADS = 2;
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -74,13 +75,21 @@ async function fetchWithTimeout(
   }
 }
 
-function reloadOnceForServiceWorker(): void {
-  if (window.sessionStorage.getItem(SERVICE_WORKER_RELOAD_KEY) === '1') {
-    throw new Error('Service Worker не активировался после обновления. Закройте PWA полностью и откройте заново.');
+async function resetServiceWorkerRegistrations(): Promise<void> {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+}
+
+async function reloadForServiceWorker(): Promise<never> {
+  const currentCount = Number(window.sessionStorage.getItem(SERVICE_WORKER_RELOAD_KEY) ?? '0');
+  if (currentCount >= MAX_SERVICE_WORKER_RELOADS) {
+    throw new Error('Service Worker не активировался после восстановления. Закройте PWA полностью и откройте заново.');
   }
 
-  window.sessionStorage.setItem(SERVICE_WORKER_RELOAD_KEY, '1');
+  await resetServiceWorkerRegistrations().catch(() => undefined);
+  window.sessionStorage.setItem(SERVICE_WORKER_RELOAD_KEY, String(currentCount + 1));
   window.location.reload();
+  throw new Error('Обновляем приложение для запуска уведомлений.');
 }
 
 function clearServiceWorkerReloadFlag(): void {
@@ -124,15 +133,13 @@ async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
     return activeRegistration;
   }
 
-  reloadOnceForServiceWorker();
-  throw new Error('Обновляем приложение для запуска уведомлений.');
+  return reloadForServiceWorker();
 }
 
 function assertActiveRegistration(
   registration: ServiceWorkerRegistration
 ): ServiceWorkerRegistration {
   if (!registration.active) {
-    reloadOnceForServiceWorker();
     throw new Error('Service Worker ещё не активен. Приложение обновляется.');
   }
 
