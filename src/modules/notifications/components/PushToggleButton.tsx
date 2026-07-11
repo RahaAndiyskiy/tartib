@@ -17,15 +17,15 @@ const stageLabels: Record<PushOperationStage, string> = {
   'loading-config': 'Проверяем настройки',
   'preparing-device': 'Готовим устройство',
   'creating-subscription': 'Подключаем устройство',
-  'saving-subscription': 'Проверяем доставку',
-  'removing-subscription': 'Обновляем'
+  'saving-subscription': 'Сохраняем подписку',
+  'testing-delivery': 'Проверяем доставку'
 };
 
 const statusHints: Partial<Record<PushAvailability, string>> = {
-  blocked: 'Разрешите уведомления в настройках браузера или телефона.',
+  blocked: 'Уведомления заблокированы в настройках браузера или телефона.',
   disabled: 'Push пока не настроен на сервере.',
-  enabled: 'Нужно один раз разрешить уведомления на этом устройстве.',
-  granted: 'Push включён. Tartib будет присылать важные события автоматически.',
+  enabled: 'Нажмите один раз: Tartib запросит разрешение и сразу отправит тест.',
+  granted: 'Push включён. Можно отправить тестовое уведомление.',
   unsupported: 'Этот браузер не поддерживает web push.'
 };
 
@@ -50,7 +50,7 @@ export function PushToggleButton({
         ? 'Push недоступен'
         : 'Разрешить push';
   const hint = pending
-    ? 'Не закрывайте приложение, это займёт несколько секунд.'
+    ? 'Оставайтесь в приложении несколько секунд. Итог появится здесь.'
     : notice?.text ?? statusHints[status];
   const hintTone = notice?.tone ?? (blocked ? 'error' : enabled ? 'success' : 'info');
 

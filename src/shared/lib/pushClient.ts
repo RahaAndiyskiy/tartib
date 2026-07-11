@@ -13,14 +13,13 @@ export type PushOperationStage =
   | 'preparing-device'
   | 'creating-subscription'
   | 'saving-subscription'
-  | 'removing-subscription';
+  | 'testing-delivery';
 
 type PushOperationOptions = {
   onStage?: (stage: PushOperationStage) => void;
 };
 
-const SERVICE_WORKER_RELOAD_KEY = 'tartib:push-sw-reload-count';
-const MAX_SERVICE_WORKER_RELOADS = 2;
+const SERVICE_WORKER_TIMEOUT_MS = 18_000;
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -75,25 +74,34 @@ async function fetchWithTimeout(
   }
 }
 
-async function resetServiceWorkerRegistrations(): Promise<void> {
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((registration) => registration.unregister()));
+function waitForStateChange(worker: ServiceWorker): Promise<void> {
+  return new Promise((resolve) => {
+    worker.addEventListener('statechange', () => resolve(), { once: true });
+  });
 }
 
-async function reloadForServiceWorker(): Promise<never> {
-  const currentCount = Number(window.sessionStorage.getItem(SERVICE_WORKER_RELOAD_KEY) ?? '0');
-  if (currentCount >= MAX_SERVICE_WORKER_RELOADS) {
-    throw new Error('Service Worker не активировался после восстановления. Закройте PWA полностью и откройте заново.');
+async function waitForActiveRegistration(
+  registration: ServiceWorkerRegistration
+): Promise<ServiceWorkerRegistration | null> {
+  const deadline = Date.now() + SERVICE_WORKER_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    if (registration.active) return registration;
+
+    const worker = registration.installing ?? registration.waiting;
+    if (worker) {
+      worker.postMessage({ type: 'SKIP_WAITING' });
+      await withTimeout(
+        waitForStateChange(worker),
+        1_500,
+        'Ждём активацию службы уведомлений.'
+      ).catch(() => undefined);
+    } else {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
   }
 
-  await resetServiceWorkerRegistrations().catch(() => undefined);
-  window.sessionStorage.setItem(SERVICE_WORKER_RELOAD_KEY, String(currentCount + 1));
-  window.location.reload();
-  throw new Error('Обновляем приложение для запуска уведомлений.');
-}
-
-function clearServiceWorkerReloadFlag(): void {
-  window.sessionStorage.removeItem(SERVICE_WORKER_RELOAD_KEY);
+  return registration.active ? registration : null;
 }
 
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {
@@ -111,39 +119,8 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {
     }));
 
   await registration.update().catch(() => undefined);
-  return registration;
-}
+  registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
 
-async function readyServiceWorker(): Promise<ServiceWorkerRegistration> {
-  const registration = await registerServiceWorker();
-  if (registration.active) {
-    clearServiceWorkerReloadFlag();
-    return registration;
-  }
-
-  const readyRegistration = await withTimeout(
-    navigator.serviceWorker.ready,
-    30_000,
-    'Служба уведомлений не успела активироваться.'
-  ).catch(() => null);
-
-  const activeRegistration = readyRegistration?.active ? readyRegistration : registration.active ? registration : null;
-  if (activeRegistration) {
-    clearServiceWorkerReloadFlag();
-    return activeRegistration;
-  }
-
-  return reloadForServiceWorker();
-}
-
-function assertActiveRegistration(
-  registration: ServiceWorkerRegistration
-): ServiceWorkerRegistration {
-  if (!registration.active) {
-    throw new Error('Service Worker ещё не активен. Приложение обновляется.');
-  }
-
-  clearServiceWorkerReloadFlag();
   return registration;
 }
 
@@ -163,16 +140,39 @@ export function pushPermissionState(): PushAvailability {
   return 'enabled';
 }
 
+export async function preparePushServiceWorker(): Promise<ServiceWorkerRegistration> {
+  if (!pushSupported()) {
+    throw new Error('Этот браузер не поддерживает web push.');
+  }
+
+  const registration = await registerServiceWorker();
+  const activeRegistration = await waitForActiveRegistration(registration);
+  if (activeRegistration?.active) return activeRegistration;
+
+  const readyRegistration = await withTimeout(
+    navigator.serviceWorker.ready,
+    SERVICE_WORKER_TIMEOUT_MS,
+    'Служба уведомлений не успела активироваться.'
+  ).catch(() => null);
+
+  if (readyRegistration?.active) return readyRegistration;
+
+  throw new Error(
+    'Service Worker не активен. Tartib не может создать push-подписку на этом устройстве.'
+  );
+}
+
 export async function pushSubscriptionState(): Promise<PushAvailability> {
   const permissionState = pushPermissionState();
   if (permissionState !== 'granted') return permissionState;
 
-  const registration = assertActiveRegistration(await readyServiceWorker());
+  const registration = await preparePushServiceWorker();
   const subscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
     'Не удалось проверить push-подписку.'
   );
+
   return subscription ? 'granted' : 'enabled';
 }
 
@@ -190,6 +190,18 @@ async function authHeaders(): Promise<HeadersInit> {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
+}
+
+export async function sendTestPushNotification(): Promise<void> {
+  const response = await fetchWithTimeout('/api/push/test', {
+    method: 'POST',
+    headers: await authHeaders()
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error ?? 'Не удалось отправить тестовое уведомление.');
+  }
 }
 
 export async function enablePushNotifications(
@@ -220,7 +232,7 @@ export async function enablePushNotifications(
   if (!publicKeyData.enabled || !publicKeyData.publicKey) return 'disabled';
 
   options.onStage?.('preparing-device');
-  const registration = assertActiveRegistration(await readyServiceWorker());
+  const registration = await preparePushServiceWorker();
   const existingSubscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
@@ -235,7 +247,7 @@ export async function enablePushNotifications(
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToArrayBuffer(publicKeyData.publicKey)
       }),
-      10_000,
+      12_000,
       'Не удалось создать подписку на этом устройстве.'
     ));
 

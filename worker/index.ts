@@ -10,6 +10,22 @@ type PushPayload = {
   url?: string;
 };
 
+swSelf.addEventListener('install', (event: Event) => {
+  (event as ExtendableEvent).waitUntil(swSelf.skipWaiting());
+});
+
+swSelf.addEventListener('activate', (event: Event) => {
+  (event as ExtendableEvent).waitUntil(swSelf.clients.claim());
+});
+
+swSelf.addEventListener('message', (event: Event) => {
+  const messageEvent = event as MessageEvent;
+  const data = messageEvent.data as { type?: string } | undefined;
+  if (data?.type === 'SKIP_WAITING') {
+    void swSelf.skipWaiting();
+  }
+});
+
 swSelf.addEventListener('push', (event: Event) => {
   const pushEvent = event as PushEvent;
   const payload = (pushEvent.data?.json() ?? {}) as PushPayload;

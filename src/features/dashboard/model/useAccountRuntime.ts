@@ -5,8 +5,10 @@ import {
 } from '@shared/lib/localWorkspace';
 import {
   enablePushNotifications,
+  preparePushServiceWorker,
   pushSubscriptionState,
   pushSupported,
+  sendTestPushNotification,
   type PushAvailability,
   type PushOperationStage
 } from '@shared/lib/pushClient';
@@ -38,7 +40,7 @@ type AccountRuntime = {
 
 function pushResultNotice(status: PushAvailability): PushNotice {
   if (status === 'granted') {
-    return { tone: 'success', text: 'Push включён. Теперь можно отправить тест.' };
+    return { tone: 'success', text: 'Push включён на этом устройстве.' };
   }
 
   if (status === 'blocked') {
@@ -58,7 +60,7 @@ function pushResultNotice(status: PushAvailability): PushNotice {
 
   return {
     tone: 'info',
-    text: 'Разрешение не выдано. Нажмите кнопку ещё раз и подтвердите уведомления в системном окне.'
+    text: 'Нужно один раз разрешить уведомления в системном окне.'
   };
 }
 
@@ -81,30 +83,26 @@ export function useAccountRuntime({
     }
 
     let mounted = true;
-    void pushSubscriptionState()
-      .then(async (status) => {
-        if (!mounted) return;
-        setPushStatus(status);
 
-        if (status === 'granted') {
-          setPushNotice({ tone: 'success', text: 'Push уже включён на этом устройстве.' });
-          return;
-        }
-
-        // Если браузер уже дал разрешение, восстанавливаем подписку без лишнего вопроса.
-        if (status === 'enabled' && pushSupported() && Notification.permission === 'granted') {
-          const nextStatus = await enablePushNotifications().catch(() => status);
-          if (!mounted) return;
-          setPushStatus(nextStatus);
-          setPushNotice(pushResultNotice(nextStatus));
-        }
-      })
+    void preparePushServiceWorker()
       .catch((error) => {
-        console.warn('[push] status check failed', error);
-        if (!mounted) return;
-        const fallbackStatus = pushSupported() ? 'enabled' : 'unsupported';
-        setPushStatus(fallbackStatus);
-        setPushNotice(pushResultNotice(fallbackStatus));
+        console.warn('[push] service worker prepare failed', error);
+      })
+      .finally(() => {
+        void pushSubscriptionState()
+          .then((status) => {
+            if (!mounted) return;
+            setPushStatus(status);
+            if (status === 'granted') {
+              setPushNotice({ tone: 'success', text: 'Push уже включён на этом устройстве.' });
+            }
+          })
+          .catch((error) => {
+            console.warn('[push] status check failed', error);
+            if (!mounted) return;
+            const fallbackStatus = pushSupported() ? 'enabled' : 'unsupported';
+            setPushStatus(fallbackStatus);
+          });
       });
 
     return () => {
@@ -112,13 +110,13 @@ export function useAccountRuntime({
     };
   }, [isLocalMode]);
 
+  async function runPushTest(): Promise<void> {
+    setPushStage('testing-delivery');
+    await sendTestPushNotification();
+  }
+
   async function ensurePushEnabled(): Promise<void> {
     if (pushPending) return;
-
-    if (pushStatus === 'granted') {
-      setPushNotice({ tone: 'success', text: 'Push уже включён. Нажмите “Проверить push”.' });
-      return;
-    }
 
     if (!pushSupported()) {
       setPushStatus('unsupported');
@@ -128,14 +126,22 @@ export function useAccountRuntime({
 
     setPushPending(true);
     setPushStage('checking-permission');
-    setPushNotice({ tone: 'info', text: 'Ожидаем разрешение браузера.' });
+    setPushNotice({ tone: 'info', text: 'Готовим push и проверяем доставку.' });
 
     try {
       const nextStatus = await enablePushNotifications({ onStage: setPushStage });
       setPushStatus(nextStatus);
-      setPushNotice(pushResultNotice(nextStatus));
+
+      if (nextStatus !== 'granted') {
+        setPushNotice(pushResultNotice(nextStatus));
+        return;
+      }
+
+      await runPushTest();
+      setPushNotice({ tone: 'success', text: 'Push включён. Тестовое уведомление отправлено.' });
     } catch (error) {
       console.warn('[push] enable failed', error);
+      setPushStatus(pushPermissionStateFallback());
       setPushNotice({
         tone: 'error',
         text: error instanceof Error ? error.message : 'Не удалось включить push-уведомления.'
@@ -155,26 +161,11 @@ export function useAccountRuntime({
     }
 
     setPushPending(true);
-    setPushStage('saving-subscription');
-    setPushNotice({ tone: 'info', text: 'Отправляем тестовое уведомление.' });
+    setPushStage('testing-delivery');
+    setPushNotice({ tone: 'info', text: 'Отправляем тестовое push-уведомление.' });
 
     try {
-      const supabase = getSupabaseClient();
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      if (!token) throw new Error('Требуется вход.');
-
-      const response = await fetch('/api/push/test', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? 'Не удалось отправить тестовое уведомление.');
-      }
-
+      await runPushTest();
       setPushNotice({ tone: 'success', text: 'Тестовое push-уведомление отправлено.' });
     } catch (error) {
       console.warn('[push] test failed', error);
@@ -216,4 +207,11 @@ export function useAccountRuntime({
     sendTestPush,
     signOut
   };
+}
+
+function pushPermissionStateFallback(): PushAvailability {
+  if (!pushSupported()) return 'unsupported';
+  if (Notification.permission === 'denied') return 'blocked';
+  if (Notification.permission === 'granted') return 'enabled';
+  return 'enabled';
 }
