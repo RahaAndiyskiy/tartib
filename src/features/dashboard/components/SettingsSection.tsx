@@ -1,43 +1,28 @@
 import type { FormEvent } from 'react';
 import { Bell, LogOut, Settings } from 'lucide-react';
-import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 import type { AppUser } from '@shared/types/domain';
 import { hasRole, roleLabel } from '@/core/roles';
-import { PushToggleButton } from '@/modules/notifications/components/PushToggleButton';
-import type { PushNotice } from '../model/useAccountRuntime';
 import type { SettingsDraft } from '../types';
 
 type SettingsSectionProps = {
   activeUser: AppUser;
   settingsDraft: SettingsDraft;
-  pushStatus: PushAvailability;
-  pushPending: boolean;
-  pushNotice: PushNotice | null;
-  pushStage: PushOperationStage | null;
   isLocalMode: boolean;
   isPendingAction: (key: string) => boolean;
   onSettingsDraftChange: (draft: SettingsDraft | ((current: SettingsDraft) => SettingsDraft)) => void;
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSaveOrganization: (event: FormEvent<HTMLFormElement>) => void;
-  onEnsurePush: () => void;
-  onSendTestPush: () => void;
   onSignOut: () => void;
 };
 
 export function SettingsSection({
   activeUser,
   settingsDraft,
-  pushStatus,
-  pushPending,
-  pushNotice,
-  pushStage,
   isLocalMode,
   isPendingAction,
   onSettingsDraftChange,
   onSaveProfile,
   onSaveOrganization,
-  onEnsurePush,
-  onSendTestPush,
   onSignOut
 }: SettingsSectionProps): React.ReactElement {
   return (
@@ -152,42 +137,19 @@ export function SettingsSection({
           <div className="crm-panel-header">
             <div>
               <h2>Уведомления</h2>
-              <p>Push для важных оплат и запросов</p>
+              <p>События и действия внутри Tartib</p>
             </div>
             <Bell size={20} />
           </div>
           <div className="settings-card-body">
             <div className="settings-status-row">
               <span>Статус</span>
-              <strong>
-                {pushStatus === 'granted'
-                  ? 'Включены'
-                  : pushStatus === 'blocked'
-                    ? 'Заблокированы'
-                    : pushStatus === 'disabled'
-                      ? 'Не настроены'
-                      : pushStatus === 'unsupported'
-                        ? 'Не поддерживаются'
-                        : 'Выключены'}
-              </strong>
+              <strong>Внутри приложения</strong>
             </div>
-            {pushStatus === 'granted' ? (
-              <p className="inline-note">
-                Вы будете получать важные события по оплатам, когда браузер разрешает push.
-              </p>
-            ) : pushStatus === 'unsupported' || pushStatus === 'blocked' ? (
-              <p className="inline-note">
-                Проверьте разрешения браузера или откройте приложение как PWA, если push недоступен.
-              </p>
-            ) : null}
-            <PushToggleButton
-              pending={pushPending}
-              notice={pushNotice}
-              stage={pushStage}
-              status={pushStatus}
-              onEnsure={onEnsurePush}
-              onSendTest={onSendTestPush}
-            />
+            <p className="inline-note">
+              Внешние push-уведомления временно скрыты. Сейчас Tartib показывает важные события
+              в модалке уведомлений: оплаты, отсрочки и действия, которые можно обработать сразу.
+            </p>
           </div>
         </section>
 

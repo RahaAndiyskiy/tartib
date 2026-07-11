@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from '@shared/lib/supabaseAdmin';
 import { hasServerRole, type ServerIdentity } from '@shared/lib/serverAuth';
-import { sendPushToUser } from '@shared/lib/pushNotifications';
 import type { PaymentRequest } from '@shared/types/domain';
 import type {
   LocalBillingPlan,
@@ -98,12 +97,6 @@ export async function createNotification(
     .single();
 
   if (result.error || !result.data) return null;
-
-  await sendPushToUser(organizationId, userId, {
-    title: 'Tartib',
-    body: message,
-    url: '/dashboard'
-  });
 
   return toLocalNotification(result.data as NotificationRow);
 }

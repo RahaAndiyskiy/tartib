@@ -99,14 +99,8 @@ export function DashboardApp(): React.ReactElement {
     runRemoteActionWithPending
   } = usePendingAction({ runRemoteActionData });
   const {
-    ensurePushEnabled,
     handleReset,
     openNewWindow,
-    pushNotice,
-    pushPending,
-    pushStage,
-    pushStatus,
-    sendTestPush,
     signOut,
   } = useAccountRuntime({
     isLocalMode,
@@ -400,10 +394,6 @@ export function DashboardApp(): React.ReactElement {
   });
 
   const sectionMeta = buildSectionMeta(activeUser);
-  const openNotificationsWithPush = (): void => {
-    openNotifications();
-    void ensurePushEnabled();
-  };
 
   if (!workspace || !activeUser) {
     return (
@@ -594,17 +584,11 @@ export function DashboardApp(): React.ReactElement {
   const settingsProps = {
     activeUser,
     settingsDraft,
-    pushPending,
-    pushNotice,
-    pushStage,
-    pushStatus,
     isLocalMode,
     isPendingAction,
     onSettingsDraftChange: setSettingsDraft,
     onSaveProfile: saveProfileSettings,
     onSaveOrganization: saveOrganizationSettings,
-    onEnsurePush: ensurePushEnabled,
-    onSendTestPush: sendTestPush,
     onSignOut: signOut
   };
 
@@ -631,7 +615,7 @@ export function DashboardApp(): React.ReactElement {
       onCloseMobileAccount={chrome.closeMobileAccount}
       onOpenMobileForm={chrome.openMobileForm}
       onCloseMobileForm={chrome.closeMobileForm}
-      onOpenNotifications={openNotificationsWithPush}
+      onOpenNotifications={openNotifications}
     >
         {message ? <p className="notice success">{message}</p> : null}
 
@@ -641,10 +625,6 @@ export function DashboardApp(): React.ReactElement {
           inviteModalOpen={invitePickerOpen || (activeSection === 'overview' && Boolean(memberInvite))}
           notifications={userNotifications}
           unreadCount={unreadNotifications.length}
-          pushPending={pushPending}
-          pushNotice={pushNotice}
-          pushStage={pushStage}
-          pushStatus={pushStatus}
           invite={memberInvite}
           groups={visibleGroups}
           paymentForNotification={notificationPayment}
@@ -652,8 +632,6 @@ export function DashboardApp(): React.ReactElement {
           isPendingAction={isPendingAction}
           isPendingInviteGroup={(groupId) => isPendingAction(`create-invite:${groupId}`)}
           onCloseNotifications={chrome.closeNotifications}
-          onEnsurePush={ensurePushEnabled}
-          onSendTestPush={sendTestPush}
           onMarkNotificationsRead={markNotificationsRead}
           onDecidePayment={updatePaymentStatus}
           onDecideDelay={decidePaymentDelay}

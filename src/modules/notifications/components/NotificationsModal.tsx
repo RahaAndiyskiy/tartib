@@ -1,25 +1,16 @@
 import { Bell } from 'lucide-react';
 import type { LocalNotification } from '@shared/lib/localWorkspace';
-import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
 import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
-import type { PushNotice } from '@/features/dashboard/model/useAccountRuntime';
-import { PushToggleButton } from './PushToggleButton';
 
 type NotificationsModalProps = {
   notifications: LocalNotification[];
   unreadCount: number;
-  pushStatus: PushAvailability;
-  pushPending: boolean;
-  pushNotice: PushNotice | null;
-  pushStage: PushOperationStage | null;
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
   canDecidePayment: (payment: PaymentRequest) => boolean;
   isPendingAction: (action: string) => boolean;
   onClose: () => void;
-  onEnsurePush: () => void;
-  onSendTestPush: () => void;
   onMarkRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
@@ -29,16 +20,10 @@ type NotificationsModalProps = {
 export function NotificationsModal({
   notifications,
   unreadCount,
-  pushStatus,
-  pushPending,
-  pushNotice,
-  pushStage,
   paymentForNotification,
   canDecidePayment,
   isPendingAction,
   onClose,
-  onEnsurePush,
-  onSendTestPush,
   onMarkRead,
   onDecidePayment,
   onDecideDelay,
@@ -63,15 +48,6 @@ export function NotificationsModal({
           <ModalCloseButton label="Закрыть уведомления" onClick={onClose} />
         </div>
         <div className="notification-header-actions">
-          <PushToggleButton
-            compact
-            pending={pushPending}
-            notice={pushNotice}
-            stage={pushStage}
-            status={pushStatus}
-            onEnsure={onEnsurePush}
-            onSendTest={onSendTestPush}
-          />
           {unreadCount > 0 ? (
             <button className="small-button secondary" type="button" onClick={onMarkRead}>
               Отметить прочитанными
