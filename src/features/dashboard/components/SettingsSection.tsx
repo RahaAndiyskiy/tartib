@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { Bell, LogOut, Settings } from 'lucide-react';
-import type { PushAvailability } from '@shared/lib/pushClient';
+import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 import type { AppUser } from '@shared/types/domain';
 import { hasRole, roleLabel } from '@/core/roles';
 import { PushToggleButton } from '@/modules/notifications/components/PushToggleButton';
@@ -11,6 +11,7 @@ type SettingsSectionProps = {
   settingsDraft: SettingsDraft;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushStage: PushOperationStage | null;
   isLocalMode: boolean;
   isPendingAction: (key: string) => boolean;
   onSettingsDraftChange: (draft: SettingsDraft | ((current: SettingsDraft) => SettingsDraft)) => void;
@@ -25,6 +26,7 @@ export function SettingsSection({
   settingsDraft,
   pushStatus,
   pushPending,
+  pushStage,
   isLocalMode,
   isPendingAction,
   onSettingsDraftChange,
@@ -175,6 +177,7 @@ export function SettingsSection({
             ) : null}
             <PushToggleButton
               pending={pushPending}
+              stage={pushStage}
               status={pushStatus}
               onToggle={onTogglePush}
             />

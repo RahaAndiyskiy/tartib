@@ -3272,6 +3272,23 @@ button:disabled {
   transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
+.push-toggle-control {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+}
+
+.push-toggle-control.compact {
+  width: auto;
+}
+
+.push-toggle-hint {
+  color: rgba(22, 20, 35, 0.58);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .push-toggle-button.enabled {
   min-height: var(--control-height);
   border: 1px solid rgba(141, 112, 254, 0.28);

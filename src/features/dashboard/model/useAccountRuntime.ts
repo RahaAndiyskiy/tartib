@@ -8,7 +8,8 @@ import {
   enablePushNotifications,
   pushSubscriptionState,
   pushSupported,
-  type PushAvailability
+  type PushAvailability,
+  type PushOperationStage
 } from '@shared/lib/pushClient';
 import { getSupabaseClient } from '@shared/lib/supabaseClient';
 
@@ -23,6 +24,7 @@ type AccountRuntime = {
   pushPending: boolean;
   handleReset: () => void;
   openNewWindow: () => void;
+  pushStage: PushOperationStage | null;
   pushStatus: PushAvailability;
   signOut: () => Promise<void>;
   togglePush: () => Promise<void>;
@@ -36,6 +38,7 @@ export function useAccountRuntime({
 }: UseAccountRuntimeOptions): AccountRuntime {
   const [pushStatus, setPushStatus] = useState<PushAvailability>('unsupported');
   const [pushPending, setPushPending] = useState(false);
+  const [pushStage, setPushStage] = useState<PushOperationStage | null>(null);
 
   useEffect(() => {
     if (isLocalMode) {
@@ -68,15 +71,16 @@ export function useAccountRuntime({
     }
 
     setPushPending(true);
+    setPushStage(pushStatus === 'granted' ? 'removing-subscription' : 'checking-permission');
     try {
       if (pushStatus === 'granted') {
-        await disablePushNotifications();
+        await disablePushNotifications({ onStage: setPushStage });
         setPushStatus('enabled');
         setMessage('Push-уведомления отключены на этом устройстве.');
         return;
       }
 
-      const nextStatus = await enablePushNotifications();
+      const nextStatus = await enablePushNotifications({ onStage: setPushStage });
       setPushStatus(nextStatus);
       setMessage(
         nextStatus === 'granted'
@@ -92,6 +96,7 @@ export function useAccountRuntime({
       setMessage(error instanceof Error ? error.message : 'Не удалось изменить push-уведомления.');
     } finally {
       setPushPending(false);
+      setPushStage(null);
     }
   }
 
@@ -116,6 +121,7 @@ export function useAccountRuntime({
     pushPending,
     handleReset,
     openNewWindow,
+    pushStage,
     pushStatus,
     signOut,
     togglePush

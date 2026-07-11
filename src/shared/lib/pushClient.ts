@@ -7,6 +7,18 @@ export type PushAvailability =
   | 'granted'
   | 'unsupported';
 
+export type PushOperationStage =
+  | 'checking-permission'
+  | 'loading-config'
+  | 'preparing-device'
+  | 'creating-subscription'
+  | 'saving-subscription'
+  | 'removing-subscription';
+
+type PushOperationOptions = {
+  onStage?: (stage: PushOperationStage) => void;
+};
+
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = `${base64String}${padding}`.replace(/-/g, '+').replace(/_/g, '/');
@@ -129,10 +141,13 @@ async function authHeaders(): Promise<HeadersInit> {
   };
 }
 
-export async function enablePushNotifications(): Promise<PushAvailability> {
+export async function enablePushNotifications(
+  options: PushOperationOptions = {}
+): Promise<PushAvailability> {
   if (!pushSupported()) return 'unsupported';
 
   // Permission must be the first awaited browser action so iOS keeps the user gesture.
+  options.onStage?.('checking-permission');
   const permission = Notification.permission === 'granted'
     ? 'granted'
     : await withTimeout(
@@ -143,6 +158,7 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
   if (permission === 'denied') return 'blocked';
   if (permission !== 'granted') return 'enabled';
 
+  options.onStage?.('loading-config');
   const publicKeyResponse = await fetchWithTimeout('/api/push/public-key');
   const publicKeyData = (await publicKeyResponse.json()) as {
     enabled?: boolean;
@@ -153,12 +169,14 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
   }
   if (!publicKeyData.enabled || !publicKeyData.publicKey) return 'disabled';
 
+  options.onStage?.('preparing-device');
   const registration = await readyServiceWorker();
   const existingSubscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,
     'Не удалось проверить текущую push-подписку.'
   );
+  if (!existingSubscription) options.onStage?.('creating-subscription');
   const subscription =
     existingSubscription ??
     (await withTimeout(
@@ -170,6 +188,7 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
       'Не удалось создать подписку на этом устройстве.'
     ));
 
+  options.onStage?.('saving-subscription');
   const response = await fetchWithTimeout('/api/push/subscription', {
     method: 'POST',
     headers: await authHeaders(),
@@ -184,15 +203,19 @@ export async function enablePushNotifications(): Promise<PushAvailability> {
   return 'granted';
 }
 
-export async function disablePushNotifications(): Promise<void> {
+export async function disablePushNotifications(
+  options: PushOperationOptions = {}
+): Promise<void> {
   if (!pushSupported()) return;
 
+  options.onStage?.('preparing-device');
   const registration = await withTimeout(
     navigator.serviceWorker.getRegistration(),
     4_000,
     'Не удалось проверить службу уведомлений.'
   );
   if (!registration) return;
+  options.onStage?.('removing-subscription');
   const subscription = await withTimeout(
     registration.pushManager.getSubscription(),
     5_000,

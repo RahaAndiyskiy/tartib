@@ -102,6 +102,7 @@ export function DashboardApp(): React.ReactElement {
     handleReset,
     openNewWindow,
     pushPending,
+    pushStage,
     pushStatus,
     signOut,
     togglePush
@@ -588,6 +589,7 @@ export function DashboardApp(): React.ReactElement {
     activeUser,
     settingsDraft,
     pushPending,
+    pushStage,
     pushStatus,
     isLocalMode,
     isPendingAction,
@@ -632,6 +634,7 @@ export function DashboardApp(): React.ReactElement {
           notifications={userNotifications}
           unreadCount={unreadNotifications.length}
           pushPending={pushPending}
+          pushStage={pushStage}
           pushStatus={pushStatus}
           invite={memberInvite}
           groups={visibleGroups}

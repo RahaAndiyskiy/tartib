@@ -1,6 +1,6 @@
 import { Bell } from 'lucide-react';
 import type { LocalNotification } from '@shared/lib/localWorkspace';
-import type { PushAvailability } from '@shared/lib/pushClient';
+import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 import type { PaymentRequest, PaymentRequestStatus } from '@shared/types/domain';
 import { useScrollLock } from '@shared/ui/useScrollLock';
 import { ModalCloseButton } from '@shared/ui/ModalCloseButton';
@@ -11,6 +11,7 @@ type NotificationsModalProps = {
   unreadCount: number;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushStage: PushOperationStage | null;
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
   canDecidePayment: (payment: PaymentRequest) => boolean;
   isPendingAction: (action: string) => boolean;
@@ -27,6 +28,7 @@ export function NotificationsModal({
   unreadCount,
   pushStatus,
   pushPending,
+  pushStage,
   paymentForNotification,
   canDecidePayment,
   isPendingAction,
@@ -59,6 +61,7 @@ export function NotificationsModal({
           <PushToggleButton
             compact
             pending={pushPending}
+            stage={pushStage}
             status={pushStatus}
             onToggle={onTogglePush}
           />

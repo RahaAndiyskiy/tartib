@@ -2,7 +2,7 @@ import type {
   LocalNotification,
   LocalTrainingGroup
 } from '@shared/lib/localWorkspace';
-import type { PushAvailability } from '@shared/lib/pushClient';
+import type { PushAvailability, PushOperationStage } from '@shared/lib/pushClient';
 import type {
   PaymentRequest,
   PaymentRequestStatus
@@ -20,6 +20,7 @@ type DashboardOverlaysProps = {
   unreadCount: number;
   pushStatus: PushAvailability;
   pushPending: boolean;
+  pushStage: PushOperationStage | null;
   invite: MemberInviteResult | null;
   groups: LocalTrainingGroup[];
   paymentForNotification: (notification: LocalNotification) => PaymentRequest | null;
@@ -48,6 +49,7 @@ export function DashboardOverlays({
   unreadCount,
   pushStatus,
   pushPending,
+  pushStage,
   invite,
   groups,
   paymentForNotification,
@@ -75,6 +77,7 @@ export function DashboardOverlays({
           unreadCount={unreadCount}
           pushStatus={pushStatus}
           pushPending={pushPending}
+          pushStage={pushStage}
           paymentForNotification={paymentForNotification}
           canDecidePayment={canDecidePayment}
           isPendingAction={isPendingAction}
