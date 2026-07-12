@@ -15,6 +15,7 @@ export type PaymentView = 'actions' | 'all' | 'overdue' | 'paid';
 export type PaymentActionGroupId =
   | 'confirmations'
   | 'delays'
+  | 'month-skips'
   | 'overdue'
   | 'without-payment';
 
@@ -26,7 +27,7 @@ export type PaymentActionGroup = {
 };
 
 export type PaymentTask = {
-  id: 'confirmations' | 'delays' | 'overdue';
+  id: 'confirmations' | 'delays' | 'month-skips' | 'overdue';
   count: number;
   label: string;
 };
@@ -174,6 +175,7 @@ export type PaymentOverview = {
   paidAmount: number;
   confirmationPayments: PaymentRequest[];
   delayRequestedPayments: PaymentRequest[];
+  monthSkipRequestedPayments: PaymentRequest[];
   overduePayments: PaymentRequest[];
   delayedPayments: PaymentRequest[];
   paymentAttentionCount: number;
@@ -200,9 +202,13 @@ export function buildPaymentOverview({
   const delayRequestedPayments = currentPayments.filter(
     (payment) => payment.status === 'delay_requested'
   );
+  const monthSkipRequestedPayments = currentPayments.filter(
+    (payment) => payment.status === 'skip_requested'
+  );
   const overduePayments = currentPayments.filter((payment) => payment.status === 'overdue');
   const delayedPayments = currentPayments.filter((payment) => payment.status === 'delayed');
-  const paymentAttentionCount = confirmationPayments.length + delayRequestedPayments.length;
+  const paymentAttentionCount =
+    confirmationPayments.length + delayRequestedPayments.length + monthSkipRequestedPayments.length;
   const membersWithoutPaymentCount = visibleMembers.filter(
     (member) => !currentPaymentByMemberId.has(member.id)
   ).length;
@@ -212,6 +218,7 @@ export function buildPaymentOverview({
     paidAmount,
     confirmationPayments,
     delayRequestedPayments,
+    monthSkipRequestedPayments,
     overduePayments,
     delayedPayments,
     paymentAttentionCount,
@@ -256,6 +263,7 @@ export function buildPaymentRegistry({
         !payment ||
         payment.status === 'payment_confirmation' ||
         payment.status === 'delay_requested' ||
+        payment.status === 'skip_requested' ||
         payment.status === 'overdue'
       );
     }
@@ -281,6 +289,16 @@ export function buildPaymentRegistry({
         (member) =>
           memberMatchesSearch(member) &&
           currentPaymentByMemberId.get(member.id)?.status === 'delay_requested'
+      )
+    },
+    {
+      id: 'month-skips',
+      title: 'Не будут ходить',
+      description: 'Нужно подтвердить или отклонить пропуск месяца.',
+      members: visibleMembers.filter(
+        (member) =>
+          memberMatchesSearch(member) &&
+          currentPaymentByMemberId.get(member.id)?.status === 'skip_requested'
       )
     },
     {
@@ -311,7 +329,7 @@ export function buildPaymentRegistry({
     paidResults: [...visiblePayments]
       .filter(
         (payment) =>
-          payment.status === 'paid' &&
+          (payment.status === 'paid' || payment.status === 'skipped') &&
           userName(payment.member_id).toLocaleLowerCase('ru-RU').includes(normalizedSearch)
       )
       .reverse()
@@ -364,7 +382,7 @@ export function buildSelectedPaymentDetails({
     trainer,
     history: member
       ? visiblePayments
-          .filter((item) => item.member_id === member.id && item.status === 'paid')
+          .filter((item) => item.member_id === member.id && (item.status === 'paid' || item.status === 'skipped'))
           .reverse()
       : [],
     historyOpen: member ? historyOpenByMember[member.id] ?? false : false
@@ -404,7 +422,7 @@ export function buildMemberPaymentDetails({
     payment: currentPayments.find((payment) => payment.member_id === activeUser.id) ?? null,
     plan: activePlanByMemberId.get(activeUser.id) ?? null,
     history: visiblePayments
-      .filter((payment) => payment.member_id === activeUser.id && payment.status === 'paid')
+      .filter((payment) => payment.member_id === activeUser.id && (payment.status === 'paid' || payment.status === 'skipped'))
       .reverse(),
     historyOpen: historyOpenByMember[activeUser.id] ?? false
   };
@@ -413,10 +431,12 @@ export function buildMemberPaymentDetails({
 export function buildPaymentTasks({
   confirmationPayments,
   delayRequestedPayments,
+  monthSkipRequestedPayments,
   overduePayments
 }: {
   confirmationPayments: PaymentRequest[];
   delayRequestedPayments: PaymentRequest[];
+  monthSkipRequestedPayments: PaymentRequest[];
   overduePayments: PaymentRequest[];
 }): PaymentTask[] {
   const tasks: PaymentTask[] = [
@@ -429,6 +449,11 @@ export function buildPaymentTasks({
       id: 'delays',
       count: delayRequestedPayments.length,
       label: delayRequestedPayments.length === 1 ? 'запрос отсрочки' : 'запроса отсрочки'
+    },
+    {
+      id: 'month-skips',
+      count: monthSkipRequestedPayments.length,
+      label: monthSkipRequestedPayments.length === 1 ? 'запрос пропуска месяца' : 'запроса пропуска месяца'
     },
     {
       id: 'overdue',

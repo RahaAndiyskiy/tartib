@@ -27,6 +27,7 @@ type DashboardOverlaysProps = {
   onMarkNotificationsRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
+  onDecideMonthSkip: (paymentId: string, approved: boolean) => void;
   onOpenNotificationPayment: (paymentId?: string | null) => void;
   onCancelLogout: () => void;
   onConfirmLogout: () => void;
@@ -52,6 +53,7 @@ export function DashboardOverlays({
   onMarkNotificationsRead,
   onDecidePayment,
   onDecideDelay,
+  onDecideMonthSkip,
   onOpenNotificationPayment,
   onCancelLogout,
   onConfirmLogout,
@@ -73,6 +75,7 @@ export function DashboardOverlays({
           onMarkRead={onMarkNotificationsRead}
           onDecidePayment={onDecidePayment}
           onDecideDelay={onDecideDelay}
+          onDecideMonthSkip={onDecideMonthSkip}
           onOpenPayment={onOpenNotificationPayment}
         />
       ) : null}

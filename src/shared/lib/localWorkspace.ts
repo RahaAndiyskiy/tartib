@@ -220,7 +220,12 @@ export function reconcileWorkspace(
   const notifications = [...workspace.notifications];
 
   const payments = workspace.payments.map((payment) => {
-    if (payment.status === 'paid' || payment.status === 'payment_confirmation') {
+    if (
+      payment.status === 'paid' ||
+      payment.status === 'payment_confirmation' ||
+      payment.status === 'skip_requested' ||
+      payment.status === 'skipped'
+    ) {
       return payment;
     }
 

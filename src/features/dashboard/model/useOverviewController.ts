@@ -18,6 +18,7 @@ type PaymentOverviewLike = {
   currentPayments: PaymentRequest[];
   confirmationPayments: PaymentRequest[];
   delayRequestedPayments: PaymentRequest[];
+  monthSkipRequestedPayments: PaymentRequest[];
   overduePayments: PaymentRequest[];
   delayedPayments: PaymentRequest[];
   paidAmount: number;
@@ -92,6 +93,7 @@ export function useOverviewController({
       buildPaymentTasks({
         confirmationPayments: paymentOverview.confirmationPayments,
         delayRequestedPayments: paymentOverview.delayRequestedPayments,
+        monthSkipRequestedPayments: paymentOverview.monthSkipRequestedPayments,
         overduePayments: paymentOverview.overduePayments
       }).map((task) => ({
         ...task,
@@ -101,6 +103,7 @@ export function useOverviewController({
       openPaymentsView,
       paymentOverview.confirmationPayments,
       paymentOverview.delayRequestedPayments,
+      paymentOverview.monthSkipRequestedPayments,
       paymentOverview.overduePayments
     ]
   );

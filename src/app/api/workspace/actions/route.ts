@@ -20,7 +20,10 @@ const paymentActions = new Set<ActionBody['action']>([
   'request_delay',
   'decide_delay',
   'decide_payment',
-  'mark_payment_paid'
+  'mark_payment_paid',
+  'request_month_skip',
+  'decide_month_skip',
+  'mark_month_skipped'
 ]);
 
 export async function POST(request: Request): Promise<NextResponse> {

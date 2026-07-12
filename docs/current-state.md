@@ -27,9 +27,9 @@ Tartib is a lightweight CRM for clubs, trainers and students. The current produc
 - current payment requests;
 - payment confirmation;
 - delay requests;
+- month-skip requests for students who will not attend the current month;
 - internal notifications;
-- event-based web push notifications;
-- per-device push subscription status with enable/disable control;
+- external web push code exists but is hidden/postponed in the product UI;
 - account/profile settings;
 - mobile/PWA use.
 
@@ -58,6 +58,9 @@ Implemented flow:
 6. If the group has default payment settings, the student's monthly billing plan and first current invoice are created automatically.
 7. Trainer can adjust the student's payment if needed.
 8. Student sees the current payment.
+9. Student can confirm payment, request delay or request a current-month skip.
+10. Trainer can approve/reject payment confirmations, delay requests and month-skip requests.
+11. Approved monthly payments and approved/direct month skips advance the student to the next current monthly invoice when an active monthly plan exists.
 9. Student confirms payment or requests a delay.
 10. Trainer approves/rejects the payment or delay, or directly marks an invoice as paid when payment was received offline.
 11. Paid monthly payment atomically creates the next current payment.
@@ -142,7 +145,7 @@ Important modules:
 - Overview-page props and today task navigation are extracted into `src/features/dashboard/model/useOverviewController.ts`; `useDashboardData` stays closer to data derivation instead of owning click callbacks.
 - Temporary dashboard notice state and auto-clear timing are extracted into `src/features/dashboard/model/useDashboardNotice.ts`.
 - Local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion is extracted into `src/features/dashboard/model/useDashboardUiState.ts`.
-- Push status, enable push, local reset, new window and sign-out actions are extracted into `src/features/dashboard/model/useAccountRuntime.ts`.
+- Local reset, new window and sign-out actions are extracted into `src/features/dashboard/model/useAccountRuntime.ts`; external push methods remain inert while push is postponed.
 - Dashboard chrome state and common open/close transitions are extracted into `src/features/dashboard/model/useDashboardChrome.ts`.
 - Expenses draft state, create expense and mark-paid handlers are extracted into `src/features/dashboard/model/useExpensesController.ts`.
 - Payment view navigation, notification payment lookup and prepayment affordance checks are extracted into `src/features/dashboard/model/usePaymentNavigation.ts`.
@@ -237,7 +240,7 @@ Direction:
 - bottom navigation on mobile;
 - notifications moved to the top area;
 - dashboard data can be refreshed with a native-style pull gesture from the top of the page;
-- settings section contains profile fields, club name for owners and push enablement;
+- settings section contains profile fields and club name for owners; push enablement is hidden while postponed;
 - no green as a main brand accent.
 
 The UI works for testing, but final polish should happen through a Figma pass or a focused UI iteration.

@@ -180,8 +180,11 @@ type PaymentDrawerProps = {
   onSavePayment: (memberId: string) => void;
   onUpdatePaymentStatus: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecidePaymentDelay: (paymentId: string, approved: boolean) => void;
+  onDecideMonthSkip: (paymentId: string, approved: boolean) => void;
+  onMarkMonthSkipped: (paymentId: string) => void;
   onSubmitPaymentConfirmation: (paymentId: string) => void;
   onRequestPaymentDelay: (paymentId: string) => void;
+  onRequestMonthSkip: (paymentId: string) => void;
   onOpenPrepayment: (payment: PaymentRequest) => void;
   onSubmitPrepayment: (paymentId: string) => void;
   onDeletePayment: (payment: PaymentRequest) => void;
@@ -220,8 +223,11 @@ export function PaymentDrawer({
   onSavePayment,
   onUpdatePaymentStatus,
   onDecidePaymentDelay,
+  onDecideMonthSkip,
+  onMarkMonthSkipped,
   onSubmitPaymentConfirmation,
   onRequestPaymentDelay,
+  onRequestMonthSkip,
   onOpenPrepayment,
   onSubmitPrepayment,
   onDeletePayment
@@ -237,6 +243,9 @@ export function PaymentDrawer({
           : 'разово'
       ].join(' · ')
     : 'Условия не настроены';
+  const canSkipCurrentMonth = Boolean(
+    selectedPayment && ['active', 'overdue', 'delayed'].includes(selectedPayment.status)
+  );
 
   return (
     <>
@@ -275,15 +284,25 @@ export function PaymentDrawer({
               </div>
             </dl>
             {canManagePayments && selectedPayment && ['active', 'overdue', 'delayed'].includes(selectedPayment.status) ? (
-              <button
-                className="small-button secondary payment-mark-paid-action"
-                type="button"
-                disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)}
-                onClick={() => onUpdatePaymentStatus(selectedPayment.id, 'paid')}
-              >
-                <CheckCircle2 size={16} />
-                Отметить оплаченным
-              </button>
+              <div className="payment-inline-actions">
+                <button
+                  className="small-button secondary payment-mark-paid-action"
+                  type="button"
+                  disabled={isPendingAction(`decide-payment:${selectedPayment.id}`)}
+                  onClick={() => onUpdatePaymentStatus(selectedPayment.id, 'paid')}
+                >
+                  <CheckCircle2 size={16} />
+                  Оплачено
+                </button>
+                <button
+                  className="small-button secondary"
+                  type="button"
+                  disabled={isPendingAction(`mark-month-skipped:${selectedPayment.id}`)}
+                  onClick={() => onMarkMonthSkipped(selectedPayment.id)}
+                >
+                  Не ходит
+                </button>
+              </div>
             ) : null}
           </section>
 
@@ -345,35 +364,71 @@ export function PaymentDrawer({
             </div>
           ) : null}
 
-          {activeUser.role === 'member' && selectedPayment && canSubmitPayment(selectedPayment) ? (
-            <div className="member-payment-controls">
-              <button className="primary-button" type="button" disabled={isPendingAction(`submit-payment:${selectedPayment.id}`)} onClick={() => onSubmitPaymentConfirmation(selectedPayment.id)}>
-                Я оплатил
-              </button>
-              <div className="payment-delay-form">
-                <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
-                <label>
-                  Новая дата
-                  <input
-                    min={todayString()}
-                    type="date"
-                    value={delayDraftFor(selectedPayment).requestedDate}
-                    onChange={(event) => updateDelayDraft(selectedPayment.id, { requestedDate: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Комментарий
-                  <input
-                    placeholder="Необязательно"
-                    value={delayDraftFor(selectedPayment).comment}
-                    onChange={(event) => updateDelayDraft(selectedPayment.id, { comment: event.target.value })}
-                  />
-                </label>
-                <button className="ghost-button" type="button" disabled={isPendingAction(`request-delay:${selectedPayment.id}`)} onClick={() => onRequestPaymentDelay(selectedPayment.id)}>
-                  Запросить отсрочку
+          {selectedPayment?.status === 'skip_requested' && canManagePayments ? (
+            <div className="payment-decision-card">
+              <div>
+                <strong>Ученик не будет ходить этот месяц</strong>
+                <span>Подтвердите пропуск, чтобы закрыть текущий месяц без оплаты.</span>
+              </div>
+              <div className="payment-primary-actions">
+                <button className="primary-button" type="button" disabled={isPendingAction(`decide-month-skip:${selectedPayment.id}`)} onClick={() => onDecideMonthSkip(selectedPayment.id, true)}>
+                  Подтвердить
+                </button>
+                <button className="ghost-button" type="button" disabled={isPendingAction(`decide-month-skip:${selectedPayment.id}`)} onClick={() => onDecideMonthSkip(selectedPayment.id, false)}>
+                  Отклонить
                 </button>
               </div>
             </div>
+          ) : null}
+
+          {activeUser.role === 'member' && selectedPayment && (canSubmitPayment(selectedPayment) || canSkipCurrentMonth) ? (
+            <div className="member-payment-controls">
+              {canSubmitPayment(selectedPayment) ? (
+                <button className="primary-button" type="button" disabled={isPendingAction(`submit-payment:${selectedPayment.id}`)} onClick={() => onSubmitPaymentConfirmation(selectedPayment.id)}>
+                  Я оплатил
+                </button>
+              ) : null}
+              {canSkipCurrentMonth ? (
+                <button
+                  className="ghost-button"
+                  type="button"
+                  disabled={isPendingAction(`request-month-skip:${selectedPayment.id}`)}
+                  onClick={() => onRequestMonthSkip(selectedPayment.id)}
+                >
+                  Не буду ходить этот месяц
+                </button>
+              ) : null}
+              {canSubmitPayment(selectedPayment) ? (
+                <div className="payment-delay-form">
+                  <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
+                  <label>
+                    Новая дата
+                    <input
+                      min={todayString()}
+                      type="date"
+                      value={delayDraftFor(selectedPayment).requestedDate}
+                      onChange={(event) => updateDelayDraft(selectedPayment.id, { requestedDate: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Комментарий
+                    <input
+                      placeholder="Необязательно"
+                      value={delayDraftFor(selectedPayment).comment}
+                      onChange={(event) => updateDelayDraft(selectedPayment.id, { comment: event.target.value })}
+                    />
+                  </label>
+                  <button className="ghost-button" type="button" disabled={isPendingAction(`request-delay:${selectedPayment.id}`)} onClick={() => onRequestPaymentDelay(selectedPayment.id)}>
+                    Запросить отсрочку
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {activeUser.role === 'member' && selectedPayment?.status === 'skip_requested' ? (
+            <p className="payment-locked-note">
+              Запрос пропуска месяца отправлен тренеру.
+            </p>
           ) : null}
           {activeUser.role === 'member' && selectedPayment && paymentLockedText(selectedPayment) ? (
             <div className="payment-info-card">

@@ -71,7 +71,7 @@ Dashboard support modules:
 - `src/features/dashboard/components/ScheduleSection.tsx` - schedule page UI.
 - `src/features/dashboard/components/SettingsSection.tsx` - settings page UI.
 - `src/features/dashboard/components/ExpensesSection.tsx` - expenses page UI.
-- `src/features/dashboard/model/useAccountRuntime.ts` - push status, enable push, local reset, new window and sign-out actions.
+- `src/features/dashboard/model/useAccountRuntime.ts` - local reset, new window and sign-out actions; external push methods are intentionally inert while push is postponed.
 - `src/features/dashboard/model/useDashboardChrome.ts` - dashboard section, modal and chrome state transitions.
 - `src/features/dashboard/model/useDashboardNotice.ts` - temporary dashboard notice state and auto-clear timing.
 - `src/features/dashboard/model/useDashboardUiState.ts` - local dashboard UI state for people search/filter, expanded people, member group editors and payment history expansion.
@@ -245,5 +245,5 @@ New interactive UI should live under `src/features/<feature>/`.
 - `DashboardApp.tsx` is too large.
 - Some local-mode prototype concepts are still present.
 - Tests are script-based, not a full automated suite.
-- Event-based web push notifications are implemented. Scheduled push reminder cadence is still planned.
+- External web push routes/tables exist, but the product UI hides push until the feature is revisited with diagnostics.
 - Rate limiting is not implemented.

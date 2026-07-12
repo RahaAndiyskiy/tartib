@@ -67,8 +67,11 @@ type PaymentWorkspaceSectionProps = {
   saveMemberPayment: (memberId: string) => void;
   updatePaymentStatus: (paymentId: string, status: PaymentRequestStatus) => void;
   decidePaymentDelay: (paymentId: string, approved: boolean) => void;
+  decideMonthSkip: (paymentId: string, approved: boolean) => void;
+  markMonthSkipped: (paymentId: string) => void;
   submitPaymentConfirmation: (paymentId: string) => void;
   requestPaymentDelay: (paymentId: string) => void;
+  requestMonthSkip: (paymentId: string) => void;
   openPrepayment: (payment: PaymentRequest) => void;
   submitPrepayment: (paymentId: string) => void;
   deleteMemberPayment: (payment: PaymentRequest) => void;
@@ -122,8 +125,11 @@ export function PaymentWorkspaceSection({
   saveMemberPayment,
   updatePaymentStatus,
   decidePaymentDelay,
+  decideMonthSkip,
+  markMonthSkipped,
   submitPaymentConfirmation,
   requestPaymentDelay,
+  requestMonthSkip,
   openPrepayment,
   submitPrepayment,
   deleteMemberPayment
@@ -190,8 +196,11 @@ export function PaymentWorkspaceSection({
           onSavePayment={saveMemberPayment}
           onUpdatePaymentStatus={updatePaymentStatus}
           onDecidePaymentDelay={decidePaymentDelay}
+          onDecideMonthSkip={decideMonthSkip}
+          onMarkMonthSkipped={markMonthSkipped}
           onSubmitPaymentConfirmation={submitPaymentConfirmation}
           onRequestPaymentDelay={requestPaymentDelay}
+          onRequestMonthSkip={requestMonthSkip}
           onOpenPrepayment={openPrepayment}
           onSubmitPrepayment={submitPrepayment}
           onDeletePayment={deleteMemberPayment}

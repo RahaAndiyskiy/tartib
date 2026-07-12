@@ -12,7 +12,10 @@ import {
   decidePaymentDelayAction,
   decidePaymentStatusAction,
   deleteMemberPaymentAction,
+  decideMonthSkipAction,
+  markMonthSkippedAction,
   requestPaymentDelayAction,
+  requestMonthSkipAction,
   saveLocalMemberPayment,
   saveRemoteMemberPaymentAction,
   submitPaymentConfirmationAction,
@@ -61,8 +64,11 @@ type UsePaymentActionsControllerOptions = {
 
 type PaymentActionsController = {
   decidePaymentDelay: (paymentId: string, approved: boolean) => Promise<void>;
+  decideMonthSkip: (paymentId: string, approved: boolean) => Promise<void>;
   deleteMemberPayment: (payment: PaymentRequest) => Promise<void>;
+  markMonthSkipped: (paymentId: string) => Promise<void>;
   requestPaymentDelay: (paymentId: string) => Promise<void>;
+  requestMonthSkip: (paymentId: string) => Promise<void>;
   saveMemberPayment: (memberId: string) => Promise<void>;
   submitPaymentConfirmation: (paymentId: string) => Promise<void>;
   submitPrepayment: (paymentId: string) => Promise<void>;
@@ -272,6 +278,66 @@ export function usePaymentActionsController({
     });
   }
 
+  async function requestMonthSkip(paymentId: string): Promise<void> {
+    if (!activeUser || !hasRole(activeUser, 'member')) return;
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
+
+    await requestMonthSkipAction({
+      workspace,
+      payment,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      userName
+    });
+  }
+
+  async function decideMonthSkip(paymentId: string, approved: boolean): Promise<void> {
+    if (!activeUser || (!hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner'))) return;
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
+
+    await decideMonthSkipAction({
+      workspace,
+      payment,
+      approved,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      addMonthsDate,
+      periodLabel
+    });
+  }
+
+  async function markMonthSkipped(paymentId: string): Promise<void> {
+    if (!activeUser || (!hasRole(activeUser, 'trainer') && !hasRole(activeUser, 'owner'))) return;
+    const payment = workspace?.payments.find((item) => item.id === paymentId);
+
+    await markMonthSkippedAction({
+      workspace,
+      payment,
+      isLocalMode,
+      activeUserId,
+      runRemoteActionWithPending,
+      saveWorkspace,
+      setWorkspace,
+      setMessage,
+      now: new Date().toISOString(),
+      createId,
+      addMonthsDate,
+      periodLabel
+    });
+  }
+
   async function submitPaymentConfirmation(paymentId: string): Promise<void> {
     const payment = workspace?.payments.find((item) => item.id === paymentId);
 
@@ -317,8 +383,11 @@ export function usePaymentActionsController({
 
   return {
     decidePaymentDelay,
+    decideMonthSkip,
     deleteMemberPayment,
+    markMonthSkipped,
     requestPaymentDelay,
+    requestMonthSkip,
     saveMemberPayment,
     submitPaymentConfirmation,
     submitPrepayment,

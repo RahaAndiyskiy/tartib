@@ -113,6 +113,8 @@ Concrete invoice/current payment.
 - FK: organization, member, trainer
 - FK: `plan_id -> billing_plans.id`
 - Fields: `amount`, `due_date`, `status`, `period_label`, `is_current`, `coverage_months`, `paid_at`, delay fields
+- Status flow includes `active`, `overdue`, `delay_requested`, `delayed`, `skip_requested`, `skipped`, `payment_confirmation`, `paid`.
+- `skipped` closes a month without adding to paid amount. `skip_payment_and_advance()` marks the current invoice as skipped and creates the next current monthly invoice when the member has an active monthly plan.
 - Constraint: partial unique index `payment_requests_one_current_per_member_idx` allows only one `is_current = true` payment per member.
 - Group default edits can update the current payment for group-default members. Confirmation, delay and paid states should not be reset by that flow.
 
@@ -229,7 +231,7 @@ The client refreshes workspace on relevant events.
 
 ## Push Notifications
 
-Push subscriptions are stored in `push_subscriptions`.
+Push subscriptions are stored in `push_subscriptions`, but external browser/PWA push is hidden from the current MVP UI.
 
 Required environment variables:
 
@@ -237,9 +239,7 @@ Required environment variables:
 - `VAPID_PRIVATE_KEY`
 - `VAPID_SUBJECT`
 
-Push delivery is event-based: when the app creates an internal notification, the server also attempts to send web push to the same user.
-
-Scheduled reminder push is not a separate cron flow yet; reminders still originate from the existing database reminder function and internal notifications.
+The reliable MVP channel is the internal notifications modal. Push routes/tables remain in the codebase for later work, but returning to push should be treated as a separate technical project with explicit diagnostics for browser support, permission state, Service Worker state, subscription state and server delivery.
 
 ## Current Data Model Gaps
 

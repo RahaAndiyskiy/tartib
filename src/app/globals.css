@@ -1400,7 +1400,8 @@ button:disabled {
 }
 
 .status-pill.payment_confirmation,
-.status-pill.delay_requested {
+.status-pill.delay_requested,
+.status-pill.skip_requested {
   background: #fff0c7;
   color: #765100;
 }
@@ -1413,6 +1414,11 @@ button:disabled {
 .status-pill.delayed {
   background: #e9e3ff;
   color: #59419a;
+}
+
+.status-pill.skipped {
+  background: #f1eaff;
+  color: #6f35b6;
 }
 
 .status-pill.overdue {
@@ -2677,6 +2683,17 @@ button:disabled {
   min-height: 36px;
   justify-self: start;
   padding: 0 13px;
+}
+
+.payment-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-inline-actions .small-button {
+  flex: 1 1 120px;
+  justify-content: center;
 }
 
 .payment-current-card dl,
@@ -5416,7 +5433,8 @@ select:focus {
 }
 
 .status-pill.payment_confirmation,
-.status-pill.delay_requested {
+.status-pill.delay_requested,
+.status-pill.skip_requested {
   background: var(--color-warning-soft);
   color: var(--color-warning);
 }
@@ -5427,6 +5445,11 @@ select:focus {
 }
 
 .status-pill.delayed {
+  background: #f1eaff;
+  color: #6f35b6;
+}
+
+.status-pill.skipped {
   background: #f1eaff;
   color: #6f35b6;
 }

@@ -263,8 +263,11 @@ export function DashboardApp(): React.ReactElement {
   });
   const {
     decidePaymentDelay,
+    decideMonthSkip,
     deleteMemberPayment,
+    markMonthSkipped,
     requestPaymentDelay,
+    requestMonthSkip,
     saveMemberPayment,
     submitPaymentConfirmation,
     submitPrepayment,
@@ -467,6 +470,7 @@ export function DashboardApp(): React.ReactElement {
     isPendingAction,
     submitPaymentConfirmation,
     requestPaymentDelay,
+    requestMonthSkip,
     openPrepayment,
     submitPrepayment
   };
@@ -518,8 +522,11 @@ export function DashboardApp(): React.ReactElement {
     saveMemberPayment,
     updatePaymentStatus,
     decidePaymentDelay,
+    decideMonthSkip,
+    markMonthSkipped,
     submitPaymentConfirmation,
     requestPaymentDelay,
+    requestMonthSkip,
     openPrepayment,
     submitPrepayment,
     deleteMemberPayment
@@ -635,6 +642,7 @@ export function DashboardApp(): React.ReactElement {
           onMarkNotificationsRead={markNotificationsRead}
           onDecidePayment={updatePaymentStatus}
           onDecideDelay={decidePaymentDelay}
+          onDecideMonthSkip={decideMonthSkip}
           onOpenNotificationPayment={openNotificationPayment}
           onCancelLogout={chrome.closeLogoutConfirm}
           onConfirmLogout={signOut}

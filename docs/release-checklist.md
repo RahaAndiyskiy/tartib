@@ -82,7 +82,7 @@ After deploy:
 - mobile PWA opens after closing/reopening.
 - bottom navigation works.
 - notifications modal opens from the top notification button.
-- if VAPID env is set, `Включить push` asks for permission.
+- external push buttons are not visible in MVP UI.
 
 ## 7. Product Flow Smoke Check
 

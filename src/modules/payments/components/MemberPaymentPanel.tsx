@@ -39,6 +39,7 @@ type MemberPaymentPanelProps = {
   isPendingAction: (key: string) => boolean;
   submitPaymentConfirmation: (paymentId: string) => void;
   requestPaymentDelay: (paymentId: string) => void;
+  requestMonthSkip: (paymentId: string) => void;
   openPrepayment: (payment: PaymentRequest) => void;
   submitPrepayment: (paymentId: string) => void;
 };
@@ -67,9 +68,14 @@ export function MemberPaymentPanel({
   isPendingAction,
   submitPaymentConfirmation,
   requestPaymentDelay,
+  requestMonthSkip,
   openPrepayment,
   submitPrepayment
 }: MemberPaymentPanelProps): React.ReactElement {
+  const canRequestMonthSkip = Boolean(
+    activeMemberPayment && ['active', 'overdue', 'delayed'].includes(activeMemberPayment.status)
+  );
+
   return (
     <section className="member-payment-page">
       <div className="crm-panel member-payment-focus">
@@ -127,44 +133,58 @@ export function MemberPaymentPanel({
           </section>
         </div>
 
-        {activeMemberPayment && canSubmitPayment(activeMemberPayment) ? (
+        {activeMemberPayment && (canSubmitPayment(activeMemberPayment) || canRequestMonthSkip) ? (
           <div className="member-payment-controls">
-            <button
-              className="primary-button"
-              type="button"
-              disabled={isPendingAction(`submit-payment:${activeMemberPayment.id}`)}
-              onClick={() => submitPaymentConfirmation(activeMemberPayment.id)}
-            >
-              Я оплатил
-            </button>
-            <div className="payment-delay-form">
-              <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
-              <label>
-                Новая дата
-                <input
-                  min={todayString()}
-                  type="date"
-                  value={delayDraftFor(activeMemberPayment).requestedDate}
-                  onChange={(event) => updateDelayDraft(activeMemberPayment.id, { requestedDate: event.target.value })}
-                />
-              </label>
-              <label>
-                Комментарий
-                <input
-                  placeholder="Необязательно"
-                  value={delayDraftFor(activeMemberPayment).comment}
-                  onChange={(event) => updateDelayDraft(activeMemberPayment.id, { comment: event.target.value })}
-                />
-              </label>
+            {canSubmitPayment(activeMemberPayment) ? (
+              <>
+                <button
+                  className="primary-button"
+                  type="button"
+                  disabled={isPendingAction(`submit-payment:${activeMemberPayment.id}`)}
+                  onClick={() => submitPaymentConfirmation(activeMemberPayment.id)}
+                >
+                  Я оплатил
+                </button>
+                <div className="payment-delay-form">
+                  <div className="payment-detail-section-heading"><h3>Нужна отсрочка?</h3></div>
+                  <label>
+                    Новая дата
+                    <input
+                      min={todayString()}
+                      type="date"
+                      value={delayDraftFor(activeMemberPayment).requestedDate}
+                      onChange={(event) => updateDelayDraft(activeMemberPayment.id, { requestedDate: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Комментарий
+                    <input
+                      placeholder="Необязательно"
+                      value={delayDraftFor(activeMemberPayment).comment}
+                      onChange={(event) => updateDelayDraft(activeMemberPayment.id, { comment: event.target.value })}
+                    />
+                  </label>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    disabled={isPendingAction(`request-delay:${activeMemberPayment.id}`)}
+                    onClick={() => requestPaymentDelay(activeMemberPayment.id)}
+                  >
+                    Запросить отсрочку
+                  </button>
+                </div>
+              </>
+            ) : null}
+            {canRequestMonthSkip ? (
               <button
                 className="ghost-button"
                 type="button"
-                disabled={isPendingAction(`request-delay:${activeMemberPayment.id}`)}
-                onClick={() => requestPaymentDelay(activeMemberPayment.id)}
+                disabled={isPendingAction(`request-month-skip:${activeMemberPayment.id}`)}
+                onClick={() => requestMonthSkip(activeMemberPayment.id)}
               >
-                Запросить отсрочку
+                Не буду ходить этот месяц
               </button>
-            </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -227,6 +247,12 @@ export function MemberPaymentPanel({
         {activeMemberPayment?.status === 'delay_requested' ? (
           <p className="payment-locked-note">
             Запрос отсрочки до {formatShortDate(activeMemberPayment.delay_requested_date)} отправлен тренеру.
+          </p>
+        ) : null}
+
+        {activeMemberPayment?.status === 'skip_requested' ? (
+          <p className="payment-locked-note">
+            Запрос пропуска месяца отправлен тренеру.
           </p>
         ) : null}
 

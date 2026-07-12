@@ -221,6 +221,151 @@ export async function decidePaymentStatusAction({
   clearPaymentEdit(payment.member_id);
 }
 
+export async function requestMonthSkipAction({
+  workspace,
+  payment,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  userName
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  userName: (userId: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment || !['active', 'overdue', 'delayed'].includes(payment.status)) return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      { action: 'request_month_skip', paymentId: payment.id },
+      `request-month-skip:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage('Запрос пропуска месяца отправлен.');
+    }
+    return;
+  }
+
+  saveWorkspace(requestLocalMonthSkip({ workspace, payment, now, createId, userName }));
+  setMessage('Запрос пропуска месяца отправлен.');
+}
+
+export async function decideMonthSkipAction({
+  workspace,
+  payment,
+  approved,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  addMonthsDate,
+  periodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  approved: boolean;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  addMonthsDate: (date: string, billingDay: number | null, monthCount: number) => string;
+  periodLabel: (date: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment) return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      { action: 'decide_month_skip', paymentId: payment.id, approved },
+      `decide-month-skip:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage(approved ? 'Месяц отмечен как пропущенный.' : 'Пропуск месяца отклонён.');
+    }
+    return;
+  }
+
+  saveWorkspace(
+    approved
+      ? skipLocalMonthAndAdvance({ workspace, payment, now, createId, addMonthsDate, periodLabel })
+      : rejectLocalMonthSkip({ workspace, payment, now, createId })
+  );
+  setMessage(approved ? 'Месяц отмечен как пропущенный.' : 'Пропуск месяца отклонён.');
+}
+
+export async function markMonthSkippedAction({
+  workspace,
+  payment,
+  isLocalMode,
+  activeUserId,
+  runRemoteActionWithPending,
+  saveWorkspace,
+  setWorkspace,
+  setMessage,
+  now,
+  createId,
+  addMonthsDate,
+  periodLabel
+}: {
+  workspace: LocalWorkspace | null;
+  payment: PaymentRequest | undefined;
+  isLocalMode: boolean;
+  activeUserId: string;
+  runRemoteActionWithPending: RunRemoteActionWithPending;
+  saveWorkspace: (workspace: LocalWorkspace) => void;
+  setWorkspace: SetWorkspace;
+  setMessage: (message: string) => void;
+  now: string;
+  createId: () => string;
+  addMonthsDate: (date: string, billingDay: number | null, monthCount: number) => string;
+  periodLabel: (date: string) => string;
+}): Promise<void> {
+  if (!workspace || !payment || !['active', 'overdue', 'delayed', 'skip_requested'].includes(payment.status)) return;
+
+  if (!isLocalMode) {
+    const data = await runRemoteActionWithPending<RemotePaymentMutationResult>(
+      { action: 'mark_month_skipped', paymentId: payment.id },
+      `mark-month-skipped:${payment.id}`
+    );
+    if (data?.payment) {
+      setWorkspace((current) =>
+        current ? applyRemotePaymentMutation(current, data, activeUserId) : current
+      );
+      setMessage('Месяц отмечен как пропущенный.');
+    }
+    return;
+  }
+
+  saveWorkspace(skipLocalMonthAndAdvance({ workspace, payment, now, createId, addMonthsDate, periodLabel }));
+  setMessage('Месяц отмечен как пропущенный.');
+}
+
 export async function requestPaymentDelayAction({
   workspace,
   payment,
@@ -695,7 +840,13 @@ export function applyGroupDefaultPaymentToMembers({
   const currentPaymentMemberIds = new Set(
     workspace.payments.filter((payment) => payment.is_current).map((payment) => payment.member_id)
   );
-  const lockedStatuses: PaymentRequestStatus[] = ['payment_confirmation', 'delay_requested', 'paid'];
+  const lockedStatuses: PaymentRequestStatus[] = [
+    'payment_confirmation',
+    'delay_requested',
+    'skip_requested',
+    'paid',
+    'skipped'
+  ];
   const payments = [
     ...workspace.payments.map((payment) => {
       const plan = currentPlanByMemberId.get(payment.member_id);
@@ -1055,5 +1206,134 @@ export function decideLocalPaymentStatus({
             }
           ]
         : workspace.notifications
+  };
+}
+
+export function requestLocalMonthSkip({
+  workspace,
+  payment,
+  now,
+  createId,
+  userName
+}: {
+  workspace: LocalWorkspace;
+  payment: PaymentRequest;
+  now: string;
+  createId: () => string;
+  userName: (userId: string) => string;
+}): LocalWorkspace {
+  return {
+    ...workspace,
+    payments: workspace.payments.map((item) =>
+      item.id === payment.id ? { ...item, status: 'skip_requested' } : item
+    ),
+    notifications: [
+      ...workspace.notifications,
+      {
+        id: createId(),
+        userId: payment.trainer_id,
+        message: `${userName(payment.member_id)} не будет ходить в ${payment.period_label ?? payment.due_date}.`,
+        createdAt: now,
+        read: false,
+        paymentId: payment.id
+      }
+    ]
+  };
+}
+
+export function rejectLocalMonthSkip({
+  workspace,
+  payment,
+  now,
+  createId
+}: {
+  workspace: LocalWorkspace;
+  payment: PaymentRequest;
+  now: string;
+  createId: () => string;
+}): LocalWorkspace {
+  const nextStatus: PaymentRequestStatus =
+    new Date(`${payment.due_date}T12:00:00`).getTime() < new Date(now).setHours(12, 0, 0, 0)
+      ? 'overdue'
+      : 'active';
+
+  return {
+    ...workspace,
+    payments: workspace.payments.map((item) =>
+      item.id === payment.id ? { ...item, status: nextStatus } : item
+    ),
+    notifications: [
+      ...workspace.notifications,
+      {
+        id: createId(),
+        userId: payment.member_id,
+        message: 'Пропуск месяца не подтверждён. Счёт остаётся активным.',
+        createdAt: now,
+        read: false,
+        paymentId: payment.id
+      }
+    ]
+  };
+}
+
+export function skipLocalMonthAndAdvance({
+  workspace,
+  payment,
+  now,
+  createId,
+  addMonthsDate,
+  periodLabel
+}: {
+  workspace: LocalWorkspace;
+  payment: PaymentRequest;
+  now: string;
+  createId: () => string;
+  addMonthsDate: (date: string, billingDay: number | null, monthCount: number) => string;
+  periodLabel: (date: string) => string;
+}): LocalWorkspace {
+  const plan = workspace.billingPlans.find((item) => item.id === payment.plan_id);
+  const shouldAdvance = Boolean(plan?.active && plan.type === 'monthly' && payment.is_current !== false);
+  const nextDueDate = shouldAdvance && plan
+    ? addMonthsDate(payment.due_date, plan.billingDay, 1)
+    : null;
+  const nextPayment: PaymentRequest | null = shouldAdvance && plan && nextDueDate
+    ? {
+        id: createId(),
+        organization_id: payment.organization_id,
+        member_id: payment.member_id,
+        trainer_id: payment.trainer_id,
+        amount: Number(plan.baseAmount),
+        due_date: nextDueDate,
+        status: 'active',
+        created_at: now,
+        plan_id: plan.id,
+        period_label: periodLabel(nextDueDate),
+        is_current: true,
+        coverage_months: 1,
+        paid_at: null
+      }
+    : null;
+
+  return {
+    ...workspace,
+    payments: [
+      ...workspace.payments.map((item) =>
+        item.id === payment.id
+          ? { ...item, status: 'skipped' as PaymentRequestStatus, is_current: false }
+          : item
+      ),
+      ...(nextPayment ? [nextPayment] : [])
+    ],
+    notifications: [
+      ...workspace.notifications,
+      {
+        id: createId(),
+        userId: payment.member_id,
+        message: `Месяц ${payment.period_label ?? payment.due_date} отмечен как пропущенный.`,
+        createdAt: now,
+        read: false,
+        paymentId: payment.id
+      }
+    ]
   };
 }

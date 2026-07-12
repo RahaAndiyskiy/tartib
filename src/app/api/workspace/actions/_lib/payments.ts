@@ -204,6 +204,10 @@ export async function paymentLifecycleAction(
     return requestDelayAction(identity, payment as PaymentRequest, body.requestedDate, body.comment);
   }
 
+  if (body.action === 'request_month_skip') {
+    return requestMonthSkipAction(identity, payment as PaymentRequest);
+  }
+
   if (!canManageTrainer(identity, payment.trainer_id)) {
     return NextResponse.json({ error: 'Недостаточно прав.' }, { status: 403 });
   }
@@ -219,6 +223,16 @@ export async function paymentLifecycleAction(
       'confirm_payment_direct_and_advance',
       'mark_payment_paid'
     );
+  }
+
+  if (body.action === 'decide_month_skip') {
+    return body.approved
+      ? skipAndAdvancePayment(identity, payment as PaymentRequest, 'approve_month_skip')
+      : rejectMonthSkipAction(identity, payment as PaymentRequest);
+  }
+
+  if (body.action === 'mark_month_skipped') {
+    return skipAndAdvancePayment(identity, payment as PaymentRequest, 'mark_month_skipped');
   }
 
   return decidePaymentAction(identity, payment as PaymentRequest, body.approved);
@@ -417,6 +431,81 @@ async function decideDelayAction(
   });
 }
 
+async function requestMonthSkipAction(
+  identity: ServerIdentity,
+  payment: PaymentRequest
+): Promise<NextResponse> {
+  const admin = getSupabaseAdmin();
+  const organizationId = identity.profile.organization_id;
+  if (
+    payment.member_id !== identity.profile.id ||
+    !['active', 'overdue', 'delayed'].includes(payment.status)
+  ) {
+    return NextResponse.json({ error: 'Действие недоступно.' }, { status: 403 });
+  }
+
+  const paymentResult = await admin
+    .from('payment_requests')
+    .update({ status: 'skip_requested' })
+    .eq('id', payment.id)
+    .select('*')
+    .single();
+  const notification = await createNotification(
+    organizationId,
+    payment.trainer_id,
+    `${await profileName(payment.member_id)} не будет ходить в ${payment.period_label ?? periodLabel(payment.due_date)}.`,
+    payment.id
+  );
+  if (paymentResult.error || !paymentResult.data) {
+    return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось запросить пропуск месяца.' }, { status: 400 });
+  }
+  if (!notification) {
+    logNotificationFailure('request_month_skip', payment.id, payment.trainer_id);
+  }
+  return NextResponse.json({
+    payment: toLocalPayment(paymentResult.data as PaymentRequest),
+    notification
+  });
+}
+
+async function rejectMonthSkipAction(
+  identity: ServerIdentity,
+  payment: PaymentRequest
+): Promise<NextResponse> {
+  const admin = getSupabaseAdmin();
+  const organizationId = identity.profile.organization_id;
+  if (payment.status !== 'skip_requested') {
+    return NextResponse.json({ error: 'Запрос уже обработан.' }, { status: 400 });
+  }
+
+  const nextStatus: PaymentRequestStatus =
+    dateValue(payment.due_date) < dateValue(todayString()) ? 'overdue' : 'active';
+  const paymentResult = await admin
+    .from('payment_requests')
+    .update({ status: nextStatus })
+    .eq('id', payment.id)
+    .select('*')
+    .single();
+  const notification = await createNotification(
+    organizationId,
+    payment.member_id,
+    'Пропуск месяца не подтверждён. Счёт остаётся активным.',
+    payment.id
+  );
+  if (paymentResult.error || !paymentResult.data) {
+    return NextResponse.json({ error: paymentResult.error?.message ?? 'Не удалось отклонить пропуск месяца.' }, { status: 400 });
+  }
+  if (!notification) {
+    logNotificationFailure('reject_month_skip', payment.id, payment.member_id);
+  }
+
+  return NextResponse.json({
+    payment: toLocalPayment(paymentResult.data as PaymentRequest),
+    nextPayment: null,
+    notification
+  });
+}
+
 async function decidePaymentAction(
   identity: ServerIdentity,
   payment: PaymentRequest,
@@ -470,6 +559,41 @@ async function approvePaymentAction(identity: ServerIdentity, payment: PaymentRe
     'confirm_payment_and_advance',
     'approve_payment'
   );
+}
+
+async function skipAndAdvancePayment(
+  identity: ServerIdentity,
+  payment: PaymentRequest,
+  notificationContext: string
+): Promise<NextResponse> {
+  const admin = getSupabaseAdmin();
+  const organizationId = identity.profile.organization_id;
+  const result = await admin.rpc('skip_payment_and_advance', {
+    p_payment_id: payment.id,
+    p_organization_id: organizationId
+  });
+  const row = Array.isArray(result.data) ? result.data[0] : result.data;
+  const skippedPayment = row?.payment as PaymentRequest | undefined;
+  const nextPayment = (row?.next_payment ?? null) as PaymentRequest | null;
+  if (result.error || !skippedPayment) {
+    return NextResponse.json({ error: result.error?.message ?? 'Не удалось отметить пропуск месяца.' }, { status: 400 });
+  }
+
+  const notification = await createNotification(
+    organizationId,
+    payment.member_id,
+    `Месяц ${payment.period_label ?? periodLabel(payment.due_date)} отмечен как пропущенный.`,
+    payment.id
+  );
+  if (!notification) {
+    logNotificationFailure(notificationContext, payment.id, payment.member_id);
+  }
+
+  return NextResponse.json({
+    payment: toLocalPayment(skippedPayment),
+    nextPayment: nextPayment ? toLocalPayment(nextPayment) : null,
+    notification
+  });
 }
 
 async function confirmAndAdvancePayment(

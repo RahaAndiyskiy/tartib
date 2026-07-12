@@ -87,9 +87,11 @@ async function applyGroupPaymentDefaults(
     if (existingPayment.error) return existingPayment.error.message;
     if (
       existingPayment.data &&
-      ['payment_confirmation', 'delay_requested', 'paid'].includes(existingPayment.data.status)
+      ['payment_confirmation', 'delay_requested', 'skip_requested', 'paid', 'skipped'].includes(
+        existingPayment.data.status
+      )
     ) {
-      // Начатый процесс оплаты или отсрочки нельзя сбрасывать изменением настроек группы.
+      // Начатый процесс оплаты, отсрочки или пропуска нельзя сбрасывать изменением настроек группы.
       return null;
     }
 

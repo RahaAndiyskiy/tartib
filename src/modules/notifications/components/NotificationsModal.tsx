@@ -14,6 +14,7 @@ type NotificationsModalProps = {
   onMarkRead: () => void;
   onDecidePayment: (paymentId: string, status: PaymentRequestStatus) => void;
   onDecideDelay: (paymentId: string, approved: boolean) => void;
+  onDecideMonthSkip: (paymentId: string, approved: boolean) => void;
   onOpenPayment: (paymentId?: string | null) => void;
 };
 
@@ -27,6 +28,7 @@ export function NotificationsModal({
   onMarkRead,
   onDecidePayment,
   onDecideDelay,
+  onDecideMonthSkip,
   onOpenPayment
 }: NotificationsModalProps): React.ReactElement {
   useScrollLock();
@@ -102,6 +104,26 @@ export function NotificationsModal({
                           type="button"
                           disabled={isPendingAction(`decide-delay:${payment.id}`)}
                           onClick={() => onDecideDelay(payment.id, false)}
+                        >
+                          Отклонить
+                        </button>
+                      </>
+                    ) : null}
+                    {canDecide && payment.status === 'skip_requested' ? (
+                      <>
+                        <button
+                          className="small-button"
+                          type="button"
+                          disabled={isPendingAction(`decide-month-skip:${payment.id}`)}
+                          onClick={() => onDecideMonthSkip(payment.id, true)}
+                        >
+                          Подтвердить
+                        </button>
+                        <button
+                          className="small-button secondary"
+                          type="button"
+                          disabled={isPendingAction(`decide-month-skip:${payment.id}`)}
+                          onClick={() => onDecideMonthSkip(payment.id, false)}
                         >
                           Отклонить
                         </button>

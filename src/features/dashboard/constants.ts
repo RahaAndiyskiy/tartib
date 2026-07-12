@@ -47,6 +47,8 @@ export const statusLabels: Record<PaymentRequestStatus | 'not-set', string> = {
   active: 'Активна',
   delay_requested: 'Запрошена отсрочка',
   delayed: 'Отсрочена',
+  skip_requested: 'Пропуск запрошен',
+  skipped: 'Пропущено',
   payment_confirmation: 'Ожидает подтверждения',
   paid: 'Оплачено',
   overdue: 'Просрочено',

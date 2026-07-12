@@ -84,6 +84,13 @@ Related docs:
 - Pages: `/dashboard`
 - Tables: `payment_requests`, `notifications`
 
+### Month Skip
+
+- Description: member can report that they will not attend the current month; trainer/owner can approve or reject it. Trainer/owner can also mark the current active/overdue/delayed month as skipped directly. Approved monthly skips close the current invoice without paid amount and create the next monthly invoice when an active monthly plan exists.
+- Pages: `/dashboard`
+- Tables: `payment_requests`, `billing_plans`, `notifications`
+- RPC: `skip_payment_and_advance()`
+
 ### Automatic Reminders
 
 - Description: database cron updates overdue status and creates payment reminders.
@@ -93,19 +100,19 @@ Related docs:
 
 ### Internal Notifications
 
-- Description: user opens notifications from the top button in a modal; payment/delay notifications are actionable.
+- Description: user opens notifications from the top button in a modal; payment, delay and month-skip notifications are actionable.
 - Pages: `/dashboard`
 - Tables: `notifications`, `payment_requests`
 
 ### Web Push Notifications
 
-- Description: user can enable and disable browser/PWA push notifications from one stateful control; payment and delay events send push through the same internal notification layer.
+- Description: external browser/PWA push is postponed and hidden from the product UI. MVP uses internal actionable notifications only.
 - Pages: `/dashboard`
 - Tables: `push_subscriptions`, `notifications`, `payment_requests`
 
 ### Account Settings
 
-- Description: user can update first name, last name and phone; owner can update organization name; per-device push can be enabled or disabled from settings.
+- Description: user can update first name, last name and phone; owner can update organization name. External push settings are hidden until the push project is revisited.
 - Pages: `/dashboard`
 - Tables: `users`, `organizations`, `push_subscriptions`
 

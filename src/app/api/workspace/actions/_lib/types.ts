@@ -72,6 +72,9 @@ export type ActionBody =
   | { action: 'decide_delay'; paymentId: string; approved: boolean }
   | { action: 'decide_payment'; paymentId: string; approved: boolean }
   | { action: 'mark_payment_paid'; paymentId: string }
+  | { action: 'request_month_skip'; paymentId: string }
+  | { action: 'decide_month_skip'; paymentId: string; approved: boolean }
+  | { action: 'mark_month_skipped'; paymentId: string }
   | { action: 'mark_notifications_read' };
 
 export type NotificationRow = {
@@ -128,6 +131,9 @@ export type PaymentActionBody = Extract<
   | { action: 'decide_delay' }
   | { action: 'decide_payment' }
   | { action: 'mark_payment_paid' }
+  | { action: 'request_month_skip' }
+  | { action: 'decide_month_skip' }
+  | { action: 'mark_month_skipped' }
 >;
 
 export type { PaymentRequestStatus };

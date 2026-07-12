@@ -5,6 +5,8 @@ export type PaymentRequestStatus =
   | 'overdue'
   | 'delay_requested'
   | 'delayed'
+  | 'skip_requested'
+  | 'skipped'
   | 'payment_confirmation'
   | 'paid';
 export type BillingPlanType = 'monthly' | 'one_time';
